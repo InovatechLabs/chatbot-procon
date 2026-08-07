@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # 1. Banco de Dados
+  postgres:
+    image: postgres:15-alpine
+    container_name: database
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. Interface Visual pro Banco de Dados (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: interface_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@procon.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  # 3. Backend Node.js
+  backend:
+    build:
+      context: ./backend
+    container_name: backend_api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules 
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@postgres:5432/${DB_NAME}
+    depends_on:
+      - postgres
+    command: npm run dev
+
+  # 4. Frontend Painel de Controle (React.js)
+  frontend:
+    build:
+      context: ./frontend
+    container_name: web_panel
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  pgdata:
