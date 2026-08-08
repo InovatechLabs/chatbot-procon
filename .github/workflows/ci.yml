@@ -1,0 +1,49 @@
+name: CI - Container Test
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Subir a aplicação com Docker Compose
+        run: docker compose up -d --build
+
+      - name: Aguardar inicialização dos containers
+        run: sleep 15
+
+      - name: Verificar se os containers estão rodando
+        run: |
+          echo "Status dos Containers"
+          docker compose ps
+
+          # Obtém os nomes/IDs dos containers que deveriam estar rodando
+          CONTAINERS=$(docker compose ps -q)
+
+          for CONTAINER in $CONTAINERS; do
+            STATE=$(docker inspect --format='{{.State.Running}}' $CONTAINER)
+            NAME=$(docker inspect --format='{{.Name}}' $CONTAINER)
+
+            if [ "$STATE" != "true" ]; then
+              echo "ERRO: O container $NAME não está rodando!"
+              exit 1
+            else
+              echo "OK: O container $NAME está rodando perfeitamente."
+            fi
+          done
+
+      - name: Exibir logs dos containers (útil para depuração)
+        if: always()
+        run: docker compose logs
+
+      - name: Encerrar containers
+        if: always()
+        run: docker compose down
