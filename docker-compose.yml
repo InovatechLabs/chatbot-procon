@@ -40,6 +40,9 @@ services:
       - /app/node_modules 
     environment:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@postgres:5432/${DB_NAME}
+      - VERIFY_TOKEN=${VERIFY_TOKEN}
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
+      - PHONE_NUMBER_ID=${PHONE_NUMBER_ID}
     depends_on:
       - postgres
     command: npm run dev
