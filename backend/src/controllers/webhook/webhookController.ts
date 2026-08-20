@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../database/index.js';
 import { sendTextMessage, sendInteractiveMessage } from '../../services/metaAPI.js';
+import { generateOrientativeResponse } from '../../services/llm/llmService.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -26,7 +27,10 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
   const { body } = req;
 
   if (body.object === 'whatsapp_business_account') {
-    try {
+
+    res.status(200).send('EVENT_RECEIVED');
+
+   try {
       for (const entry of body.entry) {
         const changes = entry.changes[0].value;
         
@@ -35,13 +39,26 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           const phoneNumber = message.from;
           let responseStep = null;
 
+          // CENÁRIO 1: Texto livre
           if (message.type === 'text') {
-            console.log(`💬 Texto de ${phoneNumber}: ${message.text.body}`);
-            responseStep = await prisma.step.findFirst({
-              where: { isStart: true },
-              include: { options: true },
-            });
-          } 
+            const userText = message.text.body.toLowerCase().trim();
+            console.log(`💬 Texto de ${phoneNumber}: ${userText}`);
+            
+            // Regra de Fallback
+            const greetings = ['oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite', 'menu', 'ajuda', 'iniciar'];
+            
+            if (greetings.includes(userText)) {
+              responseStep = await prisma.step.findFirst({
+                where: { isStart: true },
+                include: { options: true },
+              });
+            } else {
+              const fallbackMessage = "Desculpe, sou um assistente virtual em treinamento e ainda não consigo ler textos longos ou áudios.\n\nPor favor, *digite 'Oi'* para ver o menu de opções, ou escolha *'Agendar Consulta'* no menu principal para conversar com um de nossos especialistas.";
+              
+              await sendTextMessage(phoneNumber, fallbackMessage);
+              continue; 
+            }
+          }
           else if (message.type === 'interactive') {
             let selectedOptionId = null;
 
@@ -49,6 +66,24 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               selectedOptionId = message.interactive.button_reply.id;
             } else if (message.interactive.type === 'list_reply') {
               selectedOptionId = message.interactive.list_reply.id;
+            }
+
+            if (selectedOptionId === 'btn_feedback_sim') {
+              console.log(`Feedback Positivo de ${phoneNumber}`);
+              await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece o seu contato. Tenha um ótimo dia!");
+              continue; 
+            } 
+            else if (selectedOptionId === 'btn_feedback_nao') {
+              console.log(`Feedback Negativo de ${phoneNumber}. Direcionando para agendamento...`);
+              
+              const stepAgendamento = await prisma.step.findFirst({
+                where: { title: 'Fluxo Agendamento' }
+              });
+              
+              if (stepAgendamento) {
+                await sendTextMessage(phoneNumber, stepAgendamento.message);
+              }
+              continue; 
             }
 
             if (selectedOptionId) {
@@ -69,8 +104,17 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           if (responseStep) {
             if (responseStep.options.length > 0) {
               await sendInteractiveMessage(phoneNumber, responseStep.message, responseStep.options);
-            } else {
-              await sendTextMessage(phoneNumber, responseStep.message);
+            } else {        
+              const path = responseStep.title; 
+              const humanizedText = await generateOrientativeResponse(path, responseStep.message);
+
+              const finalMessage = humanizedText + '\n\nEssa resposta solucionou sua dúvida?';
+              const feedbackOptions = [
+                { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
+                { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
+              ];
+
+              await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
             }
           }
         }
@@ -78,7 +122,7 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
     } catch (error) {
       console.error("Erro interno no WebhookController:", error);
     }
-    return res.status(200).send('EVENT_RECEIVED');
+    return;
   }
 
   return res.sendStatus(404);
