@@ -4,10 +4,62 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
+
+// 1. A Etapa/Pergunta (O que o bot fala)
+model Step {
+  id          String   @id @default(uuid())
+  title       String   // Nome interno pro Painel Web (Ex: "Menu Principal")
+  message     String   // O texto que vai pro WhatsApp 
+  isStart     Boolean  @default(false) // Define se é a primeira mensagem que o bot manda quando recebemos uma msg
+
+  // Relacionamentos
+  options         Option[] @relation("StepToOptions") // As opçoes de resposta dessa etapa
+  targetedBy      Option[] @relation("OptionToNextStep") // Quais opçoes de outras etapas apontam para cá
+  activeSessions  UserSession[] // Pessoas que estao paradas lendo essa etapa agora
+  chatLogs        ChatLog[]
+}
+
+// 2. Alternativas
+model Option {
+  id          String   @id @default(uuid())
+  stepId      String   // A qual Etapa essa opçao pertence
+  text        String   // O que o usuario tem que digitar 
+  nextStepId  String?  // Para qual Etapa o bot deve mandar o usuario se ele escolher isso
+
+  // Relacionamentos
+  step        Step     @relation("StepToOptions", fields: [stepId], references: [id])
+  nextStep    Step?    @relation("OptionToNextStep", fields: [nextStepId], references: [id])
+}
+
+// 3. Memoria do Bot (Sessao do Usuario)
+model UserSession {
+  id             String   @id @default(uuid())
+  phoneNumber    String   @unique // O número do usuario 
+  currentStepId  String?  // Em qual etapa do fluxo ele está
+  updatedAt      DateTime @updatedAt // Para saber se a janela de 24h expirou
+
+  // Relacionamentos
+  currentStep    Step?    @relation(fields: [currentStepId], references: [id])
+}
+
+// Modelo para usar futuramente (aprendizado do bot)
+model ChatLog {
+  id           String   @id @default(uuid())
+  phoneNumber  String   // Quem enviou
+  direction    String   // "INBOUND" (usuário enviou) ou "OUTBOUND" (bot enviou)
+  messageText  String   // O texto exato da mensagem
+  timestamp    DateTime @default(now())
+  
+  // Relacionar com o Step para a IA saber em qual contexto o usuário falou isso
+  stepId       String?
+  step         Step?    @relation(fields: [stepId], references: [id])
+}
+
+// Lembre-se de atualizar o model Step para aceitar o relacionamento, adicionando:
+// chatLogs   ChatLog[]
