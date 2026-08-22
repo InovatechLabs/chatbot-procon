@@ -68,5 +68,5 @@ model KnowledgeBase {
   title     String 
   content   String   
   
-  embedding Unsupported("vector(768)")? 
+  embedding Unsupported("vector(1024)")? 
 }

@@ -14,7 +14,7 @@ async function getEmbedding(text: string): Promise<number[]> {
   const ollamaUrl = 'http://host.docker.internal:11434/api/embeddings'; 
   
   const response = await axios.post(ollamaUrl, {
-    model: 'nomic-embed-text',
+    model: 'bge-m3:latest',
     prompt: text
   });
   
