@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # 1. Banco de Dados
   postgres:
-    image: postgres:15-alpine
+    image: ankane/pgvector:latest
     container_name: database
     restart: always
     environment:

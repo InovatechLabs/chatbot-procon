@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../database/index.js';
 import { sendTextMessage, sendInteractiveMessage } from '../../services/metaAPI.js';
-import { generateOrientativeResponse } from '../../services/llm/llmService.js';
+import { answerWithRAG, generateOrientativeResponse } from '../../services/llm/llmService.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -39,23 +39,34 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           const phoneNumber = message.from;
           let responseStep = null;
 
-          // CENÁRIO 1: Texto livre
           if (message.type === 'text') {
             const userText = message.text.body.toLowerCase().trim();
             console.log(`💬 Texto de ${phoneNumber}: ${userText}`);
             
-            // Regra de Fallback
             const greetings = ['oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite', 'menu', 'ajuda', 'iniciar'];
             
+            // Se for saudação, manda o Menu de botões normais
             if (greetings.includes(userText)) {
               responseStep = await prisma.step.findFirst({
                 where: { isStart: true },
                 include: { options: true },
               });
-            } else {
-              const fallbackMessage = "Desculpe, sou um assistente virtual em treinamento e ainda não consigo ler textos longos ou áudios.\n\nPor favor, *digite 'Oi'* para ver o menu de opções, ou escolha *'Agendar Consulta'* no menu principal para conversar com um de nossos especialistas.";
+            } 
+            // ==========================================================
+            // NOVO FLUXO: CHAT LIVRE (RAG)
+            // ==========================================================
+            else {
+              await sendTextMessage(phoneNumber, "⏳ *Estou pesquisando sua situação no Código de Defesa do Consumidor...*");
               
-              await sendTextMessage(phoneNumber, fallbackMessage);
+              const ragResponse = await answerWithRAG(userText);
+              const finalMessage = ragResponse + '\n\nEssa orientação solucionou sua dúvida?';
+
+              const feedbackOptions = [
+                { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
+                { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
+              ];
+
+              await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
               continue; 
             }
           }
