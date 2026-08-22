@@ -5,10 +5,12 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [vector]
 }
 
 // 1. A Etapa/Pergunta (O que o bot fala)
@@ -61,5 +63,10 @@ model ChatLog {
   step         Step?    @relation(fields: [stepId], references: [id])
 }
 
-// Lembre-se de atualizar o model Step para aceitar o relacionamento, adicionando:
-// chatLogs   ChatLog[]
+model KnowledgeBase {
+  id        String   @id @default(uuid())
+  title     String 
+  content   String   
+  
+  embedding Unsupported("vector(1024)")? 
+}
