@@ -46,17 +46,25 @@ model UserSession {
   currentStepId  String?  // Em qual etapa do fluxo ele está
   updatedAt      DateTime @updatedAt // Para saber se a janela de 24h expirou
 
+  isChat         Boolean  @default(false) // Para saber se o usuario está em conversa livre ou navegando pelo menu
+  rating         Int?     // Avaliaçao da qualidade das respostas que será usada para treinar o modelo
+  status         String   @default("OPEN") // Status do caso, OPEN, RESOLVED ou CLOSED
+
   // Relacionamentos
   currentStep    Step?    @relation(fields: [currentStepId], references: [id])
+  chatLogs       ChatLog[] // Historico atrelado a essa sessao especifica
 }
 
 // Modelo para usar futuramente (aprendizado do bot)
 model ChatLog {
   id           String   @id @default(uuid())
+  sessionId    String   // Vínculo da sessao de chat
   phoneNumber  String   // Quem enviou
   direction    String   // "INBOUND" (usuário enviou) ou "OUTBOUND" (bot enviou)
   messageText  String   // O texto exato da mensagem
   timestamp    DateTime @default(now())
+
+  session      UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   
   // Relacionar com o Step para a IA saber em qual contexto o usuário falou isso
   stepId       String?

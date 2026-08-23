@@ -27,10 +27,9 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
   const { body } = req;
 
   if (body.object === 'whatsapp_business_account') {
-
     res.status(200).send('EVENT_RECEIVED');
 
-   try {
+    try {
       for (const entry of body.entry) {
         const changes = entry.changes[0].value;
         
@@ -39,37 +38,119 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           const phoneNumber = message.from;
           let responseStep = null;
 
+          // ==========================================================
+          // 1. GERENCIAMENTO DE SESSÃO (BUSCAR OU CRIAR)
+          // ==========================================================
+          let session = await prisma.userSession.findUnique({
+            where: { phoneNumber }
+          });
+
+          if (!session) {
+            session = await prisma.userSession.create({
+              data: { phoneNumber, isChat: false, status: 'OPEN' }
+            });
+          }
+
+          // Se a sessão estava fechada (RESOLVED/CLOSED), reabrimos
+          if (session.status !== 'OPEN') {
+             session = await prisma.userSession.update({
+               where: { id: session.id },
+               data: { status: 'OPEN', isChat: false, currentStepId: null }
+             });
+          }
+
+
+          // ==========================================================
+          // 2. TRATAMENTO DE TEXTO (MENSAGENS DIGITADAS)
+          // ==========================================================
           if (message.type === 'text') {
-            const userText = message.text.body.toLowerCase().trim();
+            const originalText = message.text.body;
+            const userText = originalText.toLowerCase().trim();
             console.log(`💬 Texto de ${phoneNumber}: ${userText}`);
-            
-            const greetings = ['oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite', 'menu', 'ajuda', 'iniciar'];
-            
-            // Se for saudação, manda o Menu de botões normais
-            if (greetings.includes(userText)) {
-              responseStep = await prisma.step.findFirst({
-                where: { isStart: true },
-                include: { options: true },
+
+            // Salva o texto no histórico IMEDIATAMENTE
+            await prisma.chatLog.create({
+              data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'INBOUND', messageText: originalText }
+            });
+
+            // COMANDOS DE FUGA (Para sair do chat livre)
+            const escapeCommands = ['menu', 'sair', 'voltar', 'cancelar', 'iniciar'];
+            if (escapeCommands.includes(userText)) {
+              session = await prisma.userSession.update({
+                where: { id: session.id },
+                data: { isChat: false, currentStepId: null }
               });
-            } 
-            // ==========================================================
-            // NOVO FLUXO: CHAT LIVRE (RAG)
-            // ==========================================================
-            else {
+            }
+
+            // --- BIFURCAÇÃO DE ESTADO ---
+            if (session.isChat === true) {
+              // 🔴 MODO IA ATIVADO: Ignora tudo e vai pro RAG
               await sendTextMessage(phoneNumber, "⏳ *Estou pesquisando sua situação no Código de Defesa do Consumidor...*");
               
-              const ragResponse = await answerWithRAG(userText);
-              const finalMessage = ragResponse + '\n\nEssa orientação solucionou sua dúvida?';
+              const ragResponse = await answerWithRAG(originalText, session.id); 
+              
+              // Salva a resposta do Bot
+              await prisma.chatLog.create({
+                data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResponse }
+              });
 
-              const feedbackOptions = [
-                { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
-                { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
-              ];
+              const isClarification = ragResponse.includes('?');
 
-              await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
-              continue; 
+              if (isClarification) {
+                await sendTextMessage(phoneNumber, ragResponse);
+              } else {
+                const finalMessage = ragResponse + '\n\nEssa orientação solucionou sua dúvida?';
+                const feedbackOptions = [
+                  { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
+                  { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
+                ];
+
+                await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
+              }
+
+            } else {
+              const greetings = ['oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite'];
+
+              if (greetings.includes(userText) || escapeCommands.includes(userText)) {
+                // Se for saudação ou fuga, manda o Menu de botões normais
+                responseStep = await prisma.step.findFirst({
+                  where: { isStart: true },
+                  include: { options: true },
+                });
+              } else {
+                // Se não deu saudação, mas já mandou texto solto (reclamação direta), ativa IA
+                session = await prisma.userSession.update({
+                  where: { id: session.id },
+                  data: { isChat: true }
+                });
+
+                await sendTextMessage(phoneNumber, "⏳ *Analisando seu relato...*");
+                
+                const ragResponse = await answerWithRAG(originalText, session.id);
+                
+                await prisma.chatLog.create({
+                  data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResponse }
+                });
+
+                const isClarification = ragResponse.includes('?');
+                if (isClarification) {
+                  await sendTextMessage(phoneNumber, ragResponse);
+                } else {              
+                const finalMessage = ragResponse + '\n\nEssa orientação solucionou sua dúvida?';
+                const feedbackOptions = [
+                  { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
+                  { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
+                ];
+                await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
+                continue;
+                }
+              }
             }
           }
+          
+          // ==========================================================
+          // 3. TRATAMENTO DE BOTÕES (INTERACTIVE)
+          // ==========================================================
           else if (message.type === 'interactive') {
             let selectedOptionId = null;
 
@@ -79,29 +160,57 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               selectedOptionId = message.interactive.list_reply.id;
             }
 
-            if (selectedOptionId === 'btn_feedback_sim') {
-              console.log(`Feedback Positivo de ${phoneNumber}`);
-              await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece o seu contato. Tenha um ótimo dia!");
-              continue; 
-            } 
-            else if (selectedOptionId === 'btn_feedback_nao') {
-              console.log(`Feedback Negativo de ${phoneNumber}. Direcionando para agendamento...`);
+            // TRATAMENTO DE FEEDBACK (Finaliza o atendimento)
+            if (selectedOptionId === 'btn_feedback_sim' || selectedOptionId === 'btn_feedback_nao') {
+              const resolveu = selectedOptionId === 'btn_feedback_sim';
               
-              const stepAgendamento = await prisma.step.findFirst({
-                where: { title: 'Fluxo Agendamento' }
+              console.log(`Feedback ${resolveu ? 'Positivo' : 'Negativo'} de ${phoneNumber}`);
+              
+              // Atualiza a sessão para fechada e salva a nota provisória
+              await prisma.userSession.update({
+                where: { id: session.id },
+                data: { 
+                  status: 'RESOLVED',
+                  isChat: false,
+                  rating: resolveu ? 5 : 1 // Exemplo: 5 pra sim, 1 pra não.
+                }
               });
-              
-              if (stepAgendamento) {
-                await sendTextMessage(phoneNumber, stepAgendamento.message);
+
+              if (resolveu) {
+                await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece o seu contato. Tenha um ótimo dia!");
+              } else {
+                const stepAgendamento = await prisma.step.findFirst({
+                  where: { title: 'Fluxo Agendamento' } // Ou busque por um isAgendamento flag
+                });
+                
+                if (stepAgendamento) {
+                  await sendTextMessage(phoneNumber, stepAgendamento.message);
+                } else {
+                   await sendTextMessage(phoneNumber, "Entendo. Para melhor auxiliá-lo, sugerimos o agendamento presencial em nossa unidade.");
+                }
               }
               continue; 
             }
 
+            // TRATAMENTO DE NAVEGAÇÃO DE MENU NORMAL
             if (selectedOptionId) {
               console.log(`👆 Clique no ID: ${selectedOptionId}`);
+              
+              // Verifica se clicou na opção de ir pro chat livre (Adapte o ID/Texto conforme seu banco)
               const optionClicked = await prisma.option.findUnique({
                 where: { id: selectedOptionId },
               });
+
+              // SE CLICAR NA OPÇÃO DE "ATENDIMENTO COM IA"
+              // (Você precisa checar como essa opção é identificada no seu DB)
+              if (optionClicked && optionClicked.text.toLowerCase().includes('atendente virtual')) {
+                  await prisma.userSession.update({
+                     where: { id: session.id },
+                     data: { isChat: true }
+                  });
+                  await sendTextMessage(phoneNumber, "Olá! Sou o assistente virtual. Por favor, descreva o seu problema de forma clara e objetiva.");
+                  continue;
+              }
 
               if (optionClicked && optionClicked.nextStepId) {
                 responseStep = await prisma.step.findUnique({
@@ -112,7 +221,16 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             }
           }
 
+          // ==========================================================
+          // 4. ENVIO FINAL (Se for um Step do fluxo programado)
+          // ==========================================================
           if (responseStep) {
+            // Atualiza o passo atual na sessão
+            await prisma.userSession.update({
+              where: { id: session.id },
+              data: { currentStepId: responseStep.id }
+            });
+
             if (responseStep.options.length > 0) {
               await sendInteractiveMessage(phoneNumber, responseStep.message, responseStep.options);
             } else {        

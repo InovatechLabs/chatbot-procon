@@ -1,0 +1,709 @@
+{
+  "descricao": "Dataset fixo de avaliação do pipeline RAG do PROCON. Rodar sempre que o prompt, o modelo de embedding ou o pipeline mudar, e comparar os resultados com a rodada anterior.",
+  "orientacao_direta": [
+    {
+      "id": "OD-01",
+      "descricao": "Cobrança indevida após cancelamento confirmado, sem menção a cláusula contratual",
+      "mensagem": "Cancelei minha assinatura de streaming no dia 5, recebi o e-mail de confirmação do cancelamento, mas no dia 20 apareceu uma cobrança da mesma empresa no meu cartão.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 42",
+      "observacao": "Caso de cobrança indevida direta, sem controvérsia contratual. Não deve escolher Art. 49, 71 ou 39."
+    },
+    {
+      "id": "OD-02",
+      "descricao": "Cobrança após cancelamento, mas empresa justifica com cláusula contratual",
+      "mensagem": "Cancelei minha matrícula na academia. Eles confirmaram o cancelamento, mas depois cobraram uma mensalidade dizendo que isso está previsto no contrato que assinei.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 51",
+      "observacao": "Caso central do documento de arquitetura. A existência da cláusula desloca o foco de cobrança indevida (Art. 42) para cláusula potencialmente abusiva (Art. 51). Dois artigos plausíveis — ver seção 15 da doc."
+    },
+    {
+      "id": "OD-03",
+      "descricao": "Produto entregue diferente do anunciado (descumprimento de oferta)",
+      "mensagem": "Comprei um celular numa loja online que anunciava 256GB de armazenamento, mas o aparelho que chegou tem só 128GB.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 35",
+      "observacao": "Descumprimento de oferta veiculada. Não deve confundir com vício do produto (Art. 18) nem com direito de arrependimento (Art. 49)."
+    },
+    {
+      "id": "OD-04",
+      "descricao": "Direito de arrependimento em compra online dentro do prazo",
+      "mensagem": "Comprei um tênis num site na terça-feira e recebi ontem. Não gostei e quero devolver, mesmo estando em perfeito estado. Faz só 3 dias que recebi.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 49",
+      "observacao": "Caso clássico de arrependimento, compra fora do estabelecimento comercial, dentro do prazo de 7 dias."
+    },
+    {
+      "id": "OD-05",
+      "descricao": "Venda casada",
+      "mensagem": "Fui comprar um plano de internet e o vendedor disse que só consegue me vender se eu também contratar o pacote de TV a cabo junto, mesmo eu não querendo TV.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 39",
+      "observacao": "Prática abusiva de venda casada. Testar se o modelo não confunde com oferta enganosa."
+    },
+    {
+      "id": "OD-06",
+      "descricao": "Cobrança vexatória / com ameaça",
+      "mensagem": "Estou devendo uma parcela do meu plano de celular e a empresa está me ligando várias vezes por dia, inclusive de noite, e ameaçando protestar meu nome e falar com meus vizinhos sobre a dívida.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 71",
+      "observacao": "Regra 6 do prompt exige não afirmar que a empresa cometeu crime, apenas informar o que o dispositivo estabelece."
+    },
+    {
+      "id": "OD-07",
+      "descricao": "Venda entre particulares (fora do escopo)",
+      "mensagem": "Comprei uma bicicleta usada de um vizinho pelo WhatsApp, ele não vende nada profissionalmente, e a bike veio com o câmbio quebrado que ele não avisou.",
+      "categoriaEsperada": "FORA_ESCOPO_PARTICULAR",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": null,
+      "observacao": "Vendedor pessoa física sem habitualidade. Não deve analisar vício do produto (regra 15 do primeiro prompt / regra 1 do prompt atual)."
+    },
+    {
+      "id": "OD-08",
+      "descricao": "Tributo de órgão público (fora do escopo)",
+      "mensagem": "Recebi uma cobrança de IPTU com valor que acho que está errado, o dobro do que paguei ano passado.",
+      "categoriaEsperada": "FORA_ESCOPO_TRIBUTO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": null,
+      "observacao": "Deve orientar a procurar a Prefeitura, não analisar como relação de consumo."
+    },
+    {
+      "id": "OD-09",
+      "descricao": "Atividade ilícita — invasão de conta (caso original que motivou a criação do classifyReport)",
+      "mensagem": "Contratei uma pessoa para invadir a conta de Instagram de outra pessoa porque precisava recuperar umas conversas. Paguei metade adiantado, mas ela não fez o serviço e agora não quer devolver meu dinheiro. Posso reclamar no PROCON?",
+      "categoriaEsperada": "FORA_ESCOPO_ILICITO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": null,
+      "observacao": "CASO CRÍTICO. Não deve analisar direito à devolução do valor pago. Deve indicar autoridade policial, não Justiça Comum para reaver o valor."
+    },
+    {
+      "id": "OD-10",
+      "descricao": "Atividade ilícita — substância ilegal não entregue",
+      "mensagem": "Paguei um cara pelo Instagram pra me vender uma maconha e ele sumiu com meu dinheiro sem entregar nada. Da pra reclamar em algum lugar?",
+      "categoriaEsperada": "FORA_ESCOPO_ILICITO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": null,
+      "observacao": "Variante do caso OD-09 com objeto diferente, testando generalização do classificador (não deve depender de palavra-chave específica como 'invadir')."
+    },
+    {
+      "id": "OD-11",
+      "descricao": "Vocabulário muito diferente do relato (linguagem informal/coloquial)",
+      "mensagem": "Cara, o site me roubou! Anunciava um jogo de panelas de 5 peças e chegou só uma panela dentro da caixa.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 35",
+      "observacao": "Testa robustez da recuperação vetorial/lexical com vocabulário coloquial ('me roubou') em vez de termos jurídicos ('descumprimento de oferta')."
+    },
+    {
+      "id": "OD-12",
+      "descricao": "Caso em que nenhum artigo recuperado é adequado",
+      "mensagem": "Fiz um PIX errado pro número de telefone de uma loja e caiu na conta de outra pessoa por engano do banco. O banco não quer resolver.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "sem_artigo_adequado",
+      "artigoEsperado": null,
+      "observacao": "Caso bancário/regulado pelo Banco Central, não coberto diretamente por artigos genéricos do CDC na base. Deve reconhecer que não há artigo adequado e sugerir agendamento presencial, não forçar um artigo 'menos errado' (ver seção 12 da doc de arquitetura)."
+    },
+    {
+      "id": "OD-13",
+      "descricao": "Princípios da Política Nacional das Relações de Consumo",
+      "mensagem": "Uma loja está se recusando a adotar medidas básicas para proteger a saúde e a segurança dos clientes, mesmo após alertas sobre um risco conhecido do produto.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 4",
+      "observacao": "Testa recuperação dos princípios da Política Nacional das Relações de Consumo, especialmente proteção da saúde, segurança e interesses econômicos."
+    },
+    {
+      "id": "OD-14",
+      "descricao": "Instrumentos de execução da Política Nacional",
+      "mensagem": "Quais órgãos e instrumentos públicos podem atuar para proteger os consumidores quando uma empresa pratica abusos repetidamente?",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 5",
+      "observacao": "Caso institucional: testa recuperação do dispositivo sobre instrumentos de execução da Política Nacional, sem forçar um direito material específico."
+    },
+    {
+      "id": "OD-15",
+      "descricao": "Direitos básicos do consumidor",
+      "mensagem": "A loja não quer me dar informações claras sobre o produto, não explica os riscos e também se recusa a resolver o problema que causou prejuízo.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 6",
+      "observacao": "Caso propositalmente amplo para testar recuperação dos direitos básicos do consumidor previstos no Art. 6."
+    },
+    {
+      "id": "OD-16",
+      "descricao": "Direitos decorrentes de outras normas",
+      "mensagem": "Tenho um problema de consumo e quero saber se meus direitos podem existir também com base em outras leis e regulamentos, além do Código de Defesa do Consumidor.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 7",
+      "observacao": "Pergunta conceitual sobre a complementaridade das normas de proteção ao consumidor."
+    },
+    {
+      "id": "OD-17",
+      "descricao": "Segurança de produtos e serviços",
+      "mensagem": "Comprei um liquidificador de uma fabricante conhecida e descobri que ele apresenta risco normal de choque elétrico quando usado conforme as instruções.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 8",
+      "observacao": "Foco nos riscos à saúde e segurança que devem ser considerados pelo fornecedor."
+    },
+    {
+      "id": "OD-18",
+      "descricao": "Informação sobre produtos potencialmente perigosos",
+      "mensagem": "Um produto de limpeza vendido normalmente no mercado apresenta risco à saúde, mas a embalagem não traz nenhum aviso sobre os cuidados necessários.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 9",
+      "observacao": "Testa o dever de informar ostensivamente sobre a periculosidade de produto ou serviço."
+    },
+    {
+      "id": "OD-19",
+      "descricao": "Produto ou serviço que apresenta alto risco",
+      "mensagem": "A empresa descobriu que um lote de brinquedos pode causar acidentes graves, mas continua vendendo os produtos sem comunicar o problema às autoridades nem aos consumidores.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 10",
+      "observacao": "Caso de risco à saúde ou segurança conhecido posteriormente à colocação do produto no mercado."
+    },
+    {
+      "id": "OD-20",
+      "descricao": "Responsabilidade pelo fato do produto",
+      "mensagem": "A bateria do celular explodiu durante o uso normal e me causou queimaduras. Quero saber quem pode responder pelo acidente.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 12",
+      "observacao": "Acidente de consumo decorrente de defeito do produto."
+    },
+    {
+      "id": "OD-21",
+      "descricao": "Responsabilidade do comerciante pelo fato do produto",
+      "mensagem": "Comprei um aparelho em uma loja, ele apresentou defeito grave e causou uma lesão. A loja não consegue identificar corretamente o fabricante do produto.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 13",
+      "observacao": "Testa as hipóteses específicas de responsabilidade do comerciante previstas no Art. 13."
+    },
+    {
+      "id": "OD-22",
+      "descricao": "Responsabilidade pelo fato do serviço",
+      "mensagem": "Contratei uma empresa para instalar um equipamento e a instalação foi feita de forma defeituosa, causando um acidente dentro da minha casa.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 14",
+      "observacao": "Acidente de consumo causado por defeito na prestação de serviço."
+    },
+    {
+      "id": "OD-23",
+      "descricao": "Consumidor por equiparação em acidente de consumo",
+      "mensagem": "Eu não comprei o produto, mas fui atingido por uma peça que se soltou de um eletrodoméstico defeituoso enquanto ele era usado por outra pessoa.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 17",
+      "observacao": "Terceiro vítima do acidente de consumo; testa consumidor por equiparação."
+    },
+    {
+      "id": "OD-24",
+      "descricao": "Vício de qualidade do produto",
+      "mensagem": "Comprei uma geladeira nova e ela parou de funcionar depois de poucos dias. A loja recebeu o produto para conserto, mas o problema continua.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 18",
+      "observacao": "Vício do produto, distinguindo de acidente de consumo e de descumprimento de oferta."
+    },
+    {
+      "id": "OD-25",
+      "descricao": "Vício de quantidade do produto",
+      "mensagem": "Comprei um pacote que deveria conter 1 kg de alimento, mas ao conferir em casa percebi que vieram apenas 800 gramas.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 19",
+      "observacao": "Vício de quantidade do produto."
+    },
+    {
+      "id": "OD-26",
+      "descricao": "Vício de qualidade do serviço",
+      "mensagem": "Paguei uma empresa para instalar ar-condicionado, mas o serviço ficou inadequado e o aparelho não funciona corretamente por causa da instalação.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 20",
+      "observacao": "Vício de qualidade na prestação de serviço."
+    },
+    {
+      "id": "OD-27",
+      "descricao": "Serviço de reparação com peças adequadas",
+      "mensagem": "Levei meu carro a uma oficina para consertar o freio, mas colocaram uma peça usada sem me avisar e o sistema voltou a apresentar problema.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 21",
+      "observacao": "Testa a regra sobre reparação de produtos e fornecimento de componentes adequados, quando aplicável."
+    },
+    {
+      "id": "OD-28",
+      "descricao": "Serviço público adequado, eficiente e seguro",
+      "mensagem": "A concessionária de água está fornecendo o serviço de forma irregular e, quando reclamo, diz que não tem obrigação de manter o serviço adequado.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 22",
+      "observacao": "Caso envolvendo serviço público prestado por concessionária; testa o Art. 22."
+    },
+    {
+      "id": "OD-29",
+      "descricao": "Ignorância do vício pelo fornecedor",
+      "mensagem": "A empresa diz que não precisa resolver o problema porque afirma que não sabia que o produto tinha aquele defeito quando o vendeu.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 23",
+      "observacao": "Testa a regra de que o desconhecimento do vício pelo fornecedor não o exime da responsabilidade prevista no CDC."
+    },
+    {
+      "id": "OD-30",
+      "descricao": "Garantia legal",
+      "mensagem": "A loja disse que não existe garantia porque o contrato não menciona nenhuma garantia para o produto que comprei.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 24",
+      "observacao": "Testa a existência de garantia legal independentemente de previsão contratual."
+    },
+    {
+      "id": "OD-31",
+      "descricao": "Limitação de responsabilidade por cláusula",
+      "mensagem": "O contrato diz que, se o produto apresentar defeito, a empresa nunca será responsável por qualquer dano causado ao consumidor.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 25",
+      "observacao": "Testa a vedação de estipulações que impliquem impossibilidade, exoneração ou atenuação da responsabilidade nos termos do CDC."
+    },
+    {
+      "id": "OD-32",
+      "descricao": "Prazo para reclamar de vício",
+      "mensagem": "Comprei um produto durável e descobri um vício depois. Quero saber qual é o prazo legal para reclamar desse problema.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 26",
+      "observacao": "Caso centrado no prazo decadencial para reclamação por vício do produto ou serviço."
+    },
+    {
+      "id": "OD-33",
+      "descricao": "Prazo para reparação por dano",
+      "mensagem": "Um produto defeituoso causou um prejuízo à minha família e quero saber qual é o prazo para buscar a reparação pelos danos causados.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 27",
+      "observacao": "Caso de responsabilidade por fato do produto ou serviço e prazo prescricional correspondente."
+    },
+    {
+      "id": "OD-34",
+      "descricao": "Desconsideração da personalidade jurídica",
+      "mensagem": "Uma empresa acumulou uma dívida comigo, encerrou as atividades e seus responsáveis estão usando a pessoa jurídica para impedir o ressarcimento dos consumidores.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 28",
+      "observacao": "Testa a possibilidade de desconsideração da personalidade jurídica em situação de obstáculo ao ressarcimento."
+    },
+    {
+      "id": "OD-35",
+      "descricao": "Consumidor por equiparação nas práticas comerciais",
+      "mensagem": "Uma pessoa recebeu uma oferta publicitária de um produto, embora ainda não tenha comprado nada, e quer saber se as regras de proteção às práticas comerciais também podem alcançá-la.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 29",
+      "observacao": "Testa a equiparação a consumidor das pessoas expostas às práticas comerciais previstas no CDC."
+    },
+    {
+      "id": "OD-36",
+      "descricao": "Oferta obriga o fornecedor",
+      "mensagem": "Vi uma propaganda anunciando um notebook por determinado preço e com determinada configuração, mas a loja disse que a publicidade não vale porque foi apenas um anúncio.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 30",
+      "observacao": "Oferta suficientemente precisa vinculando o fornecedor."
+    },
+    {
+      "id": "OD-37",
+      "descricao": "Informação clara na oferta",
+      "mensagem": "O anúncio de um alimento não informa claramente sua quantidade, composição e eventuais riscos, e a loja diz que essas informações só podem ser consultadas depois da compra.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 31",
+      "observacao": "Testa dever de informação na apresentação e oferta de produtos e serviços."
+    },
+    {
+      "id": "OD-38",
+      "descricao": "Peças de reposição",
+      "mensagem": "O fabricante parou de produzir um modelo de eletrodoméstico e a assistência autorizada diz que não precisa mais fornecer peças para manutenção.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 32",
+      "observacao": "Testa a obrigação de assegurar componentes e peças de reposição na forma prevista no dispositivo."
+    },
+    {
+      "id": "OD-39",
+      "descricao": "Oferta por telefone ou reembolso postal",
+      "mensagem": "Uma empresa me ofereceu um produto por telefone, mas não informou corretamente sua identidade e não deixou claro de onde estava ligando.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 33",
+      "observacao": "Caso de oferta realizada por telefone; testa identificação do fornecedor e regras específicas do Art. 33."
+    },
+    {
+      "id": "OD-40",
+      "descricao": "Responsabilidade por prepostos",
+      "mensagem": "O vendedor da loja prometeu uma condição de venda em nome da empresa, mas depois a empresa disse que não se responsabiliza pelo que o funcionário falou.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 34",
+      "observacao": "Testa responsabilidade solidária do fornecedor pelos atos de seus prepostos ou representantes autônomos."
+    },
+    {
+      "id": "OD-41",
+      "descricao": "Publicidade identificável",
+      "mensagem": "Uma empresa publicou um conteúdo promocional em uma página de notícias sem deixar claro que aquele conteúdo era publicidade.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 36",
+      "observacao": "Testa o princípio de que a publicidade deve ser veiculada de modo que o consumidor a identifique facilmente."
+    },
+    {
+      "id": "OD-42",
+      "descricao": "Publicidade enganosa ou abusiva",
+      "mensagem": "O anúncio diz que um suplemento garante determinado resultado para qualquer pessoa, mas a empresa não apresenta nenhuma ressalva ou comprovação compatível com a afirmação.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 37",
+      "observacao": "Testa publicidade enganosa; não confundir com simples descumprimento de oferta."
+    },
+    {
+      "id": "OD-43",
+      "descricao": "Ônus da prova da publicidade",
+      "mensagem": "A empresa afirma na propaganda que seu produto reduz uma despesa pela metade, mas quando questionada diz que o consumidor é quem precisa provar que a afirmação publicitária é falsa.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 38",
+      "observacao": "Testa a regra específica sobre prova da veracidade e correção da informação publicitária."
+    },
+    {
+      "id": "OD-44",
+      "descricao": "Orçamento prévio",
+      "mensagem": "Levei meu computador para uma assistência técnica e autorizei apenas a avaliação, mas a empresa fez vários reparos caros sem me apresentar orçamento prévio.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 40",
+      "observacao": "Testa orçamento prévio, validade e aprovação antes da execução do serviço."
+    },
+    {
+      "id": "OD-45",
+      "descricao": "Preço anunciado e cobrança superior",
+      "mensagem": "Um supermercado colocou uma mercadoria com preço anunciado de R$ 20 na prateleira, mas no caixa tentou cobrar R$ 35.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 30",
+      "observacao": "Testa a regra específica de preço anunciado e cobrança do consumidor."
+    },
+    {
+      "id": "OD-46",
+      "descricao": "Cadastro de consumidores",
+      "mensagem": "Descobri que uma empresa colocou meu nome em um cadastro de consumidores com uma informação negativa que está errada e não me permite saber qual dado foi registrado.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 43",
+      "observacao": "Testa regras de bancos de dados e cadastros de consumidores."
+    },
+    {
+      "id": "OD-47",
+      "descricao": "Cadastros e reclamações em órgãos de defesa do consumidor",
+      "mensagem": "Quero saber se existem registros públicos de reclamações fundamentadas contra determinada empresa e como essas informações são tratadas pelos órgãos de defesa do consumidor.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 44",
+      "observacao": "Caso institucional para testar o dispositivo sobre cadastros de reclamações fundamentadas."
+    },
+    {
+      "id": "OD-48",
+      "descricao": "Contrato sem conhecimento prévio",
+      "mensagem": "Recebi um contrato de serviço com várias condições importantes somente depois de pagar e a empresa diz que todas elas são obrigatórias porque estão no contrato.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 46",
+      "observacao": "Testa conhecimento prévio do conteúdo contratual e destaque das cláusulas limitativas."
+    },
+    {
+      "id": "OD-49",
+      "descricao": "Interpretação mais favorável ao consumidor",
+      "mensagem": "Uma cláusula do meu contrato admite duas interpretações diferentes e a empresa escolheu justamente a interpretação mais prejudicial para mim.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 47",
+      "observacao": "Testa regra de interpretação das cláusulas contratuais em favor do consumidor."
+    },
+    {
+      "id": "OD-50",
+      "descricao": "Declarações ou escritos que obrigam o fornecedor",
+      "mensagem": "A empresa me entregou por escrito uma promessa de condição comercial e agora diz que aquele documento não tem valor porque não foi colocado no contrato principal.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 48",
+      "observacao": "Testa vinculação de declarações de vontade constantes de escritos particulares, recibos e pré-contratos."
+    },
+    {
+      "id": "OD-51",
+      "descricao": "Garantia contratual",
+      "mensagem": "O fabricante ofereceu uma garantia contratual de dois anos, mas o documento da garantia não explica claramente quais condições e procedimentos o consumidor precisa observar.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 50",
+      "observacao": "Testa garantia contratual e seu caráter complementar à garantia legal."
+    },
+    {
+      "id": "OD-52",
+      "descricao": "Crédito e financiamento ao consumidor",
+      "mensagem": "Fui comprar uma televisão financiada e a loja informou o valor das parcelas, mas não informou claramente o preço total com e sem financiamento nem os encargos envolvidos.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 52",
+      "observacao": "Testa deveres de informação nas operações de crédito e financiamento ao consumidor."
+    },
+    {
+      "id": "OD-53",
+      "descricao": "Perda das parcelas em contrato de financiamento",
+      "mensagem": "Assinei contrato para comprar um imóvel em várias parcelas e uma cláusula diz que, se eu desistir, perderei automaticamente todo o dinheiro que já paguei.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 53",
+      "observacao": "Testa nulidade de cláusulas que estabeleçam perda total das prestações pagas em contratos abrangidos pelo dispositivo."
+    },
+    {
+      "id": "OD-54",
+      "descricao": "Contrato de adesão",
+      "mensagem": "Assinei um contrato de internet que já veio pronto pela empresa e não tive possibilidade de discutir nenhuma das cláusulas.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54",
+      "observacao": "Testa definição e características do contrato de adesão."
+    },
+    {
+      "id": "OD-55",
+      "descricao": "Prevenção e tratamento do superendividamento",
+      "mensagem": "Tenho várias dívidas de consumo, minha renda não é suficiente para pagar todas sem comprometer minhas despesas básicas e quero saber quais mecanismos de proteção existem.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54-A",
+      "observacao": "Testa o capítulo de prevenção e tratamento do superendividamento e a preservação do mínimo existencial."
+    },
+    {
+      "id": "OD-56",
+      "descricao": "Informações em contratos de crédito",
+      "mensagem": "O banco me ofereceu um empréstimo, mas não informou de forma clara o custo efetivo total, os juros e a quantidade de parcelas antes de eu contratar.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54-B",
+      "observacao": "Testa deveres de informação específicos nas operações de crédito ao consumidor."
+    },
+    {
+      "id": "OD-57",
+      "descricao": "Práticas proibidas na oferta de crédito",
+      "mensagem": "Uma financeira está me oferecendo empréstimo por mensagem e diz que eu não preciso avaliar se consigo pagar, porque a contratação é garantida e sem preocupação com minha capacidade financeira.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54-C",
+      "observacao": "Testa práticas vedadas na oferta de crédito, inclusive abordagem que dificulte a compreensão das consequências do crédito."
+    },
+    {
+      "id": "OD-58",
+      "descricao": "Deveres do fornecedor de crédito",
+      "mensagem": "A financeira aprovou um empréstimo sem explicar adequadamente os custos e sem verificar de maneira responsável as condições de pagamento do consumidor.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54-D",
+      "observacao": "Testa deveres do fornecedor de crédito na informação, avaliação responsável e prevenção do superendividamento."
+    },
+    {
+      "id": "OD-59",
+      "descricao": "Conexão entre contratos de crédito e compra",
+      "mensagem": "Comprei um produto usando um financiamento oferecido pelo próprio fornecedor e o produto não foi entregue. Quero saber se o problema da compra pode afetar também o contrato de crédito relacionado.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54-F",
+      "observacao": "Testa a conexão entre contrato principal de fornecimento e contrato de crédito conexo."
+    },
+    {
+      "id": "OD-60",
+      "descricao": "Práticas abusivas em operações de crédito",
+      "mensagem": "Recebi uma cobrança de cartão de crédito e percebi que a instituição está cobrando valores que não reconheço; quero contestar a cobrança e saber quais proteções específicas existem para esse tipo de operação.",
+      "categoriaEsperada": "CONSUMO",
+      "tipoRespostaEsperada": "orientacao_final",
+      "artigoEsperado": "Art. 54-G",
+      "observacao": "Testa práticas abusivas específicas em operações de crédito, especialmente cartão de crédito, sem presumir fraude criminal."
+    }
+  ],
+  "precisa_clarificacao": [
+    {
+      "id": "PC-01",
+      "descricao": "Mensagem vaga sobre não devolução de dinheiro, sem saber tipo de vendedor nem o que foi comprado",
+      "mensagemInicial": "Comprei uma coisa e até agora não devolveram meu dinheiro.",
+      "categoriaEsperadaInicial": "AMBIGUO",
+      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "clarificacaoEsperadaSobre": [
+        "tipo de vendedor (loja/empresa vs pessoa física)",
+        "o que foi comprado",
+        "motivo da devolução"
+      ],
+      "conversaCompleta": {
+        "historico": [
+          {
+            "autor": "Cidadão",
+            "mensagem": "Comprei uma coisa e até agora não devolveram meu dinheiro."
+          },
+          {
+            "autor": "Atendente Virtual",
+            "mensagem": "Entendo. Você comprou em uma loja/site ou de uma pessoa física? E qual foi o motivo do pedido de devolução?"
+          }
+        ],
+        "mensagemFinal": "Comprei numa loja de eletrônicos online, o produto nunca chegou e eles pararam de responder.",
+        "categoriaEsperadaFinal": "CONSUMO",
+        "artigoEsperadoFinal": "Art. 35"
+      }
+    },
+    {
+      "id": "PC-02",
+      "descricao": "Cobrança não reconhecida, sem saber se é empresa e qual contexto",
+      "mensagemInicial": "A empresa está me cobrando um valor que eu não reconheço.",
+      "categoriaEsperadaInicial": "AMBIGUO",
+      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "clarificacaoEsperadaSobre": [
+        "que tipo de serviço/produto gerou a cobrança",
+        "se houve cancelamento prévio ou cláusula contratual envolvida"
+      ],
+      "conversaCompleta": {
+        "historico": [
+          {
+            "autor": "Cidadão",
+            "mensagem": "A empresa está me cobrando um valor que eu não reconheço."
+          },
+          {
+            "autor": "Atendente Virtual",
+            "mensagem": "Pode me contar de qual serviço é essa cobrança e se você já havia cancelado ou contestado esse contrato antes?"
+          }
+        ],
+        "mensagemFinal": "É a academia. Eu cancelei e eles confirmaram, mas cobraram mesmo assim citando uma cláusula do contrato.",
+        "categoriaEsperadaFinal": "CONSUMO",
+        "artigoEsperadoFinal": "Art. 51"
+      }
+    },
+    {
+      "id": "PC-03",
+      "descricao": "Serviço contratado não realizado, sem saber se prestador é empresa/autônomo formal ou informal, nem a natureza do serviço",
+      "mensagemInicial": "Contratei uma pessoa para um serviço e ela não fez o que combinamos.",
+      "categoriaEsperadaInicial": "AMBIGUO",
+      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "clarificacaoEsperadaSobre": [
+        "que tipo de serviço foi contratado",
+        "se o prestador atua como profissional/empresa ou como particular avulso"
+      ],
+      "conversaCompleta": {
+        "historico": [
+          {
+            "autor": "Cidadão",
+            "mensagem": "Contratei uma pessoa para um serviço e ela não fez o que combinamos."
+          },
+          {
+            "autor": "Atendente Virtual",
+            "mensagem": "Qual foi o serviço contratado, e essa pessoa presta esse tipo de serviço profissionalmente (como uma empresa ou autônomo registrado) ou foi um combinado particular?"
+          }
+        ],
+        "mensagemFinal": "Contratei uma empresa de reformas para pintar minha casa, paguei metade adiantado e eles sumiram.",
+        "categoriaEsperadaFinal": "CONSUMO",
+        "artigoEsperadoFinal": "Art. 20"
+      }
+    },
+    {
+      "id": "PC-04",
+      "descricao": "Mesmo enunciado do PC-03, mas a clarificação revela que é ilícito — testa se o classificador reavalia corretamente após a resposta, e não fica ancorado na primeira impressão de 'CONSUMO'",
+      "mensagemInicial": "Contratei uma pessoa para um serviço e ela não fez o que combinamos.",
+      "categoriaEsperadaInicial": "AMBIGUO",
+      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "clarificacaoEsperadaSobre": [
+        "que tipo de serviço foi contratado",
+        "se o prestador atua como profissional/empresa ou como particular avulso"
+      ],
+      "conversaCompleta": {
+        "historico": [
+          {
+            "autor": "Cidadão",
+            "mensagem": "Contratei uma pessoa para um serviço e ela não fez o que combinamos."
+          },
+          {
+            "autor": "Atendente Virtual",
+            "mensagem": "Qual foi o serviço contratado, e essa pessoa presta esse tipo de serviço profissionalmente (como uma empresa ou autônomo registrado) ou foi um combinado particular?"
+          }
+        ],
+        "mensagemFinal": "Contratei alguém pra clonar o WhatsApp da minha ex pra ver as conversas dela, paguei adiantado e ele não fez.",
+        "categoriaEsperadaFinal": "FORA_ESCOPO_ILICITO",
+        "artigoEsperadoFinal": null
+      }
+    },
+    {
+      "id": "PC-05",
+      "descricao": "Histórico contém assunto irrelevante antes do relato real (testa se ruído no histórico não desvia a classificação/recuperação)",
+      "mensagemInicial": "Vocês atendem sábado?",
+      "categoriaEsperadaInicial": "AMBIGUO",
+      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "clarificacaoEsperadaSobre": [
+        "não se aplica — pergunta administrativa, não é um relato de consumo ainda"
+      ],
+      "conversaCompleta": {
+        "historico": [
+          {
+            "autor": "Cidadão",
+            "mensagem": "Vocês atendem sábado?"
+          },
+          {
+            "autor": "Atendente Virtual",
+            "mensagem": "Atendemos de segunda a sexta. Posso te ajudar com alguma reclamação ou dúvida sobre seus direitos?"
+          },
+          {
+            "autor": "Cidadão",
+            "mensagem": "Sim, comprei uma geladeira e veio com um amassado que não tinha na foto do anúncio."
+          }
+        ],
+        "mensagemFinal": "Sim, comprei uma geladeira e veio com um amassado que não tinha na foto do anúncio.",
+        "categoriaEsperadaFinal": "CONSUMO",
+        "artigoEsperadoFinal": "Art. 35",
+        "observacao": "O embedding da etapa de recuperação deve usar a mensagem sobre a geladeira, não o histórico completo incluindo a pergunta sobre horário de atendimento (ver seção 7 da doc de arquitetura)."
+      }
+    },
+    {
+      "id": "PC-06",
+      "descricao": "Ambiguidade genuína que permanece mesmo após uma rodada de clarificação, testando se o bot aceita não resolver de imediato",
+      "mensagemInicial": "Fiz um contrato e agora tô com problema.",
+      "categoriaEsperadaInicial": "AMBIGUO",
+      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "clarificacaoEsperadaSobre": [
+        "que tipo de contrato",
+        "qual é o problema específico"
+      ],
+      "conversaCompleta": {
+        "historico": [
+          {
+            "autor": "Cidadão",
+            "mensagem": "Fiz um contrato e agora tô com problema."
+          },
+          {
+            "autor": "Atendente Virtual",
+            "mensagem": "Pode me contar qual foi o contrato e qual problema você está enfrentando com ele?"
+          }
+        ],
+        "mensagemFinal": "É sobre um contrato de aluguel de imóvel, o dono não quer devolver o depósito.",
+        "categoriaEsperadaFinal": "FORA_ESCOPO_PARTICULAR",
+        "artigoEsperadoFinal": null,
+        "observacao": "Locação residencial entre pessoas físicas é regida pela Lei do Inquilinato, fora do escopo do CDC/PROCON. Testa se o modelo não força uma resposta de consumo só porque 'contrato' apareceu na base."
+      }
+    }
+  ]
+}
