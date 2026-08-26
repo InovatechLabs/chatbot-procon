@@ -293,6 +293,7 @@ const main = async () => {
   console.log('='.repeat(60));
   const resultadosDiretos = await runOrientacaoDireta(dataset.orientacao_direta);
 
+
   console.log('\n' + '='.repeat(60));
   console.log('RODANDO CASOS DE CLARIFICAÇÃO');
   console.log('='.repeat(60));
@@ -300,10 +301,11 @@ const main = async () => {
 
   fs.writeFileSync(
     RESULTS_PATH,
-    JSON.stringify({ resultadosDiretos, resultadosClarificacao, executadoEm: new Date().toISOString() }, null, 2)
+    JSON.stringify({ resultadosClarificacao, executadoEm: new Date().toISOString() }, null, 2)
   );
 
   // ---------- Resumo ----------
+ 
   const totalDiretos = resultadosDiretos.length;
   const acertosCategoriaDiretos = resultadosDiretos.filter((r: any) => r.categoriaOk).length;
   const acertosArtigoDiretos = resultadosDiretos.filter((r: any) => r.artigoOk).length;
@@ -316,9 +318,11 @@ const main = async () => {
   console.log('\n' + '='.repeat(60));
   console.log('RESUMO');
   console.log('='.repeat(60));
+  
   console.log(`Orientação direta (${totalDiretos} casos):`);
   console.log(`  Categoria correta: ${acertosCategoriaDiretos}/${totalDiretos}`);
   console.log(`  Artigo correto:    ${acertosArtigoDiretos}/${totalDiretos}`);
+  
   console.log(`Clarificação (${totalClarificacao} casos):`);
   console.log(`  Fez a pergunta na etapa inicial: ${acertosPerguntaInicial}/${totalClarificacao}`);
   console.log(`  Categoria correta na etapa final: ${acertosCategoriaFinal}/${totalClarificacao}`);

@@ -94,6 +94,16 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
                 data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResponse }
               });
 
+              if (ragResponse.includes('[AGENDAR]')) {
+                const cleanMessage = ragResponse.replace('[AGENDAR]', '').trim();
+                
+                const agendamentoOptions = [
+                  { id: 'btn_agendar_sim', text: 'Sim, quero agendar' },
+                  { id: 'btn_agendar_nao', text: 'Não, obrigado' }
+                ];
+                await sendInteractiveMessage(phoneNumber, cleanMessage, agendamentoOptions);
+              }
+
               const isClarification = ragResponse.includes('?');
 
               if (isClarification) {
