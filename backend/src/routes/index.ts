@@ -1,10 +1,12 @@
-import { Router } from 'express';
-import webhookRouter from './webhook/webhookRoutes.js';
-import flowRouter from './flow/flowRoutes.js';
+import express from 'express';
+import webhookRoutes from './webhook/webhookRoutes.js';
+import flowRoutes from './flow/flowRoutes.js';
+import adminRoutes from './admin/adminRoutes.js';
 
-const ApiRouter = Router();    
+const routes = express.Router();
 
-ApiRouter.use('/webhook', webhookRouter);
-ApiRouter.use('/flow', flowRouter);
+routes.use('/webhook', webhookRoutes);
+routes.use('/flow', flowRoutes);
+routes.use('/admin', adminRoutes);
 
-export default ApiRouter;
+export default routes;
