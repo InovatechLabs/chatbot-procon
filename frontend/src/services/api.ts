@@ -2,27 +2,69 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:3000',
+  timeout: 10000,
 });
 
 export const adminService = {
-  getAnalytics: () => api.get('/admin/analytics'),
-  getArvoreCompleta: () => api.get('/admin/fluxo/arvore'),
-  
-  criarNo: (data: { titulo: string; textoMensagem: string; tipo?: string; noPaiId?: string }) => 
-    api.post('/admin/fluxo/no', data),
-    
-  atualizarNo: (id: string, data: { titulo?: string; textoMensagem?: string; tipo?: string }) => 
-    api.put(`/admin/fluxo/no/${id}`, data),
-    
-  deletarNo: (id: string) => 
-    api.delete(`/admin/fluxo/no/${id}`),
+  getAnalytics: async () => {
+    try {
+      const response = await api.get('/analytics');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar analytics:', error);
+      throw error;
+    }
+  },
 
-  criarAlternativa: (data: { text: string; stepId: string; nextStepId: string }) => 
-    api.post('/admin/fluxo/alternativa', data),
-    
-  atualizarAlternativa: (id: string, data: { text?: string; nextStepId?: string }) => 
-    api.put(`/admin/fluxo/alternativa/${id}`, data),
-    
-  deletarAlternativa: (id: string) => 
-    api.delete(`/admin/fluxo/alternativa/${id}`),
+  getArvore: async () => {
+    try {
+      const response = await api.get('/nodes');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar nós do fluxo:', error);
+      throw error;
+    }
+  },
+
+  getArvoreCompleta: async () => {
+    try {
+      const response = await api.get('/nodes');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar árvore completa:', error);
+      throw error;
+    }
+  },
+
+  criarNo: async (dados: { titulo: string; textoMensagem: string; isStart?: boolean }) => {
+    const response = await api.post('/nodes', dados);
+    return response.data;
+  },
+
+  atualizarNo: async (id: string, dados: { titulo: string; textoMensagem: string }) => {
+    const response = await api.put(`/nodes/${id}`, dados);
+    return response.data;
+  },
+
+  deletarNo: async (id: string) => {
+    const response = await api.delete(`/nodes/${id}`);
+    return response.data;
+  },
+
+  criarAlternativa: async (dados: { stepId: string; text: string; nextStepId?: string }) => {
+    const response = await api.post('/nodes/options', dados);
+    return response.data;
+  },
+
+  atualizarAlternativa: async (id: string, dados: { text?: string; nextStepId?: string }) => {
+    const response = await api.put(`/nodes/options/${id}`, dados);
+    return response.data;
+  },
+
+  deletarAlternativa: async (id: string) => {
+    const response = await api.delete(`/nodes/options/${id}`);
+    return response.data;
+  },
 };
+
+export default api;
