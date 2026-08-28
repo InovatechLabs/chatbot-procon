@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
-  },
+  "dev": "tsx watch src/index.ts",
+  "build": "tsc",
+  "start": "node dist/index.js",
+  "db:seed:analytics": "tsx prisma/seed/seedAnalytics.ts"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -32,3 +33,4 @@
     "typescript": "^7.0.2"
   }
 }
+

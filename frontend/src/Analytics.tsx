@@ -6,38 +6,6 @@ import {
 } from 'recharts';
 import './App.css';
 
-// --- MOCK DATA PARA OS NOVOS GRÁFICOS (Agora em Português) ---
-// Quando o backend estiver pronto, basta substituir essas variáveis pelos dados da API
-const mockTimeData = [
-  { date: '05 Out', retidas: 25, transbordadas: 2, engajadas: 15, semEngajamento: 20, resolvidas: 10, abandonadas: 5 },
-  { date: '12 Out', retidas: 15, transbordadas: 1, engajadas: 10, semEngajamento: 15, resolvidas: 8, abandonadas: 3 },
-  { date: '19 Out', retidas: 35, transbordadas: 4, engajadas: 20, semEngajamento: 30, resolvidas: 15, abandonadas: 8 },
-  { date: '26 Out', retidas: 18, transbordadas: 1, engajadas: 12, semEngajamento: 10, resolvidas: 12, abandonadas: 2 },
-];
-
-const mockPieData = [
-  { name: 'Sem Engajamento', value: 114, color: '#4C1D95' }, // Roxo
-  { name: 'Resolvido', value: 38, color: '#D97706' },        // Laranja
-  { name: 'Transferido', value: 41, color: '#2563EB' },      // Azul
-  { name: 'Abandonado', value: 36, color: '#60A5FA' }        // Azul Claro
-];
-
-const mockOutcomeTable = [
-  { outcome: 'Transferido', reason: 'Regra de Negócio', conv: 18, rate: '7.86%' },
-  { outcome: 'Transferido', reason: 'Tentativas Máximas', conv: 18, rate: '7.86%' },
-  { outcome: 'Transferido', reason: 'Solicitado pelo Usuário', conv: 5, rate: '2.18%' },
-  { outcome: 'Resolvido', reason: 'Falhas de Integração', conv: 10, rate: '4.37%' },
-  { outcome: 'Resolvido', reason: 'Dúvida Sanada', conv: 28, rate: '12.23%' },
-  { outcome: 'Sem Engajamento', reason: 'Usuário não interagiu', conv: 114, rate: '49.78%' },
-];
-
-const mockBotTable = [
-  { name: 'PROCON Assistente Principal', total: 11, esc: 3, escRate: '27.3%', def: 8, defRate: '72.7%' },
-  { name: 'PROCON Guia de Direitos', total: 8, esc: 1, escRate: '12.5%', def: 7, defRate: '87.5%' },
-  { name: 'PROCON Triagem Inicial', total: 2, esc: 0, escRate: '0.0%', def: 2, defRate: '100.0%' },
-];
-// -----------------------------------------------------------------
-
 const IconTrendUp = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
 );
@@ -49,8 +17,12 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('summary');
   
-  // States da API original
+  // States dinâmicos vindos da API
   const [kpis, setKpis] = useState<any>(null);
+  const [timeData, setTimeData] = useState<any[]>([]);
+  const [pieData, setPieData] = useState<any[]>([]);
+  const [outcomeTable, setOutcomeTable] = useState<any[]>([]);
+  const [botTable, setBotTable] = useState<any[]>([]);
 
   useEffect(() => {
     carregarAnalytics();
@@ -59,10 +31,14 @@ export default function Analytics() {
   const carregarAnalytics = async () => {
     setLoading(true);
     try {
-      // Mantém a chamada real da sua API para preencher o que já existe
       const resAnalytics = await adminService.getAnalytics();
       const data = resAnalytics?.data || {};
-      setKpis(data.metricas || null);
+      
+      setKpis(data.metricas || {});
+      setTimeData(data.timeData || []);
+      setPieData(data.pieData || []);
+      setOutcomeTable(data.outcomeTable || []);
+      setBotTable(data.botTable || []);
     } catch (err) {
       console.error('Erro ao carregar analytics:', err);
     } finally {
@@ -71,7 +47,7 @@ export default function Analytics() {
   };
 
   if (loading) {
-    return <div className="loading-screen">Carregando Dashboard Avançado...</div>;
+    return <div className="loading-screen">Carregando Dashboard com dados do banco...</div>;
   }
 
   return (
@@ -104,13 +80,13 @@ export default function Analytics() {
       {/* 2. GRID DE KPIs (8 CARDS) */}
       <div className="kpi-grid-8">
         {[
-          { label: 'Total de conversas do bot', val: kpis?.totalInteracoes || 229, delta: '-58.7%', up: false },
-          { label: 'Taxa de transbordo (Humano)', val: '1.7%', delta: '38.5%', up: true },
-          { label: 'Taxa de retenção (Deflection)', val: '98.3%', delta: '-0.5%', up: false },
-          { label: 'Total de sessões do bot', val: '231', delta: '-58.6%', up: false },
-          { label: 'Taxa de engajamento', val: '50.6%', delta: '20.3%', up: true },
+          { label: 'Total de conversas do bot', val: kpis?.totalInteracoes ?? 0, delta: '-58.7%', up: false },
+          { label: 'Taxa de transbordo (Humano)', val: kpis?.taxaTransbordo || '1.7%', delta: '38.5%', up: true },
+          { label: 'Taxa de retenção (Deflection)', val: kpis?.taxaRetencao || '98.3%', delta: '-0.5%', up: false },
+          { label: 'Total de sessões do bot', val: kpis?.totalInteracoes ?? 0, delta: '-58.6%', up: false },
+          { label: 'Taxa de engajamento', val: kpis?.taxaEngajamento || '50.6%', delta: '20.3%', up: true },
           { label: 'Taxa de resolução', val: kpis?.taxaConclusao || '16.5%', delta: '22.4%', up: true },
-          { label: 'Taxa de abandono', val: '15.6%', delta: '-4.4%', up: false },
+          { label: 'Taxa de abandono', val: kpis?.taxaAbandono || '15.6%', delta: '-4.4%', up: false },
           { label: 'CSAT (Satisfação)', val: 'N/A', delta: '0.0%', up: false },
         ].map((k, i) => (
           <div key={i} className="kpi-card">
@@ -133,7 +109,7 @@ export default function Analytics() {
           </div>
           <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
-              <BarChart data={mockTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={timeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
@@ -152,7 +128,7 @@ export default function Analytics() {
           </div>
           <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
-              <BarChart data={mockTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={timeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
@@ -171,7 +147,7 @@ export default function Analytics() {
           </div>
           <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
-              <LineChart data={mockTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <LineChart data={timeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
@@ -195,8 +171,8 @@ export default function Analytics() {
           <div style={{ width: '100%', height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={mockPieData} cx="50%" cy="50%" innerRadius={0} outerRadius={90} dataKey="value" stroke="none">
-                  {mockPieData.map((entry, index) => (
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={0} outerRadius={90} dataKey="value" stroke="none">
+                  {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -222,7 +198,7 @@ export default function Analytics() {
                 </tr>
               </thead>
               <tbody>
-                {mockOutcomeTable.map((row, i) => (
+                {outcomeTable.map((row, i) => (
                   <tr key={i}>
                     <td><span className="table-strong">{row.outcome}</span></td>
                     <td className="table-muted">{row.reason}</td>
@@ -268,7 +244,7 @@ export default function Analytics() {
               </tr>
             </thead>
             <tbody>
-              {mockBotTable.map((bot, i) => (
+              {botTable.map((bot, i) => (
                 <tr key={i}>
                   <td><span className="table-strong">{bot.name}</span></td>
                   <td className="text-right">{bot.total}</td>
