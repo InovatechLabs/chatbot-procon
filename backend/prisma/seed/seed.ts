@@ -9,12 +9,12 @@ async function main() {
   await prisma.step.deleteMany({});
 
   // =========================================================================
-  // NÍVEL 1: MENU PRINCIPAL (2 BOTÕES CLICÁVEIS)
+  // NÍVEL 1: MENU PRINCIPAL (3 BOTÕES CLICÁVEIS)
   // =========================================================================
-  const menuPrincipal = await prisma.step.create({
+    const menuPrincipal = await prisma.step.create({
     data: {
       title: 'Menu Principal',
-      message: 'Olá! Sou o assistente virtual do PROCON.\n\nComo posso ajudar você hoje? Por favor, escolha uma das opções abaixo:',
+      message: 'Olá! Sou o assistente virtual do PROCON e estou aqui para tirar suas dúvidas sobre os seus direitos.\n\nVocê pode interagir comigo de duas formas:\n\n🔘 *Navegando pelo Menu:* Escolha um dos botões abaixo para explorar as dúvidas mais comuns.\n✍️ *Contando o seu problema:* A qualquer momento, você pode digitar o que aconteceu. \n\n💡 *Dica:* Se for digitar, explique a situação com detalhes (o que você comprou/contratou, quando foi e o que deu errado). Irei analisar seu caso te orientar da melhor forma possível.\n\n🔒 *Sua privacidade está garantida:* Nosso sistema é 100% seguro. Suas informações não são compartilhadas com terceiros.\n\nComo posso te ajudar hoje?',
       isStart: true,
     },
   });
@@ -27,70 +27,98 @@ async function main() {
   });
 
   // =========================================================================
-  // NÍVEL 1.5: SUBMENU DE DÚVIDAS (3 BOTÕES CLICÁVEIS)
+  // NÍVEL 1.5: SUBMENUS DE ROTEAMENTO
   // =========================================================================
-  const menuDuvidasSub = await prisma.step.create({
+
+  // "Tenho um problema" -> lista com os 4 domínios de problema concreto
+  const submenuProblemas = await prisma.step.create({
     data: {
-      title: 'Submenu Categoria Duvidas',
+      title: 'Submenu Tenho um Problema',
       message: '*O que aconteceu com você?*\n\nSelecione a opção que melhor descreve o seu problema:',
     },
   });
 
+  // "Quero entender uma regra/direito" -> lista com os temas conceituais
+  const submenuConceitos = await prisma.step.create({
+    data: {
+      title: 'Submenu Entender Direitos',
+      message: '*Sobre o que você quer entender melhor?*\n\nSelecione o tema:',
+    },
+  });
+
+  // "Sobre o Procon" -> processo de reclamação, agendamento e atendente virtual (3 botões)
+  const submenuProcon = await prisma.step.create({
+    data: {
+      title: 'Submenu Sobre o Procon',
+      message: '*Sobre o Procon*\n\nSelecione uma opção:',
+    },
+  });
+
   // =========================================================================
-  // NÍVEL 2: CATEGORIAS (PASSOS INTERMEDIÁRIOS - SE TRANFORMARÃO EM LISTAS)
+  // NÍVEL 2: CATEGORIAS (LISTAS/BOTÕES INTERMEDIÁRIOS)
   // =========================================================================
-  const stepFinancas = await prisma.step.create({
+
+  const categoriaCobrancas = await prisma.step.create({
     data: {
-      title: 'Menu Serviços Financeiros',
-      message: '*Bancos, Cobranças e Empréstimos*\n\nSelecione o problema específico para ver as orientações:',
+      title: 'Cobrancas e Descontos',
+      message: '*Cobranças, Descontos e Dívidas*\n\nSelecione o problema específico para ver as orientações:',
     },
   });
 
-  const stepCompras = await prisma.step.create({
+  const categoriaContratos = await prisma.step.create({
     data: {
-      title: 'Menu Compras e Entregas',
-      message: '*Produtos, Entregas e Defeitos*\n\nQual é a sua dúvida sobre o produto ou compra?',
+      title: 'Contratos e Cancelamentos',
+      message: '*Contratos e Cancelamentos*\n\nSelecione a situação que você está enfrentando:',
     },
   });
 
-  const stepContratos = await prisma.step.create({
+  const categoriaCompras = await prisma.step.create({
     data: {
-      title: 'Menu Contratos e Planos',
-      message: '*Serviços, Assinaturas e Contratos*\n\nSelecione a situação que você está enfrentando:',
+      title: 'Compras e Entregas',
+      message: '*Compras e Entregas*\n\nQual é a sua dúvida sobre o produto ou a compra?',
     },
   });
 
-  const stepGarantiasMenu = await prisma.step.create({
+  const categoriaGarantiaPratica = await prisma.step.create({
     data: {
-      title: 'Menu Geral de Garantias',
-      message: '*Garantias & Defeitos*\n\nVocê quer entender como a garantia funciona ou já está com um problema prático?',
+      title: 'Garantia Pratica',
+      message: '*Garantia — já comprei e quebrou*\n\nSelecione o que está acontecendo no seu caso:',
     },
   });
 
-  const stepGarantiasPrazos = await prisma.step.create({
+  const categoriaGarantiaConceitos = await prisma.step.create({
     data: {
-      title: 'Submenu Garantias Prazos',
+      title: 'Garantia Conceitos',
       message: '*Entendendo a Garantia*\n\nSelecione o tema para aprender sobre prazos e regras:',
     },
   });
 
-  const stepGarantiasProblemas = await prisma.step.create({
+  const categoriaCumprimentoOferta = await prisma.step.create({
     data: {
-      title: 'Submenu Garantias Problemas',
-      message: '*Problemas Práticos com Garantia*\n\nSelecione o que está acontecendo no seu caso:',
+      title: 'Cumprimento de Oferta',
+      message: '*Preço Anunciado e Cumprimento de Oferta*\n\nSelecione a situação:',
     },
   });
 
-  const stepGerais = await prisma.step.create({
+  const categoriaArrependimento = await prisma.step.create({
     data: {
-      title: 'Menu Duvidas Gerais',
-      message: '*Atendimento e Reclamações*\n\nSelecione o assunto de seu interesse:',
+      title: 'Direito de Arrependimento',
+      message: '*Direito de Arrependimento (7 dias)*\n\nSelecione sua dúvida específica:',
+    },
+  });
+
+  const categoriaProcesso = await prisma.step.create({
+    data: {
+      title: 'Processo Reclamacao',
+      message: '*Processo da Reclamação no Procon*\n\nSelecione o assunto de seu interesse:',
     },
   });
 
   // =========================================================================
   // NÍVEL 3: RESPOSTAS FINAIS (COM MITIGAÇÃO DE RISCO E UX WHATSAPP-FIRST)
   // =========================================================================
+
+  // --- Categoria A: Cobranças, Descontos e Dívidas ---
 
   const q1SeguroCartao = await prisma.step.create({
     data: {
@@ -120,26 +148,21 @@ async function main() {
     },
   });
 
-  const q9MultaContrato = await prisma.step.create({
+  const q24Portabilidade = await prisma.step.create({
     data: {
-      title: 'Questao 9 - Multa Contrato',
-      message: '*Sim, é possível cancelar sem pagar multa, mas apenas em casos específicos.*\n\n*Quando a multa NÃO costuma ser cobrada:*\n- No direito de arrependimento (até 7 dias para compras fora da loja).\n- Por descumprimento de cláusulas pela própria empresa (falha grave no serviço).\n\n*Importante:* Em outros cenários (como quebra de fidelidade), a empresa pode cobrar multa. No entanto, ela não pode ser desproporcional ou abusiva. O PROCON pode avaliar o seu contrato individualmente.',
+      title: 'Questao 24 - Portabilidade Beneficio',
+      message: 'Sim, a portabilidade deve ser solicitada apenas pelo titular da conta. Porém, caso exista algum tipo de empréstimo pessoal ou dívida com o banco atrelada, a portabilidade pode enfrentar restrições previstas em contrato.',
     },
   });
 
-  const q31GarantiaContratual = await prisma.step.create({
+  const q25PrescricaoDivida = await prisma.step.create({
     data: {
-      title: 'Questao 31 - Garantia Contratual',
-      message: '*É a garantia oferecida pelo fabricante complementar à garantia legal.*\n\n*Como funciona:*\n- Ela deve vir descrita detalhadamente em um termo escrito entregue a você.\n- A forma como o prazo contratual se soma ao prazo legal (se começam juntos ou um após o término do outro) depende estritamente do que foi estabelecido no documento da garantia.\n\n*Base Legal:* Art. 50 do CDC.',
+      title: 'Questao 25 - Prescricao Divida',
+      message: 'A dívida NÃO deixa de existir automaticamente depois de cinco anos. O que acontece é a prescrição: a empresa não pode mais cobrar judicialmente e seu nome não pode ficar negativado (no SPC/Serasa) por esse débito. No entanto, a empresa ainda pode disponibilizar a oportunidade de quitar as pendências amigavelmente.',
     },
   });
 
-  const q44DefeitoCarroUsado = await prisma.step.create({
-    data: {
-      title: 'Questao 44 - Carro Usado',
-      message: '*O fato de o veículo ser seminovo não elimina, por si só, a garantia legal.*\n\n*O que você pode fazer:*\nSe houver um vício oculto (que não foi informado na compra) e ele não for solucionado no prazo legal, o CDC prevê medidas que podem incluir o conserto, troca ou abatimento proporcional do preço.\n\n*Base Legal:* Art. 18 do CDC.\n\n*Importante:* A viabilidade do pedido (como cancelamento da compra) depende da natureza do vício, de quando ele foi descoberto e se a loja avisou sobre a limitação antes da venda.',
-    },
-  });
+  // --- Categoria B: Contratos e Cancelamentos ---
 
   const q4RecusaContrato = await prisma.step.create({
     data: {
@@ -155,17 +178,10 @@ async function main() {
     },
   });
 
-  const q7PlataformaOnline = await prisma.step.create({
+  const q9MultaContrato = await prisma.step.create({
     data: {
-      title: 'Questao 7 - Plataforma Online',
-      message: 'Sim, você deve entrar em contato tanto com a loja vendedora quanto com a plataforma (Marketplace). O CDC impõe responsabilidade objetiva ao fornecedor, que inclui a loja e, em muitos casos, a plataforma que intermedia a venda, especialmente se ela facilita ou garante a transação.',
-    },
-  });
-
-  const q8Duplicidade = await prisma.step.create({
-    data: {
-      title: 'Questao 8 - Reclamacao Online x Presencial',
-      message: 'Se você já possui uma reclamação aberta sobre o mesmo assunto, não é possível abrir outra reclamação em duplicidade. Se quiser complementar informações, utilize o protocolo existente.',
+      title: 'Questao 9 - Multa Contrato',
+      message: '*Sim, é possível cancelar sem pagar multa, mas apenas em casos específicos.*\n\n*Quando a multa NÃO costuma ser cobrada:*\n- No direito de arrependimento (até 7 dias para compras fora da loja).\n- Por descumprimento de cláusulas pela própria empresa (falha grave no serviço).\n\n*Importante:* Em outros cenários (como quebra de fidelidade), a empresa pode cobrar multa. No entanto, ela não pode ser desproporcional ou abusiva. O PROCON pode avaliar o seu contrato individualmente.',
     },
   });
 
@@ -176,10 +192,49 @@ async function main() {
     },
   });
 
+  const q46NotaFiscalNaoEnviada = await prisma.step.create({
+    data: {
+      title: 'Questao 46 - Nota Fiscal Nao Enviada',
+      message: 'O recebimento da nota fiscal é um direito à informação, garantido pelo Art. 6º, III do CDC. Se a empresa prometeu enviar e não enviou, mesmo após você cobrar, o PROCON pode solicitar esclarecimento e o envio da documentação diretamente ao fornecedor.\n\n*Tenha em mãos:*\n- RG e CPF\n- Comprovante da compra\n- Mensagens cobrando o envio da nota',
+    },
+  });
+
+  // Subcategoria: Direito de Arrependimento (7 dias) — perguntas 11 a 14
+
   const q11ArrependimentoSeteDias = await prisma.step.create({
     data: {
       title: 'Questao 11 - Arrependimento',
-      message: 'O consumidor pode desistir do contrato no prazo de 7 dias a contar da assinatura ou do recebimento do produto, sempre que a compra ocorrer FORA da loja física (internet ou telefone). Os valores eventualmente pagos serão devolvidos.',
+      message: 'O consumidor pode desistir do contrato no prazo de 7 dias a contar da assinatura ou do recebimento do produto, sempre que a compra ocorrer FORA da loja física (internet ou telefone). Os valores eventualmente pagos serão devolvidos.\n\n*Base Legal:* Art. 49 do CDC.',
+    },
+  });
+
+  const q12LojaFisica = await prisma.step.create({
+    data: {
+      title: 'Questao 12 - Vale Loja Fisica',
+      message: 'Não. O direito de arrependimento (Art. 49 do CDC) só se aplica a compras feitas FORA do estabelecimento comercial (internet, telefone, catálogo, porta a porta). Em compra presencial, o consumidor pôde avaliar o produto antes de decidir, então esse direito específico não se aplica.',
+    },
+  });
+
+  const q13FreteDevolucao = await prisma.step.create({
+    data: {
+      title: 'Questao 13 - Frete Devolucao',
+      message: 'A empresa. O consumidor não deve arcar com nenhum custo de frete ou postagem para a devolução. A empresa deve reembolsar o valor total pago, incluindo o frete de envio.\n\n*Base Legal:* Art. 49 do CDC.',
+    },
+  });
+
+  const q14EmbalagemAberta = await prisma.step.create({
+    data: {
+      title: 'Questao 14 - Embalagem Aberta',
+      message: 'Sim, desde que com cautela. O consumidor tem o direito de testar o produto para saber se ele atende às expectativas, agindo como faria em uma loja física. A embalagem original é recomendada, mas não é obrigatória para a devolução, e o produto deve ser devolvido sem danos causados por mau uso.\n\n*Base Legal:* Art. 49 do CDC.',
+    },
+  });
+
+  // --- Categoria C: Compras e Entregas ---
+
+  const q7PlataformaOnline = await prisma.step.create({
+    data: {
+      title: 'Questao 7 - Plataforma Online',
+      message: 'Sim, você deve entrar em contato tanto com a loja vendedora quanto com a plataforma (Marketplace). O CDC impõe responsabilidade objetiva ao fornecedor, que inclui a loja e, em muitos casos, a plataforma que intermedia a venda, especialmente se ela facilita ou garante a transação.',
     },
   });
 
@@ -190,33 +245,53 @@ async function main() {
     },
   });
 
-  const q24Portabilidade = await prisma.step.create({
+  const q43TrocaPresencial = await prisma.step.create({
     data: {
-      title: 'Questao 24 - Portabilidade Beneficio',
-      message: 'Sim, a portabilidade deve ser solicitada apenas pelo titular da conta. Porém, caso exista algum tipo de empréstimo pessoal ou dívida com o banco atrelada, a portabilidade pode enfrentar restrições previstas em contrato.',
+      title: 'Questao 43 - Troca Presencial Sem Defeito',
+      message: 'Não é obrigatório. O direito de arrependimento do CDC vale apenas para compras feitas fora do estabelecimento (online, telefone). Em compra presencial e sem defeito no produto, o consumidor já pôde avaliar o item antes de comprar, então não há obrigação legal de troca ou cancelamento por arrependimento — isso fica a critério de cada loja.\n\n*Exceção:* se o item foi comprado como presente, a troca também fica a critério da loja, mas é uma prática comum no mercado.',
     },
   });
 
-  const q25PrescricaoDivida = await prisma.step.create({
+  // --- Subcategoria: Cumprimento de Oferta (preço anunciado) — perguntas 38 a 42 ---
+
+  const q38CumprimentoOferta = await prisma.step.create({
     data: {
-      title: 'Questao 25 - Prescricao Divida',
-      message: 'A dívida NÃO deixa de existir automaticamente depois de cinco anos. O que acontece é a prescrição: a empresa não pode mais cobrar judicialmente e seu nome não pode ficar negativado (no SPC/Serasa) por esse débito. No entanto, a empresa ainda pode disponibilizar a oportunidade de quitar as pendências amigavelmente.',
+      title: 'Questao 38 - Cumprimento Preco Anunciado',
+      message: 'Sim. O que é anunciado obriga o fornecedor — a oferta faz parte do contrato.\n\n*Base Legal:* Art. 30 do CDC.',
     },
   });
 
-  const q26PrazoResposta = await prisma.step.create({
+  const q39PrecoDivergente = await prisma.step.create({
     data: {
-      title: 'Questao 26 - Prazo Resposta Fornecedor',
-      message: 'Após a abertura oficial da reclamação, o fornecedor costuma ter um prazo de até 10 dias corridos para apresentar resposta no sistema. Caso não haja retorno ou o problema não seja resolvido, pode ser agendada uma audiência conciliatória.',
+      title: 'Questao 39 - Preco Divergente',
+      message: 'Vale o menor preço. O consumidor tem direito à informação clara e correta. Se houver divergência entre a prateleira e o caixa, aplica-se o valor mais vantajoso ao consumidor.\n\n*Base Legal:* Art. 30 do CDC.',
     },
   });
 
-  const q27DocumentosGerais = await prisma.step.create({
+  const q40LojaNaoQuerVender = await prisma.step.create({
     data: {
-      title: 'Questao 27 - Documentos Reclamacao',
-      message: 'Cada caso exige uma análise, mas tenha sempre em mãos:\n- Documento pessoal (RG/CPF)\n- CNPJ da matriz da empresa\n- Comprovantes do problema (notas, protocolos, prints, faturas).\n\nPara análise detalhada, compareça presencialmente ao PROCON.',
+      title: 'Questao 40 - Loja Nao Quer Vender',
+      message: 'Você pode escolher, à sua livre escolha, entre:\n1. Exigir o cumprimento forçado do preço anunciado;\n2. Aceitar outro produto ou serviço equivalente;\n3. Cancelar e receber o dinheiro de volta corrigido, com direito a perdas e danos.\n\n*Base Legal:* Art. 35 do CDC.',
     },
   });
+
+  const q41ErroSistema = await prisma.step.create({
+    data: {
+      title: 'Questao 41 - Erro de Sistema',
+      message: 'Em regra, não. O risco do negócio é do fornecedor — ele é responsável pelas informações que divulga (Art. 30 do CDC).\n\n*Exceção:* quando o preço é claramente irreal e desproporcional (erro grosseiro e evidente, facilmente perceptível), a jurisprudência pode afastar a obrigatoriedade de cumprimento.',
+    },
+  });
+
+  const q42SemAvisoEstoque = await prisma.step.create({
+    data: {
+      title: 'Questao 42 - Sem Aviso Estoque',
+      message: 'Não. A limitação de estoque deve ser informada de forma clara antes da compra. Sem esse aviso, a loja não pode simplesmente recusar a venda alegando que o produto acabou.\n\n*Base Legal:* Art. 39, inciso II do CDC.',
+    },
+  });
+
+  // --- Categoria D: Garantia — Conceitos e Prazos ---
+  // Atenção: esta categoria já está no teto de 10 itens (limite prático de uma lista da Meta).
+  // Antes de adicionar qualquer pergunta nova aqui, considere dividir em duas subcategorias.
 
   const q28TiposGarantia = await prisma.step.create({
     data: {
@@ -228,7 +303,21 @@ async function main() {
   const q29GarantiaLegal = await prisma.step.create({
     data: {
       title: 'Questao 29 - Garantia Legal',
-      message: 'A garantia legal é prevista no Código de Defesa do Consumidor e independe de contrato. Os prazos são:\n- 30 dias para produtos ou serviços não duráveis (ex: alimentos).\n- 90 dias para produtos ou serviços duráveis (ex: eletrodomésticos, eletrônicos).',
+      message: 'A garantia legal é prevista no Código de Defesa do Consumidor e independe de contrato. Os prazos são:\n- 30 dias para produtos ou serviços não duráveis (ex: alimentos).\n- 90 dias para produtos ou serviços duráveis (ex: eletrodomésticos, eletrônicos).\n\n*Base Legal:* Art. 26 do CDC.',
+    },
+  });
+
+  const q30InicioContagemGarantia = await prisma.step.create({
+    data: {
+      title: 'Questao 30 - Inicio Contagem Garantia',
+      message: 'A contagem inicia a partir da entrega efetiva do produto ou da conclusão do serviço. No caso de vício oculto (aquele que não é visível de imediato), o prazo começa a contar a partir do momento em que o problema é identificado, não da data da compra.\n\n*Base Legal:* Art. 26, §1º e §3º do CDC.',
+    },
+  });
+
+  const q31GarantiaContratual = await prisma.step.create({
+    data: {
+      title: 'Questao 31 - Garantia Contratual',
+      message: '*É a garantia oferecida pelo fabricante complementar à garantia legal.*\n\n*Como funciona:*\n- Ela deve vir descrita detalhadamente em um termo escrito entregue a você.\n- A forma como o prazo contratual se soma ao prazo legal (se começam juntos ou um após o término do outro) depende estritamente do que foi estabelecido no documento da garantia.\n\n*Base Legal:* Art. 50 do CDC.',
     },
   });
 
@@ -238,6 +327,43 @@ async function main() {
       message: 'É um serviço adicional (pago) que prolonga a garantia após o término da de fábrica. Ela funciona como um seguro e deve ter contrato detalhando a cobertura. Nenhuma loja pode te obrigar a contratar isso para levar o produto (venda casada).',
     },
   });
+
+  const q37ServicosGarantia = await prisma.step.create({
+    data: {
+      title: 'Questao 37 - Servicos Tem Garantia',
+      message: 'Sim. Serviços também possuem garantia legal:\n- 30 dias para serviços não duráveis.\n- 90 dias para serviços duráveis.\n\n*Base Legal:* Art. 26 do CDC.',
+    },
+  });
+
+  const q16ViceApareenteOcultoDefeito = await prisma.step.create({
+    data: {
+      title: 'Questao 16 - Vicio Aparente Oculto Defeito',
+      message: '*Vício aparente:* falha fácil de perceber no momento da compra ou uso inicial (ex: um risco na tela da TV, um sapato descolado).\n\n*Vício oculto:* defeito que não aparece de imediato e surge com o uso (ex: um motor de carro que quebra com pouco tempo de uso).\n\n*Vício x Fato (Defeito):* vício é quando o problema se limita ao próprio produto/serviço (ex: TV não liga). Fato (ou defeito) é quando o problema coloca em risco a saúde ou a segurança do consumidor, causando dano externo (ex: celular explode).',
+    },
+  });
+
+  const q18PrazoVicioOculto = await prisma.step.create({
+    data: {
+      title: 'Questao 18 - Prazo Vicio Oculto',
+      message: 'O prazo para reclamar de um vício oculto começa a contar a partir do momento em que o defeito é descoberto, e não da data da compra.',
+    },
+  });
+
+  const q21GarantiaProdutoTroca = await prisma.step.create({
+    data: {
+      title: 'Questao 21 - Garantia Produto Trocado',
+      message: 'Se for um bem não durável, a garantia do produto novo é de 30 dias; se for durável, 90 dias. Porém, o prazo não deve ser inferior ao que restava no produto original. Exemplo: se o produto foi trocado com 9 meses restantes de garantia contratual, o produto novo terá essa mesma garantia restante de 9 meses.',
+    },
+  });
+
+  const q22SubstituicaoIndisponivel = await prisma.step.create({
+    data: {
+      title: 'Questao 22 - Substituicao Indisponivel',
+      message: 'Sim. Se você optou pela substituição do produto com vício e não há mais disponibilidade do mesmo modelo, pode haver substituição por outro de espécie, marca ou modelo diferente, mediante complementação ou restituição de eventual diferença de preço.\n\n*Base Legal:* Art. 18, §1º e §4º do CDC.',
+    },
+  });
+
+  // --- Categoria E: Garantia — Problemas Práticos ---
 
   const q33NegarGarantia = await prisma.step.create({
     data: {
@@ -267,112 +393,176 @@ async function main() {
     },
   });
 
-  const q47DireitoImobiliario = await prisma.step.create({
+  // --- Categoria F: Processo da Reclamação no Procon ---
+
+  const q8Duplicidade = await prisma.step.create({
     data: {
-      title: 'Questao 47 - Direito Imobiliario',
-      message: 'Questões relacionadas a aluguel são tratadas principalmente pela Lei do Inquilinato (Lei nº 8.245/91). Por ser uma legislação específica que foge à relação de consumo tradicional, o PROCON não realiza a intervenção desse tipo de demanda imobiliária.',
+      title: 'Questao 8 - Reclamacao Online x Presencial',
+      message: 'Se você já possui uma reclamação aberta sobre o mesmo assunto, não é possível abrir outra reclamação em duplicidade. Se quiser complementar informações, utilize o protocolo existente.',
     },
   });
 
+  const q26PrazoResposta = await prisma.step.create({
+    data: {
+      title: 'Questao 26 - Prazo Resposta Fornecedor',
+      message: 'Após a abertura oficial da reclamação, o fornecedor costuma ter um prazo de até 10 dias corridos para apresentar resposta no sistema. Caso não haja retorno ou o problema não seja resolvido, pode ser agendada uma audiência conciliatória.',
+    },
+  });
+
+  const q27DocumentosGerais = await prisma.step.create({
+    data: {
+      title: 'Questao 27 - Documentos Reclamacao',
+      message: 'Cada caso exige uma análise, mas tenha sempre em mãos:\n- Documento pessoal (RG/CPF)\n- CNPJ da matriz da empresa\n- Comprovantes do problema (notas, protocolos, prints, faturas).\n\nPara análise detalhada, compareça presencialmente ao PROCON.',
+    },
+  });
+
+  // Observação: as perguntas 44 (veículo usado), 45 (veículo novo) e 47 (direito
+  // imobiliário) foram propositalmente deixadas fora do fluxo de menu — são casos de
+  // cauda longa, já bem cobertos pelo chat livre com RAG, e não compensam um nó fixo
+  // na árvore. Ver documento de categorização para o raciocínio completo.
+
   // =========================================================================
-  // MAPAS DE ACESSO E CONEXÕES (NOMENCLATURAS COM MÁXIMO 20 CARACTERES)
+  // MAPAS DE ACESSO E CONEXÕES (NOMENCLATURAS COM MÁXIMO 20/24 CARACTERES)
   // =========================================================================
 
-  // 1. Menu Principal (2 Botões Clicáveis)
+  // 1. Menu Principal (3 Botões Clicáveis)
   await prisma.option.createMany({
     data: [
-      { text: 'Quero tirar dúvida', stepId: menuPrincipal.id, nextStepId: menuDuvidasSub.id },
-      { text: 'Agendar Consulta', stepId: menuPrincipal.id, nextStepId: stepAgendamento.id },
+      { text: 'Tenho um problema', stepId: menuPrincipal.id, nextStepId: submenuProblemas.id },
+      { text: 'Entender um direito', stepId: menuPrincipal.id, nextStepId: submenuConceitos.id },
+      { text: 'Sobre o Procon', stepId: menuPrincipal.id, nextStepId: submenuProcon.id },
     ],
   });
 
-  // 2. Submenu de Dúvidas (3 Botões Clicáveis)
+  // 2. Submenu "Tenho um problema" (Lista, 4 domínios + Voltar)
   await prisma.option.createMany({
     data: [
-      { text: 'Comprei um produto', stepId: menuDuvidasSub.id, nextStepId: stepCompras.id }, 
-      { text: 'Problema c/ serviço', stepId: menuDuvidasSub.id, nextStepId: stepContratos.id }, 
-      { text: 'Como reclamar', stepId: menuDuvidasSub.id, nextStepId: stepGerais.id }, 
+      { text: 'Cobranças e Descontos', stepId: submenuProblemas.id, nextStepId: categoriaCobrancas.id },
+      { text: 'Contratos/Cancelamento', stepId: submenuProblemas.id, nextStepId: categoriaContratos.id },
+      { text: 'Compras e Entregas', stepId: submenuProblemas.id, nextStepId: categoriaCompras.id },
+      { text: 'Garantia - já quebrou', stepId: submenuProblemas.id, nextStepId: categoriaGarantiaPratica.id },
+      { text: 'Voltar ao Início', stepId: submenuProblemas.id, nextStepId: menuPrincipal.id },
     ],
   });
 
-  // 3. Modificamos os menus intermediários para conectarem suas listas de opções:
-  
-  // Pilar Produtos (Lista)
+  // 3. Submenu "Entender um direito" (Lista, 3 temas + Voltar)
   await prisma.option.createMany({
     data: [
-      { text: 'Produto não chegou', stepId: stepCompras.id, nextStepId: q15PrazoEntrega.id },
-      { text: 'Compra na Internet', stepId: stepCompras.id, nextStepId: q7PlataformaOnline.id },
-      { text: 'Produto quebrou', stepId: stepCompras.id, nextStepId: stepGarantiasMenu.id },
-      { text: 'Voltar ao Início', stepId: stepCompras.id, nextStepId: menuPrincipal.id },
+      { text: 'Garantia (conceitos)', stepId: submenuConceitos.id, nextStepId: categoriaGarantiaConceitos.id },
+      { text: 'Preço anunciado', stepId: submenuConceitos.id, nextStepId: categoriaCumprimentoOferta.id },
+      { text: 'Arrependimento 7 dias', stepId: submenuConceitos.id, nextStepId: categoriaArrependimento.id },
+      { text: 'Voltar ao Início', stepId: submenuConceitos.id, nextStepId: menuPrincipal.id },
     ],
   });
 
-  // Pilar Serviços (Lista)
+  // 4. Submenu "Sobre o Procon" (3 Botões Clicáveis)
+  // OBS: o texto abaixo precisa manter a substring "atendente virtual" — é o gatilho
+  // que o webhookController usa para ativar o modo de chat livre (isChat: true).
   await prisma.option.createMany({
     data: [
-      { text: 'Cobrança/Banco', stepId: stepContratos.id, nextStepId: stepFinancas.id },
-      { text: 'Cadê meu contrato?', stepId: stepContratos.id, nextStepId: q4RecusaContrato.id },
-      { text: 'Cancelar serviço', stepId: stepContratos.id, nextStepId: q5CancelamentoTelefone.id },
-      { text: 'Cobrança de Multa', stepId: stepContratos.id, nextStepId: q9MultaContrato.id },
-      { text: 'Tem fidelidade?', stepId: stepContratos.id, nextStepId: q10Fidelidade.id },
-      { text: 'Desistir da compra', stepId: stepContratos.id, nextStepId: q11ArrependimentoSeteDias.id },
-      { text: 'Voltar ao Início', stepId: stepContratos.id, nextStepId: menuPrincipal.id },
+      { text: 'Processo Reclamação', stepId: submenuProcon.id, nextStepId: categoriaProcesso.id },
+      { text: 'Agendar Consulta', stepId: submenuProcon.id, nextStepId: stepAgendamento.id },
+      { text: 'Atendente virtual', stepId: submenuProcon.id, nextStepId: null },
     ],
   });
 
-  // Conexões de Finanças (Lista interna de Serviços)
+  // 5. Categoria A: Cobranças e Descontos (Lista, 6 itens + Voltar)
   await prisma.option.createMany({
     data: [
-      { text: 'Seguro não pedido', stepId: stepFinancas.id, nextStepId: q1SeguroCartao.id },
-      { text: 'Empréstimo folha', stepId: stepFinancas.id, nextStepId: q2EmprestimoQuitado.id },
-      { text: 'Empréstimo no INSS', stepId: stepFinancas.id, nextStepId: q3BeneficioNaoContratado.id },
-      { text: 'Desconto no INSS', stepId: stepFinancas.id, nextStepId: q6RmcRcc.id },
-      { text: 'Dívida de 5 anos', stepId: stepFinancas.id, nextStepId: q25PrescricaoDivida.id },
-      { text: 'Voltar', stepId: stepFinancas.id, nextStepId: stepContratos.id },
+      { text: 'Seguro não pedido', stepId: categoriaCobrancas.id, nextStepId: q1SeguroCartao.id },
+      { text: 'Empréstimo folha', stepId: categoriaCobrancas.id, nextStepId: q2EmprestimoQuitado.id },
+      { text: 'Empréstimo no INSS', stepId: categoriaCobrancas.id, nextStepId: q3BeneficioNaoContratado.id },
+      { text: 'Desconto RMC/RCC', stepId: categoriaCobrancas.id, nextStepId: q6RmcRcc.id },
+      { text: 'Portabilidade', stepId: categoriaCobrancas.id, nextStepId: q24Portabilidade.id },
+      { text: 'Dívida de 5 anos', stepId: categoriaCobrancas.id, nextStepId: q25PrescricaoDivida.id },
+      { text: 'Voltar', stepId: categoriaCobrancas.id, nextStepId: submenuProblemas.id },
     ],
   });
 
-  // Conexões de Garantias (3 Botões Clicáveis)
+  // 6. Categoria B: Contratos e Cancelamentos (Lista, 6 itens + Voltar)
   await prisma.option.createMany({
     data: [
-      { text: 'Entender garantia', stepId: stepGarantiasMenu.id, nextStepId: stepGarantiasPrazos.id },
-      { text: 'Problema na prática', stepId: stepGarantiasMenu.id, nextStepId: stepGarantiasProblemas.id },
-      { text: 'Voltar', stepId: stepGarantiasMenu.id, nextStepId: stepCompras.id },
+      { text: 'Cadê meu contrato?', stepId: categoriaContratos.id, nextStepId: q4RecusaContrato.id },
+      { text: 'Cancelar serviço', stepId: categoriaContratos.id, nextStepId: q5CancelamentoTelefone.id },
+      { text: 'Cobrança de multa', stepId: categoriaContratos.id, nextStepId: q9MultaContrato.id },
+      { text: 'Tem fidelidade?', stepId: categoriaContratos.id, nextStepId: q10Fidelidade.id },
+      { text: 'Nota fiscal não veio', stepId: categoriaContratos.id, nextStepId: q46NotaFiscalNaoEnviada.id },
+      { text: 'Desisti da compra', stepId: categoriaContratos.id, nextStepId: categoriaArrependimento.id },
+      { text: 'Voltar', stepId: categoriaContratos.id, nextStepId: submenuProblemas.id },
     ],
   });
 
-  // Opções do Submenu: Prazos e Tipos de Garantia (Lista)
+  // 6.1 Subcategoria: Direito de Arrependimento (Lista, 4 itens + Voltar)
+  // Acessível tanto por "Desisti da compra" (Categoria B) quanto por "Arrependimento
+  // 7 dias" (submenu Entender um direito) — por isso o Voltar aqui aponta para o
+  // Menu Principal, já que tem mais de um caminho de entrada possível.
   await prisma.option.createMany({
     data: [
-      { text: 'Tipos de Garantia', stepId: stepGarantiasPrazos.id, nextStepId: q28TiposGarantia.id },
-      { text: 'Garantia Legal', stepId: stepGarantiasPrazos.id, nextStepId: q29GarantiaLegal.id },
-      { text: 'Garantia Contratual', stepId: stepGarantiasPrazos.id, nextStepId: q31GarantiaContratual.id },
-      { text: 'Garantia Estendida', stepId: stepGarantiasPrazos.id, nextStepId: q32GarantiaEstendida.id },
-      { text: 'Produtos Usados', stepId: stepGarantiasPrazos.id, nextStepId: q36ProdutosUsados.id },
-      { text: 'Voltar', stepId: stepGarantiasPrazos.id, nextStepId: stepGarantiasMenu.id },
+      { text: 'Como funciona (7 dias)', stepId: categoriaArrependimento.id, nextStepId: q11ArrependimentoSeteDias.id },
+      { text: 'Vale p/ loja física?', stepId: categoriaArrependimento.id, nextStepId: q12LojaFisica.id },
+      { text: 'Quem paga o frete?', stepId: categoriaArrependimento.id, nextStepId: q13FreteDevolucao.id },
+      { text: 'Já usei, posso devolver?', stepId: categoriaArrependimento.id, nextStepId: q14EmbalagemAberta.id },
+      { text: 'Voltar ao Início', stepId: categoriaArrependimento.id, nextStepId: menuPrincipal.id },
     ],
   });
 
-  // Opções do Submenu: Problemas Práticos de Garantia (Lista)
+  // 7. Categoria C: Compras e Entregas (Lista, 3 itens + Voltar)
   await prisma.option.createMany({
     data: [
-      { text: 'Empresa não ajuda', stepId: stepGarantiasProblemas.id, nextStepId: q33NegarGarantia.id },
-      { text: 'Passou de 30 dias', stepId: stepGarantiasProblemas.id, nextStepId: q34NaoResolvido30Dias.id },
-      { text: 'Sem nota fiscal', stepId: stepGarantiasProblemas.id, nextStepId: q35NotaFiscalGarantia.id },
-      { text: 'Carro usado quebrou', stepId: stepGarantiasProblemas.id, nextStepId: q44DefeitoCarroUsado.id },
-      { text: 'Voltar', stepId: stepGarantiasProblemas.id, nextStepId: stepGarantiasMenu.id },
+      { text: 'Compra na Internet', stepId: categoriaCompras.id, nextStepId: q7PlataformaOnline.id },
+      { text: 'Produto não chegou', stepId: categoriaCompras.id, nextStepId: q15PrazoEntrega.id },
+      { text: 'Troca sem defeito', stepId: categoriaCompras.id, nextStepId: q43TrocaPresencial.id },
+      { text: 'Voltar', stepId: categoriaCompras.id, nextStepId: submenuProblemas.id },
     ],
   });
 
-  // Opções do Submenu: Informações Úteis (Lista)
+  // 7.1 Subcategoria: Cumprimento de Oferta (Lista, 5 itens + Voltar)
   await prisma.option.createMany({
     data: [
-      { text: 'Já abri reclamação', stepId: stepGerais.id, nextStepId: q8Duplicidade.id },
-      { text: 'Mudar banco INSS', stepId: stepGerais.id, nextStepId: q24Portabilidade.id },
-      { text: 'Prazo de resposta', stepId: stepGerais.id, nextStepId: q26PrazoResposta.id },
-      { text: 'Quais documentos?', stepId: stepGerais.id, nextStepId: q27DocumentosGerais.id },
-      { text: 'Aluguel/Imóvel', stepId: stepGerais.id, nextStepId: q47DireitoImobiliario.id },
-      { text: 'Voltar ao Início', stepId: stepGerais.id, nextStepId: menuPrincipal.id },
+      { text: 'Tem que cumprir preço?', stepId: categoriaCumprimentoOferta.id, nextStepId: q38CumprimentoOferta.id },
+      { text: 'Preço na prateleira', stepId: categoriaCumprimentoOferta.id, nextStepId: q39PrecoDivergente.id },
+      { text: 'Loja não quer vender', stepId: categoriaCumprimentoOferta.id, nextStepId: q40LojaNaoQuerVender.id },
+      { text: '"Foi erro do sistema"', stepId: categoriaCumprimentoOferta.id, nextStepId: q41ErroSistema.id },
+      { text: 'Disseram q acabou', stepId: categoriaCumprimentoOferta.id, nextStepId: q42SemAvisoEstoque.id },
+      { text: 'Voltar', stepId: categoriaCumprimentoOferta.id, nextStepId: submenuConceitos.id },
+    ],
+  });
+
+  // 8. Categoria D: Garantia — Conceitos e Prazos (Lista, 10 itens — SEM opção de
+  // Voltar clicável, pois já está no teto de 10 linhas permitido pela Meta. O
+  // cidadão pode digitar "menu" a qualquer momento para retornar ao início.)
+  await prisma.option.createMany({
+    data: [
+      { text: 'Tipos de Garantia', stepId: categoriaGarantiaConceitos.id, nextStepId: q28TiposGarantia.id },
+      { text: 'Garantia Legal', stepId: categoriaGarantiaConceitos.id, nextStepId: q29GarantiaLegal.id },
+      { text: 'Quando começa a contar', stepId: categoriaGarantiaConceitos.id, nextStepId: q30InicioContagemGarantia.id },
+      { text: 'Garantia Contratual', stepId: categoriaGarantiaConceitos.id, nextStepId: q31GarantiaContratual.id },
+      { text: 'Garantia Estendida', stepId: categoriaGarantiaConceitos.id, nextStepId: q32GarantiaEstendida.id },
+      { text: 'Serviço tem garantia?', stepId: categoriaGarantiaConceitos.id, nextStepId: q37ServicosGarantia.id },
+      { text: 'Vício x Defeito', stepId: categoriaGarantiaConceitos.id, nextStepId: q16ViceApareenteOcultoDefeito.id },
+      { text: 'Prazo do vício oculto', stepId: categoriaGarantiaConceitos.id, nextStepId: q18PrazoVicioOculto.id },
+      { text: 'Garantia produto trocado', stepId: categoriaGarantiaConceitos.id, nextStepId: q21GarantiaProdutoTroca.id },
+      { text: 'Produto indisponível', stepId: categoriaGarantiaConceitos.id, nextStepId: q22SubstituicaoIndisponivel.id },
+    ],
+  });
+
+  // 9. Categoria E: Garantia — Problemas Práticos (Lista, 4 itens + Voltar)
+  await prisma.option.createMany({
+    data: [
+      { text: 'Empresa não ajuda', stepId: categoriaGarantiaPratica.id, nextStepId: q33NegarGarantia.id },
+      { text: 'Passou de 30 dias', stepId: categoriaGarantiaPratica.id, nextStepId: q34NaoResolvido30Dias.id },
+      { text: 'Sem nota fiscal', stepId: categoriaGarantiaPratica.id, nextStepId: q35NotaFiscalGarantia.id },
+      { text: 'Produto usado', stepId: categoriaGarantiaPratica.id, nextStepId: q36ProdutosUsados.id },
+      { text: 'Voltar', stepId: categoriaGarantiaPratica.id, nextStepId: submenuProblemas.id },
+    ],
+  });
+
+  // 10. Categoria F: Processo da Reclamação no Procon (3 Botões Clicáveis)
+  await prisma.option.createMany({
+    data: [
+      { text: 'Já abri reclamação', stepId: categoriaProcesso.id, nextStepId: q8Duplicidade.id },
+      { text: 'Prazo de resposta', stepId: categoriaProcesso.id, nextStepId: q26PrazoResposta.id },
+      { text: 'Quais documentos?', stepId: categoriaProcesso.id, nextStepId: q27DocumentosGerais.id },
     ],
   });
 

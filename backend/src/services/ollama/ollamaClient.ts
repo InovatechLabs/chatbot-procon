@@ -26,7 +26,11 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
   return response.data.embedding;
 };
 
-export const generateText = async (prompt: string): Promise<string> => {
+export const generateText = async (
+  prompt: string, 
+  schema?: object, 
+  options?: any
+): Promise<string> => {
   const generateUrl = process.env.OLLAMA_GENERATE_URL;
   const generateModel = process.env.OLLAMA_GENERATE_MODEL_NAME;
 
@@ -37,11 +41,19 @@ export const generateText = async (prompt: string): Promise<string> => {
   const response = await axios.post(generateUrl, {
     model: generateModel,
     prompt: prompt,
-    stream: false
+    stream: false,
+    ...(schema ? { format: schema } : {}),
+    ...(options ? { options } : {})
   });
   
-  return response.data.response
-    .trim()
-    .replace(/\*?\s*(resposta )?processad[ao] por (uma )?intelig[êe]ncia artificial.*?(formal\.?)?\*?/gi, '')
-    .trim();
+  let output = response.data.response as string;
+
+  if (!schema) {
+    output = output
+      .trim()
+      .replace(/\*?\s*(resposta )?processad[ao] por (uma )?intelig[êe]ncia artificial.*?(formal\.?)?\*?/gi, '')
+      .trim();
+  }
+
+  return output.trim();
 };

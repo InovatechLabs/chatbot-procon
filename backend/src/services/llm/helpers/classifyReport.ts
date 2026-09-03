@@ -1,4 +1,5 @@
 import axios from "axios";
+import { generateText } from "../../ollama/ollamaClient.js";
 
 type Categoria =
   | 'CONSUMO'
@@ -12,21 +13,25 @@ interface ClassificationResult {
   motivo: string;
 }
 
+const CLASSIFICATION_SCHEMA = {
+  type: "object",
+  properties: {
+    categoria: {
+      type: "string",
+      enum: ["CONSUMO", "FORA_ESCOPO_PARTICULAR", "FORA_ESCOPO_TRIBUTO", "FORA_ESCOPO_ILICITO", "AMBIGUO"]
+    },
+    motivo: { type: "string" }
+  },
+  required: ["categoria", "motivo"]
+};
+
 export const classifyReport = async (
   userQuestion: string,
   formattedHistory: string
 ): Promise<ClassificationResult> => {
 
-  const generateUrl = process.env.OLLAMA_GENERATE_URL;
-  const generateModel = process.env.OLLAMA_GENERATE_MODEL_NAME;
-
-  // 2. VALIDAÇÃO DE SEGURANÇA
-  if (!generateUrl || !generateModel) {
-    throw new Error('As variáveis OLLAMA_GENERATE_URL e OLLAMA_GENERATE_MODEL_NAME devem estar definidas no .env');
-  }
-
-const classificationPrompt = `
-Você é um classificador jurídico do PROCON. Sua ÚNICA tarefa é ler o relato abaixo e devolver uma classificação em JSON.
+  const classificationPrompt = `
+Você é um classificador jurídico do PROCON. Sua ÚNICA tarefa é ler o relato abaixo e devolver uma classificação.
 
 REGRA 1. ANTI-ASSUNÇÃO
 - NUNCA presuma que "comprei" ou "contratei" significa automaticamente uma compra em loja/empresa. Pode ter sido de um vizinho (particular) ou um serviço ilícito. Se o texto não der pistas mínimas de O QUE foi negociado ou QUEM é o fornecedor, é estritamente proibido classificar como CONSUMO.
@@ -50,32 +55,17 @@ ${formattedHistory}
 ÚLTIMA MENSAGEM DO CIDADÃO:
 "${userQuestion}"
 
-Responda APENAS com um JSON válido, sem markdown, sem texto antes ou depois, no formato:
-{"categoria": "NOME_DA_CATEGORIA", "motivo": "explicação breve em uma frase justificando com base nas regras acima"}
+Classifique o relato acima.
+No campo "categoria", coloque a categoria escolhida.
+No campo "motivo", explique em uma frase o motivo da escolha, com base nas regras acima.
 `;
 
-  const response = await axios.post(generateUrl, {
-    model: generateModel,
-    prompt: classificationPrompt,
-    stream: false,
-    options: {
-      temperature: 0.1, 
-    },
-    format: 'json' 
-  });
-
-  const raw = response.data.response.trim();
-
   try {
+    const raw = await generateText(classificationPrompt, CLASSIFICATION_SCHEMA, { temperature: 0.1 });
     const parsed = JSON.parse(raw);
-    const categoriasValidas: Categoria[] = [
-      'CONSUMO', 'FORA_ESCOPO_PARTICULAR', 'FORA_ESCOPO_TRIBUTO',
-      'FORA_ESCOPO_ILICITO', 'AMBIGUO'
-    ];
-    if (!categoriasValidas.includes(parsed.categoria)) {
-      throw new Error(`Categoria inválida retornada: ${parsed.categoria}`);
-    }
+    
     return parsed as ClassificationResult;
+    
   } catch (err) {
     console.error('Falha ao parsear classificação, usando fallback AMBIGUO:', err);
     return { categoria: 'AMBIGUO', motivo: 'Falha no parsing da classificação' };

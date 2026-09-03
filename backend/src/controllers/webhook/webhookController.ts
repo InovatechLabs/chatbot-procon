@@ -51,14 +51,12 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             });
           }
 
-          // Se a sessão estava fechada (RESOLVED/CLOSED), reabrimos
           if (session.status !== 'OPEN') {
              session = await prisma.userSession.update({
                where: { id: session.id },
                data: { status: 'OPEN', isChat: false, currentStepId: null }
              });
           }
-
 
           // ==========================================================
           // 2. TRATAMENTO DE TEXTO (MENSAGENS DIGITADAS)
@@ -68,12 +66,10 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             const userText = originalText.toLowerCase().trim();
             console.log(`💬 Texto de ${phoneNumber}: ${userText}`);
 
-            // Salva o texto no histórico IMEDIATAMENTE
             await prisma.chatLog.create({
               data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'INBOUND', messageText: originalText }
             });
 
-            // COMANDOS DE FUGA (Para sair do chat livre)
             const escapeCommands = ['menu', 'sair', 'voltar', 'cancelar', 'iniciar'];
             if (escapeCommands.includes(userText)) {
               session = await prisma.userSession.update({
@@ -87,34 +83,31 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               // 🔴 MODO IA ATIVADO: Ignora tudo e vai pro RAG
               await sendTextMessage(phoneNumber, "⏳ *Estou pesquisando sua situação no Código de Defesa do Consumidor...*");
               
-              const ragResponse = await answerWithRAG(originalText, session.id); 
+              const ragResult = await answerWithRAG(originalText, session.id); 
               
-              // Salva a resposta do Bot
+              // Salva APENAS o texto no banco, o "raciocinio" fica oculto!
               await prisma.chatLog.create({
-                data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResponse }
+                data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResult.texto }
               });
 
-              if (ragResponse.includes('[AGENDAR]')) {
-                const cleanMessage = ragResponse.replace('[AGENDAR]', '').trim();
-                
+              // Roteamento baseado no JSON Schema
+              if (ragResult.tipoResposta === 'redirecionamento') {
                 const agendamentoOptions = [
                   { id: 'btn_agendar_sim', text: 'Sim, quero agendar' },
                   { id: 'btn_agendar_nao', text: 'Não, obrigado' }
                 ];
-                await sendInteractiveMessage(phoneNumber, cleanMessage, agendamentoOptions);
-              }
-
-              const isClarification = ragResponse.includes('?');
-
-              if (isClarification) {
-                await sendTextMessage(phoneNumber, ragResponse);
-              } else {
-                const finalMessage = ragResponse + '\n\nEssa orientação solucionou sua dúvida?';
+                await sendInteractiveMessage(phoneNumber, ragResult.texto, agendamentoOptions);
+              } 
+              else if (ragResult.tipoResposta === 'clarificacao') {
+                await sendTextMessage(phoneNumber, ragResult.texto);
+              } 
+              else {
+                // orientacao_final
+                const finalMessage = ragResult.texto + '\n\nEssa orientação solucionou sua dúvida?';
                 const feedbackOptions = [
                   { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
                   { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
                 ];
-
                 await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
               }
 
@@ -122,13 +115,12 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               const greetings = ['oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite'];
 
               if (greetings.includes(userText) || escapeCommands.includes(userText)) {
-                // Se for saudação ou fuga, manda o Menu de botões normais
                 responseStep = await prisma.step.findFirst({
                   where: { isStart: true },
                   include: { options: true },
                 });
               } else {
-                // Se não deu saudação, mas já mandou texto solto (reclamação direta), ativa IA
+                // Se mandou reclamação direta sem passar pelo menu
                 session = await prisma.userSession.update({
                   where: { id: session.id },
                   data: { isChat: true }
@@ -136,24 +128,33 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
 
                 await sendTextMessage(phoneNumber, "⏳ *Analisando seu relato...*");
                 
-                const ragResponse = await answerWithRAG(originalText, session.id);
+                const ragResult = await answerWithRAG(originalText, session.id);
                 
                 await prisma.chatLog.create({
-                  data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResponse }
+                  data: { sessionId: session.id, phoneNumber: phoneNumber, direction: 'OUTBOUND', messageText: ragResult.texto }
                 });
 
-                const isClarification = ragResponse.includes('?');
-                if (isClarification) {
-                  await sendTextMessage(phoneNumber, ragResponse);
-                } else {              
-                const finalMessage = ragResponse + '\n\nEssa orientação solucionou sua dúvida?';
-                const feedbackOptions = [
-                  { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
-                  { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
-                ];
-                await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
-                continue;
+                // Roteamento baseado no JSON Schema (agora seguro para os 3 casos!)
+                if (ragResult.tipoResposta === 'redirecionamento') {
+                  const agendamentoOptions = [
+                    { id: 'btn_agendar_sim', text: 'Sim, quero agendar' },
+                    { id: 'btn_agendar_nao', text: 'Não, obrigado' }
+                  ];
+                  await sendInteractiveMessage(phoneNumber, ragResult.texto, agendamentoOptions);
+                } 
+                else if (ragResult.tipoResposta === 'clarificacao') {
+                  await sendTextMessage(phoneNumber, ragResult.texto);
+                } 
+                else {
+                  // orientacao_final
+                  const finalMessage = ragResult.texto + '\n\nEssa orientação solucionou sua dúvida?';
+                  const feedbackOptions = [
+                    { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
+                    { id: 'btn_feedback_nao', text: '👎 Não resolveu' }
+                  ];
+                  await sendInteractiveMessage(phoneNumber, finalMessage, feedbackOptions);
                 }
+                continue;
               }
             }
           }
@@ -170,19 +171,17 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               selectedOptionId = message.interactive.list_reply.id;
             }
 
-            // TRATAMENTO DE FEEDBACK (Finaliza o atendimento)
             if (selectedOptionId === 'btn_feedback_sim' || selectedOptionId === 'btn_feedback_nao') {
               const resolveu = selectedOptionId === 'btn_feedback_sim';
               
               console.log(`Feedback ${resolveu ? 'Positivo' : 'Negativo'} de ${phoneNumber}`);
               
-              // Atualiza a sessão para fechada e salva a nota provisória
               await prisma.userSession.update({
                 where: { id: session.id },
                 data: { 
                   status: 'RESOLVED',
                   isChat: false,
-                  rating: resolveu ? 5 : 1 // Exemplo: 5 pra sim, 1 pra não.
+                  rating: resolveu ? 5 : 1
                 }
               });
 
@@ -190,7 +189,7 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
                 await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece o seu contato. Tenha um ótimo dia!");
               } else {
                 const stepAgendamento = await prisma.step.findFirst({
-                  where: { title: 'Fluxo Agendamento' } // Ou busque por um isAgendamento flag
+                  where: { title: 'Fluxo Agendamento' }
                 });
                 
                 if (stepAgendamento) {
@@ -202,17 +201,13 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               continue; 
             }
 
-            // TRATAMENTO DE NAVEGAÇÃO DE MENU NORMAL
             if (selectedOptionId) {
               console.log(`👆 Clique no ID: ${selectedOptionId}`);
               
-              // Verifica se clicou na opção de ir pro chat livre (Adapte o ID/Texto conforme seu banco)
               const optionClicked = await prisma.option.findUnique({
                 where: { id: selectedOptionId },
               });
 
-              // SE CLICAR NA OPÇÃO DE "ATENDIMENTO COM IA"
-              // (Você precisa checar como essa opção é identificada no seu DB)
               if (optionClicked && optionClicked.text.toLowerCase().includes('atendente virtual')) {
                   await prisma.userSession.update({
                      where: { id: session.id },
@@ -235,7 +230,6 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           // 4. ENVIO FINAL (Se for um Step do fluxo programado)
           // ==========================================================
           if (responseStep) {
-            // Atualiza o passo atual na sessão
             await prisma.userSession.update({
               where: { id: session.id },
               data: { currentStepId: responseStep.id }

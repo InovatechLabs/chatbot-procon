@@ -105,7 +105,7 @@
       "descricao": "Caso em que nenhum artigo recuperado é adequado",
       "mensagem": "Fiz um PIX errado pro número de telefone de uma loja e caiu na conta de outra pessoa por engano do banco. O banco não quer resolver.",
       "categoriaEsperada": "CONSUMO",
-      "tipoRespostaEsperada": "sem_artigo_adequado",
+      "tipoRespostaEsperada": "redirecionamento",
       "artigoEsperado": null,
       "observacao": "Caso bancário/regulado pelo Banco Central, não coberto diretamente por artigos genéricos do CDC na base. Deve reconhecer que não há artigo adequado e sugerir agendamento presencial, não forçar um artigo 'menos errado' (ver seção 12 da doc de arquitetura)."
     },
@@ -548,7 +548,7 @@
       "descricao": "Mensagem vaga sobre não devolução de dinheiro, sem saber tipo de vendedor nem o que foi comprado",
       "mensagemInicial": "Comprei uma coisa e até agora não devolveram meu dinheiro.",
       "categoriaEsperadaInicial": "AMBIGUO",
-      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "tipoRespostaEsperada": "clarificacao",
       "clarificacaoEsperadaSobre": [
         "tipo de vendedor (loja/empresa vs pessoa física)",
         "o que foi comprado",
@@ -575,7 +575,7 @@
       "descricao": "Cobrança não reconhecida, sem saber se é empresa e qual contexto",
       "mensagemInicial": "A empresa está me cobrando um valor que eu não reconheço.",
       "categoriaEsperadaInicial": "AMBIGUO",
-      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "tipoRespostaEsperada": "clarificacao",
       "clarificacaoEsperadaSobre": [
         "que tipo de serviço/produto gerou a cobrança",
         "se houve cancelamento prévio ou cláusula contratual envolvida"
@@ -601,7 +601,7 @@
       "descricao": "Serviço contratado não realizado, sem saber se prestador é empresa/autônomo formal ou informal, nem a natureza do serviço",
       "mensagemInicial": "Contratei uma pessoa para um serviço e ela não fez o que combinamos.",
       "categoriaEsperadaInicial": "AMBIGUO",
-      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "tipoRespostaEsperada": "clarificacao",
       "clarificacaoEsperadaSobre": [
         "que tipo de serviço foi contratado",
         "se o prestador atua como profissional/empresa ou como particular avulso"
@@ -627,7 +627,7 @@
       "descricao": "Mesmo enunciado do PC-03, mas a clarificação revela que é ilícito — testa se o classificador reavalia corretamente após a resposta, e não fica ancorado na primeira impressão de 'CONSUMO'",
       "mensagemInicial": "Contratei uma pessoa para um serviço e ela não fez o que combinamos.",
       "categoriaEsperadaInicial": "AMBIGUO",
-      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "tipoRespostaEsperada": "clarificacao",
       "clarificacaoEsperadaSobre": [
         "que tipo de serviço foi contratado",
         "se o prestador atua como profissional/empresa ou como particular avulso"
@@ -653,7 +653,7 @@
       "descricao": "Histórico contém assunto irrelevante antes do relato real (testa se ruído no histórico não desvia a classificação/recuperação)",
       "mensagemInicial": "Vocês atendem sábado?",
       "categoriaEsperadaInicial": "AMBIGUO",
-      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "tipoRespostaEsperada": "clarificacao",
       "clarificacaoEsperadaSobre": [
         "não se aplica — pergunta administrativa, não é um relato de consumo ainda"
       ],
@@ -683,7 +683,7 @@
       "descricao": "Ambiguidade genuína que permanece mesmo após uma rodada de clarificação, testando se o bot aceita não resolver de imediato",
       "mensagemInicial": "Fiz um contrato e agora tô com problema.",
       "categoriaEsperadaInicial": "AMBIGUO",
-      "tipoRespostaEsperada": "pergunta_clarificacao",
+      "tipoRespostaEsperada": "clarificacao",
       "clarificacaoEsperadaSobre": [
         "que tipo de contrato",
         "qual é o problema específico"

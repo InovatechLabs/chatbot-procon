@@ -8,7 +8,7 @@ import { reciprocalRankFusion } from '../../../src/utils/functions/hybridSearch.
 import { getEmbedding, generateText } from '../ollama/ollamaClient.js';
 import { getVectorResults, getAllArticles } from '../../database/repositories/knowledgeRepository.js';
 import { ragPrompt, orientationPrompt } from '../llm/prompts/index.js';
-import { sendInteractiveMessage } from '../metaAPI.js';
+import { RAG_RESPONSE_SCHEMA } from '../llm/prompts/schemas/index.js';
 
 const MAX_VECTOR_DISTANCE = 0.58; 
 const DISCLAIMER = "\n\n*Resposta processada por inteligência artificial baseada nas diretrizes do PROCON. Possui caráter orientativo e não substitui o atendimento formal.*";
@@ -22,11 +22,17 @@ const RESPOSTAS_FORA_ESCOPO: Record<string, string> = {
     "O caso relatado envolve a contratação de um serviço que, por sua própria natureza, configura prática ilícita. Por esse motivo, está fora do escopo de atuação do PROCON, que trata exclusivamente de relações de consumo lícitas. Recomendo procurar a autoridade policial para registrar o ocorrido.",
 };
 
+export interface RagResult {
+  tipoResposta: 'clarificacao' | 'orientacao_final' | 'redirecionamento';
+  texto: string;
+  artigo: string | null;
+}
+
 /* 
 * Função principal que integra a classificação do relato, busca de informações e geração de resposta orientativa, utilizando Retrieval-Augmented Generation (RAG).
 */
 
-export const answerWithRAG = async (userQuestion: string, sessionId: string): Promise<string> => {
+export const answerWithRAG = async (userQuestion: string, sessionId: string): Promise<RagResult> => {
   try {
     const chatHistory = await prisma.chatLog.findMany({
       where: { sessionId: sessionId },
@@ -34,7 +40,6 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
       take: 6
     });
 
-    // Reverte a ordem do histórico para que a mensagem mais antiga venha primeiro
     const chronologicalHistory = chatHistory.reverse();
     const formattedHistory = chronologicalHistory.length > 0 
       ? chronologicalHistory.map(log => `${log.direction === 'INBOUND' ? 'Cidadão' : 'Atendente Virtual'}: ${log.messageText}`).join('\n')
@@ -44,25 +49,29 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
     console.log('📋 Classificação:', classification);
 
     if (classification.categoria !== 'CONSUMO' && classification.categoria !== 'AMBIGUO') {
-      return RESPOSTAS_FORA_ESCOPO[classification.categoria] + DISCLAIMER;
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: RESPOSTAS_FORA_ESCOPO[classification.categoria] + DISCLAIMER,
+        artigo: null
+      };
     }
 
-    // Pega as mensagens anteriores do usuário para criar a query de RAG
     const userPreviousMessages = chronologicalHistory.filter(log => log.direction === 'INBOUND').map(log => log.messageText);
     const allUserStatements = [...new Set([...userPreviousMessages, userQuestion])];
     const ragQuery = allUserStatements.join('. ');
 
-    // Busca vetorial e BM25
     const embedding = await getEmbedding(ragQuery);
     const vectorString = `[${embedding.join(',')}]`;
     const vectorResults = await getVectorResults(vectorString);
-
     const bestVectorMatch = vectorResults[0];
-    console.log(`📏 Melhor distância vetorial: ${bestVectorMatch?.distance}`);
 
-    // Se a distância for muito alta, aborta o RAG e sugere atendimento humano
-   if (!bestVectorMatch || bestVectorMatch.distance > MAX_VECTOR_DISTANCE) { 
-      return "O seu caso possui detalhes específicos em que não encontrei uma correspondência exata nas leis de proteção básicas. Para garantir que você tenha a orientação correta, recomendo a análise humana. Gostaria de agendar um atendimento presencial no PROCON? [AGENDAR]" + DISCLAIMER;
+    if (!bestVectorMatch || bestVectorMatch.distance > MAX_VECTOR_DISTANCE) {
+      console.log('🛑 RAG abortado: Nenhuma lei semanticamente próxima. Distância:', bestVectorMatch?.distance);
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: "O seu caso possui detalhes específicos em que não encontrei uma correspondência exata nas leis de proteção básicas. Para garantir que você tenha a orientação correta, recomendo a análise humana. Gostaria de agendar um atendimento presencial no PROCON?" + DISCLAIMER,
+        artigo: null
+      };
     }
 
     const validVectorResults = vectorResults.filter(res => res.distance <= MAX_VECTOR_DISTANCE);
@@ -72,34 +81,50 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
     const top4Ids = reciprocalRankFusion([validVectorResults, bm25Results], 4);
 
     if (!top4Ids || top4Ids.length === 0) {
-      return "Desculpe, não encontrei informações oficiais na base do PROCON sobre esse assunto específico." + DISCLAIMER;
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: "Desculpe, não encontrei informações oficiais na base do PROCON sobre esse assunto específico." + DISCLAIMER,
+        artigo: null
+      };
     }
-    
-    const finalResults = top4Ids
+
+    const combinedLaws = top4Ids
       .map(id => allArticles.find(a => a.id === id))
-      .filter(a => a !== undefined);
-
-    const combinedLaws = finalResults.map(res => {
-
-      const cleanContent = res!.content.replace(/\(PALAVRAS-CHAVE PARA BUSCA:.*?\)/gi, '').trim();
-      const distincaoTag = res!.distincao ? `\nDISTINÇÃO: ${res!.distincao}` : '';
-      
-      return `[LEI: ${res!.title}]\n${cleanContent}${distincaoTag}`;
-    }).join('\n\n');
-
-    console.log('📚 Leis encontradas (Busca Híbrida):', finalResults.map(r => r!.title));
+      .filter(a => a !== undefined)
+      .map(res => {
+        const cleanContent = res!.content.replace(/\(PALAVRAS-CHAVE PARA BUSCA:.*?\)/gi, '').trim();
+        const distincaoTag = res!.distincao ? `\nDISTINÇÃO: ${res!.distincao}` : '';
+        return `[LEI: ${res!.title}]\n${cleanContent}${distincaoTag}`;
+      }).join('\n\n');
 
     const prompt = ragPrompt(formattedHistory, combinedLaws);
-    const response = await generateText(prompt);
-    const cleanedResponse = response
-      .trim()
-      .replace("[AGENDAR]", "").trim();
+    const raw = await generateText(prompt, RAG_RESPONSE_SCHEMA);
 
-    return cleanedResponse + DISCLAIMER;
+    try {
+      const parsed = JSON.parse(raw) as RagResult;
+      
+      return {
+        tipoResposta: parsed.tipoResposta,
+        texto: parsed.texto + DISCLAIMER,
+        artigo: parsed.artigo
+      };
+      
+    } catch (err) {
+      console.error('Falha ao parsear resposta estruturada do RAG:', err, raw);
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: 'Não consegui processar sua solicitação corretamente. Gostaria de agendar um atendimento presencial?' + DISCLAIMER,
+        artigo: null,
+      };
+    }
 
   } catch (error) {
-    console.error("Erro no processamento do RAG:", error);
-    return "Desculpe, meu sistema de consulta está indisponível. Por favor, tente novamente mais tarde.";
+    console.error("❌ Erro no processamento do RAG:", error);
+    return {
+        tipoResposta: 'redirecionamento',
+        texto: "Desculpe, meu sistema de consulta está indisponível. Por favor, tente novamente mais tarde." + DISCLAIMER,
+        artigo: null
+    };
   }
 };
 
