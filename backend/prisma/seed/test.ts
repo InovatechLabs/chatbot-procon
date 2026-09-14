@@ -11,7 +11,7 @@ const cdcData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
 
 // Função que chama o Ollama para transformar o texto em números
 async function getEmbedding(text: string): Promise<number[]> {
-  const ollamaUrl = 'http://host.docker.internal:11434/api/embeddings'; 
+  const ollamaUrl = 'https://certificates-europe-toronto-items.trycloudflare.com/api/embeddings'; 
   
   const response = await axios.post(ollamaUrl, {
     model: 'bge-m3:latest',
@@ -37,10 +37,12 @@ async function main() {
     const vectorString = `[${embedding.join(',')}]`;
 
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "KnowledgeBase" (id, title, content, embedding) VALUES (gen_random_uuid(), $1, $2, $3::vector)`,
+      `INSERT INTO "KnowledgeBase" (id, title, content, keywords, distincao, embedding) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5::vector)`,
       item.title,
       item.content,
-      vectorString
+      item.keywords || [],
+      item.distincao || null,
+      vectorString         
     );
 
     console.log(`Salvo: ${item.title}`);

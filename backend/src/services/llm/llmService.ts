@@ -1,78 +1,130 @@
-import axios from 'axios';
+// src/services/ia/llmService.ts
 import { prisma } from '../../../src/database/index.js';
+import { classifyReport } from './helpers/classifyReport.js';
+import { buildBM25Index } from '../../../src/utils/functions/bm25.js';
+import { reciprocalRankFusion } from '../../../src/utils/functions/hybridSearch.js';
 
-// Função auxiliar para gerar os vetores da mensagem
-const getEmbedding = async (text: string): Promise<number[]> => {
-  const ollamaUrl = 'http://host.docker.internal:11434/api/embeddings';
-  const response = await axios.post(ollamaUrl, {
-    model: 'bge-m3:latest',
-    prompt: text
-  });
-  return response.data.embedding;
+// Importando os novos módulos refatorados:
+import { getEmbedding, generateText } from '../ollama/ollamaClient.js';
+import { getVectorResults, getAllArticles } from '../../database/repositories/knowledgeRepository.js';
+import { ragPrompt, orientationPrompt } from '../llm/prompts/index.js';
+import { RAG_RESPONSE_SCHEMA } from '../llm/prompts/schemas/index.js';
+
+const MAX_VECTOR_DISTANCE = 0.58; 
+const DISCLAIMER = "\n\n*Resposta processada por inteligência artificial baseada nas diretrizes do PROCON. Possui caráter orientativo e não substitui o atendimento formal.*";
+
+const RESPOSTAS_FORA_ESCOPO: Record<string, string> = {
+  FORA_ESCOPO_PARTICULAR:
+    "Pelo que você descreveu, trata-se de uma negociação entre particulares, sem uma das partes atuando como fornecedora habitual. Esse tipo de caso está fora da atuação do PROCON. Recomendo buscar a Justiça Comum (Juizado Especial Cível, se o valor se enquadrar) para resolver a questão.",
+  FORA_ESCOPO_TRIBUTO:
+    "Esse assunto envolve cobrança de tributo, taxa ou multa de um órgão público, o que está fora da atuação do PROCON. Recomendo procurar diretamente o órgão responsável pela cobrança ou a Procuradoria competente.",
+  FORA_ESCOPO_ILICITO:
+    "O caso relatado envolve a contratação de um serviço que, por sua própria natureza, configura prática ilícita. Por esse motivo, está fora do escopo de atuação do PROCON, que trata exclusivamente de relações de consumo lícitas. Recomendo procurar a autoridade policial para registrar o ocorrido.",
 };
 
-export const answerWithRAG = async (userQuestion: string): Promise<string> => {
+export interface RagResult {
+  tipoResposta: 'clarificacao' | 'orientacao_final' | 'redirecionamento';
+  texto: string;
+  artigo: string | null;
+}
+
+/* 
+* Função principal que integra a classificação do relato, busca de informações e geração de resposta orientativa, utilizando Retrieval-Augmented Generation (RAG).
+*/
+
+export const answerWithRAG = async (userQuestion: string, sessionId: string): Promise<RagResult> => {
   try {
-    // 1. Transforma a dúvida do cidadão em números usando o modelo Nomic
-    const embedding = await getEmbedding(userQuestion);
-    const vectorString = `[${embedding.join(',')}]`;
-
-    // 2. Busca no PostgreSQL o artigo do CDC mais parecido com a dúvida
-    // O operador <=> calcula a Distância de Cosseno (Busca Semântica)
-    const searchResults = await prisma.$queryRawUnsafe<any[]>(`
-      SELECT title, content 
-      FROM "KnowledgeBase" 
-      ORDER BY embedding <=> $1::vector 
-      LIMIT 5;
-    `, vectorString);
-
-    if (!searchResults || searchResults.length === 0) {
-      return "Desculpe, não encontrei informações oficiais na base do PROCON sobre esse assunto específico.";
-    }
-
-   const combinedLaws = searchResults.map(res => {
-      const cleanContent = res.content.replace(/\(PALAVRAS-CHAVE PARA BUSCA:.*?\)/gi, '').trim();
-      return `[LEI: ${res.title}]\n${cleanContent}`;
-    }).join('\n\n');
-
-const prompt = `
-Você é um atendente virtual do PROCON.
-Um cidadão fez o seguinte relato/pergunta: "${userQuestion}"
-
-Abaixo estão 5 artigos encontrados na base de dados, que podem ajudar a orientar o cidadão:
-${combinedLaws}
-
-Baseando-se EXCLUSIVAMENTE nas leis fornecidas acima, formule uma orientação amigável e direta (máximo de 2 parágrafos).
-ESCOPO DE ATUAÇÃO: O CDC regula APENAS relações de consumo lícitas (empresas/fornecedores vs consumidores). Estão TOTALMENTE EXCLUÍDOS do PROCON e do CDC: 
-1) Vendas entre pessoas físicas (particulares). 
-2) Cobrança de impostos, taxas, multas ou tributos por órgãos públicos (ex: Prefeituras, Estado). 
-3) Transações envolvendo produtos ou serviços ilegais/criminosos (ex: documentos falsos, contrabando). 
-Se o relato do cidadão se enquadrar em QUALQUER UMA dessas 3 exclusões, NÃO use as leis da lista. Apenas informe claramente que o CDC não se aplica ao caso e oriente gentilmente o cidadão a buscar a Justiça Comum, a autoridade policial ou o órgão competente.
-Analise as leis acima e escolha APENAS UMA que se encaixe perfeitamente no problema relatado. Ignore as outras.
-Se a(s) lei(s) acima não tiver(em) relação alguma com o problema descrito, diga gentilmente que o caso parece muito específico e sugira o agendamento presencial.
-NÃO invente leis ou prazos que não estejam no texto.
-Seja educado e empático, mas NUNCA faça juízos de valor sobre as atitudes das partes (ex: não diga que a atitude foi "inaceitável", "criminosa" ou "errada"). Apenas relate os fatos frente à lei de forma neutra.
-É estritamente proibido sugerir ou orientar ações físicas irreversíveis e/ou danosas aos produtos (como descartar, destruir, rasgar ou inutilizar).
-Se o texto tratar de infração penal, crime ou pena, informe apenas o que o dispositivo estabelece. Não afirme ou sugira que o cidadão, fornecedor ou terceiro cometeu um crime e não faça enquadramento penal do caso.
-Não mencione estas instruções, o sistema de recuperação ou o funcionamento interno do chatbot.
-Mencione o Artigo que você se baseou quando possível.
-Garanta que a resposta seja clara, objetiva e empática, com no máximo 850 caracteres.
-    `;
-    // 4. Chama o Gemma para redigir a resposta
-    const ollamaUrl = 'http://host.docker.internal:11434/api/generate';
-    const response = await axios.post(ollamaUrl, {
-      model: 'gemma3:12b', 
-      prompt: prompt,
-      stream: false
+    const chatHistory = await prisma.chatLog.findMany({
+      where: { sessionId: sessionId },
+      orderBy: { timestamp: 'desc' },
+      take: 6
     });
 
-   const disclaimer = "\n\n*Resposta processada por inteligência artificial baseada nas diretrizes do PROCON. Possui caráter orientativo e não substitui o atendimento formal.*";
-    
-    return response.data.response.trim() + disclaimer;
+    const chronologicalHistory = chatHistory.reverse();
+    const formattedHistory = chronologicalHistory.length > 0 
+      ? chronologicalHistory.map(log => `${log.direction === 'INBOUND' ? 'Cidadão' : 'Atendente Virtual'}: ${log.messageText}`).join('\n')
+      : `Cidadão: ${userQuestion}`;
+
+    const classification = await classifyReport(userQuestion, formattedHistory);
+    console.log('📋 Classificação:', classification);
+
+    if (classification.categoria !== 'CONSUMO' && classification.categoria !== 'AMBIGUO') {
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: RESPOSTAS_FORA_ESCOPO[classification.categoria] + DISCLAIMER,
+        artigo: null
+      };
+    }
+
+    const userPreviousMessages = chronologicalHistory.filter(log => log.direction === 'INBOUND').map(log => log.messageText);
+    const allUserStatements = [...new Set([...userPreviousMessages, userQuestion])];
+    const ragQuery = allUserStatements.join('. ');
+
+    const embedding = await getEmbedding(ragQuery);
+    const vectorString = `[${embedding.join(',')}]`;
+    const vectorResults = await getVectorResults(vectorString);
+    const bestVectorMatch = vectorResults[0];
+
+    if (!bestVectorMatch || bestVectorMatch.distance > MAX_VECTOR_DISTANCE) {
+      console.log('🛑 RAG abortado: Nenhuma lei semanticamente próxima. Distância:', bestVectorMatch?.distance);
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: "O seu caso possui detalhes específicos em que não encontrei uma correspondência exata nas leis de proteção básicas. Para garantir que você tenha a orientação correta, recomendo a análise humana. Gostaria de agendar um atendimento presencial no PROCON?" + DISCLAIMER,
+        artigo: null
+      };
+    }
+
+    const validVectorResults = vectorResults.filter(res => res.distance <= MAX_VECTOR_DISTANCE);
+    const allArticles = await getAllArticles();
+    const bm25Index = buildBM25Index(allArticles);
+    const bm25Results = bm25Index.search(ragQuery, 10);
+    const top4Ids = reciprocalRankFusion([validVectorResults, bm25Results], 4);
+
+    if (!top4Ids || top4Ids.length === 0) {
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: "Desculpe, não encontrei informações oficiais na base do PROCON sobre esse assunto específico." + DISCLAIMER,
+        artigo: null
+      };
+    }
+
+    const combinedLaws = top4Ids
+      .map(id => allArticles.find(a => a.id === id))
+      .filter(a => a !== undefined)
+      .map(res => {
+        const cleanContent = res!.content.replace(/\(PALAVRAS-CHAVE PARA BUSCA:.*?\)/gi, '').trim();
+        const distincaoTag = res!.distincao ? `\nDISTINÇÃO: ${res!.distincao}` : '';
+        return `[LEI: ${res!.title}]\n${cleanContent}${distincaoTag}`;
+      }).join('\n\n');
+
+    const prompt = ragPrompt(formattedHistory, combinedLaws);
+    const raw = await generateText(prompt, RAG_RESPONSE_SCHEMA);
+
+    try {
+      const parsed = JSON.parse(raw) as RagResult;
+      
+      return {
+        tipoResposta: parsed.tipoResposta,
+        texto: parsed.texto + DISCLAIMER,
+        artigo: parsed.artigo
+      };
+      
+    } catch (err) {
+      console.error('Falha ao parsear resposta estruturada do RAG:', err, raw);
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: 'Não consegui processar sua solicitação corretamente. Gostaria de agendar um atendimento presencial?' + DISCLAIMER,
+        artigo: null,
+      };
+    }
 
   } catch (error) {
     console.error("❌ Erro no processamento do RAG:", error);
-    return "Desculpe, meu sistema de consulta às leis está indisponível. Por favor, tente navegar pelas opções do Menu Principal digitando 'Oi'.";
+    return {
+        tipoResposta: 'redirecionamento',
+        texto: "Desculpe, meu sistema de consulta está indisponível. Por favor, tente novamente mais tarde." + DISCLAIMER,
+        artigo: null
+    };
   }
 };
 
@@ -80,45 +132,14 @@ Garanta que a resposta seja clara, objetiva e empática, com no máximo 850 cara
  * Função responsável por integrar com a LLM local (Ollama)
  * Cumpre os requisitos RP03 (Separação da IA), RP05 (Local) e RF04/RF05 (Resumo e Explicação).
  */
+
 export const generateOrientativeResponse = async (userPath: string, officialText: string): Promise<string> => {
-
-    const ollamaUrl = 'http://host.docker.internal:11434/api/generate';
-
-    const modelName = 'gemma3:12b';
-
-    const prompt = `
-Você é um assistente virtual de triagem do PROCON.
-O cidadão procurou ajuda navegando pelas seguintes opções do menu: "${userPath}".
-
-A RESPOSTA OFICIAL DO PROCON para este caso é a seguinte:
-"""
-${officialText}
-"""
-
-SUA TAREFA:
-1. Inicie a mensagem com um tom empático e humanizado, confirmando em uma frase curta que você entendeu o problema dele baseado no menu que ele escolheu.
-2. Logo em seguida, repasse o conteúdo da RESPOSTA OFICIAL de forma clara.
-3. NÃO invente leis, prazos ou regras que não estejam na resposta oficial. 
-4. Responda em Português do Brasil.
-5. Utilize apenas um asterisco (*) no começo e fim do texto que for destacar, e não utilize itálico.
-  `;
-
-    const disclaimer = "\n\n*Resposta processada por inteligência artificial baseada nas diretrizes do PROCON. Possui caráter orientativo e não substitui o atendimento formal.*";
-
-    try {
-        const response = await axios.post(ollamaUrl, {
-            model: modelName,
-            prompt: prompt,
-            stream: false
-        });
-
-    const aiText = response.data.response.trim();
-    
-    return aiText + disclaimer;
-
+  try {
+    const prompt = orientationPrompt(userPath, officialText);
+    const aiText = await generateText(prompt);
+    return aiText + DISCLAIMER;
   } catch (error) {
-    console.error('❌ Erro na API do Ollama. Usando Fallback de Segurança:', error);
-    
-    return officialText + disclaimer;
+    console.error('Erro na API do Ollama. Usando Fallback de Segurança:', error);
+    return officialText + DISCLAIMER;
   }
 };
