@@ -1,26 +1,37 @@
 import axios from 'axios';
+import type { AxiosInstance } from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const META_WA_TOKEN = process.env.META_WA_TOKEN;
-const META_PHONE_NUMBER_ID = process.env.META_PHONE_NUMBER_ID;
+// Variável para guardar a instância na memória depois da primeira vez
+let metaApiInstance: AxiosInstance | null = null;
 
-if (!META_WA_TOKEN || !META_PHONE_NUMBER_ID) {
-  throw new Error("As variáveis de ambiente META_WA_TOKEN e META_PHONE_NUMBER_ID devem estar definidas.");
-}
+// Função que monta o Axios apenas quando for realmente necessário
+const getMetaApi = (): AxiosInstance => {
+  if (!metaApiInstance) {
+    const META_WA_TOKEN = process.env.META_WA_TOKEN;
+    const META_PHONE_NUMBER_ID = process.env.META_PHONE_NUMBER_ID;
 
-export const metaApi = axios.create({
-  baseURL: `https://graph.facebook.com/v19.0/${META_PHONE_NUMBER_ID}`,
-  headers: {
-    Authorization: `Bearer ${META_WA_TOKEN}`,
-    'Content-Type': 'application/json',
-  },
-});
+    if (!META_WA_TOKEN || !META_PHONE_NUMBER_ID) {
+      throw new Error("As variáveis de ambiente META_WA_TOKEN e META_PHONE_NUMBER_ID devem estar definidas.");
+    }
+
+    metaApiInstance = axios.create({
+      baseURL: `https://graph.facebook.com/v19.0/${META_PHONE_NUMBER_ID}`,
+      headers: {
+        Authorization: `Bearer ${META_WA_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+  return metaApiInstance;
+};
 
 export const sendTextMessage = async (to: string, text: string) => {
   try {
-    const response = await metaApi.post('/messages', {
+    const api = getMetaApi(); // <-- Chama a função aqui dentro!
+    const response = await api.post('/messages', {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to,
@@ -72,7 +83,8 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
       };
     }
 
-    const response = await metaApi.post('/messages', {
+    const api = getMetaApi(); // <-- Chama a função aqui dentro também!
+    const response = await api.post('/messages', {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to,
