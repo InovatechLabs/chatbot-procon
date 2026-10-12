@@ -1289,3 +1289,206 @@ html, body, #root {
   background: var(--procon-blue-light);
   color: var(--procon-blue);
 }
+
+/* ============================================
+   AGENDA / GESTÃO DE ATENDIMENTO
+   ============================================ */
+.agenda-layout {
+  grid-template-columns: 400px 1fr;
+  align-items: start;
+}
+
+.calendar-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+
+.calendar-weekdays span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding-bottom: 6px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.calendar-day:hover {
+  background: var(--gray-50);
+}
+
+.calendar-day-number {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.calendar-day.outside .calendar-day-number {
+  color: var(--gray-300);
+}
+
+.calendar-day.today .calendar-day-number {
+  color: var(--procon-blue);
+  font-weight: 700;
+}
+
+.calendar-day.selected {
+  background: var(--procon-blue-light);
+  border-color: var(--procon-blue);
+}
+
+.calendar-day.selected .calendar-day-number {
+  color: var(--procon-blue-dark);
+  font-weight: 700;
+}
+
+.calendar-day-dot {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 20px;
+  background: var(--procon-blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.agenda-details-panel {
+  min-height: 460px;
+}
+
+.agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agenda-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  transition: all var(--transition-fast);
+}
+
+.agenda-item:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.agenda-item-time {
+  min-width: 56px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--procon-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.agenda-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agenda-item-info span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agenda-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.badge-agenda-confirmado {
+  background: var(--green-light);
+  color: #065F46;
+}
+
+.badge-agenda-pendente {
+  background: var(--orange-light);
+  color: #B45309;
+}
+
+.badge-agenda-cancelado {
+  background: var(--red-light);
+  color: #991B1B;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 1024px) {
+  .agenda-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .calendar-day-number { font-size: 11px; }
+  .agenda-item { flex-wrap: wrap; }
+}

@@ -5,6 +5,35 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// ============================================
+// TIPOS — AGENDA
+// ============================================
+export interface Agendamento {
+  id: string;
+  data: string;        // formato YYYY-MM-DD
+  horario: string;      // formato HH:mm
+  nomeCliente: string;
+  telefone: string;
+  assunto: string;
+  status: 'confirmado' | 'pendente' | 'cancelado';
+}
+
+export interface NovoAgendamentoDTO {
+  data: string;
+  horario: string;
+  nomeCliente: string;
+  telefone: string;
+  assunto?: string;
+}
+
+export interface AtualizarAgendamentoDTO {
+  nomeCliente?: string;
+  telefone?: string;
+  assunto?: string;
+  horario?: string;
+  status?: 'confirmado' | 'pendente' | 'cancelado';
+}
+
 export const adminService = {
   getAnalytics: async () => {
     try {
@@ -63,6 +92,55 @@ export const adminService = {
 
   deletarAlternativa: async (id: string) => {
     const response = await api.delete(`/nodes/options/${id}`);
+    return response.data;
+  },
+};
+
+// ============================================
+// SERVIÇO — AGENDA / CALENDÁRIO
+// ============================================
+export const agendaService = {
+  // Lista agendamentos de um mês (params.mes no formato 'YYYY-MM')
+  getAgendamentos: async (params?: { mes?: string }) => {
+    try {
+      const response = await api.get('/agenda', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos:', error);
+      throw error;
+    }
+  },
+
+  // Retorna os horários livres para uma data específica (YYYY-MM-DD),
+  // considerando as regras de disponibilidade definidas no chatbot.
+  getHorariosDisponiveis: async (data: string) => {
+    try {
+      const response = await api.get(`/agenda/horarios/${data}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar horários disponíveis:', error);
+      throw error;
+    }
+  },
+
+  criarAgendamento: async (dados: NovoAgendamentoDTO) => {
+    const response = await api.post('/agenda', dados);
+    return response.data;
+  },
+
+  atualizarAgendamento: async (id: string, dados: AtualizarAgendamentoDTO) => {
+    const response = await api.put(`/agenda/${id}`, dados);
+    return response.data;
+  },
+
+  // Reagendamento: atualiza data/horário de um agendamento existente
+  reagendar: async (id: string, dados: { data: string; horario: string }) => {
+    const response = await api.put(`/agenda/${id}/reagendar`, dados);
+    return response.data;
+  },
+
+  cancelarAgendamento: async (id: string) => {
+    const response = await api.delete(`/agenda/${id}`);
     return response.data;
   },
 };
