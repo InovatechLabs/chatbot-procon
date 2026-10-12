@@ -13,6 +13,13 @@ datasource db {
   extensions = [vector]
 }
 
+enum AppointmentStatus {
+  SCHEDULED   // Agendado
+  COMPLETED   // Compareceu / Atendido
+  CANCELLED   // Cancelado pelo usuário ou agente
+  NO_SHOW     // Falta (não compareceu)
+}
+
 // 1. A Etapa/Pergunta (O que o bot fala)
 model Step {
   id          String   @id @default(uuid())
@@ -41,18 +48,20 @@ model Option {
 
 // 3. Memoria do Bot (Sessao do Usuario)
 model UserSession {
-  id             String   @id @default(uuid())
-  phoneNumber    String   @unique // O número do usuario 
-  currentStepId  String?  // Em qual etapa do fluxo ele está
-  updatedAt      DateTime @updatedAt // Para saber se a janela de 24h expirou
-
-  isChat         Boolean  @default(false) // Para saber se o usuario está em conversa livre ou navegando pelo menu
-  rating         Int?     // Avaliaçao da qualidade das respostas que será usada para treinar o modelo
-  status         String   @default("OPEN") // Status do caso, OPEN, RESOLVED ou CLOSED
-
-  // Relacionamentos
-  currentStep    Step?    @relation(fields: [currentStepId], references: [id])
-  chatLogs       ChatLog[] // Historico atrelado a essa sessao especifica
+  id            String            @id @default(uuid())
+  phoneNumber   String            // Removido o @unique para permitir múltiplas sessões históricas
+  userName      String?
+  userCpf       String?
+  isChat        Boolean           @default(false)
+  status        String            @default("OPEN")
+  currentStepId String?
+  currentStep   Step?             @relation(fields: [currentStepId], references: [id])
+  stepState     String?           
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  appointments  Appointment[]
+  chatLogs      ChatLog[]
+  feedbacks     SessionFeedback[]
 }
 
 // Modelo para usar futuramente (aprendizado do bot)
@@ -79,4 +88,55 @@ model KnowledgeBase {
   distincao String?
   
   embedding Unsupported("vector(1024)")? 
+}
+
+model DocumentGuide {
+  id            String        @id @default(uuid())
+  categoryKey   String        @unique // Ex: "CARTAO_SEGURO", "INSS_EMPRESTIMO", "CONTRATO_CANCELAMENTO", "GERAL"
+  categoryName  String        // Nome amigável para exibição
+  requiredDocs  String[]      // Lista de documentos obrigatórios
+  observations  String?       // Avisos específicos (ex: "se usou o dinheiro, só cabe proposta de quitação")
+
+  appointments  Appointment[]
+}
+
+// 7. Tabela de Agendamentos Presenciais
+model Appointment {
+  id               String            @id @default(uuid())
+  sessionId        String
+  documentGuideId  String?
+  
+  userName         String            // Nome do cidadão
+  userCpf          String            // CPF do cidadão
+  phoneNumber      String            // Telefone de contato
+  categoryName     String            // Categoria do problema
+  issueSummary     String?           // Resumo do problema relato no RAG ou triagem
+  
+  scheduledAt      DateTime          // Data e hora marcada
+  status           AppointmentStatus @default(SCHEDULED)
+  agentNotes       String?           // Observações inseridas pelos atendentes do PROCON no Painel
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  session          UserSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  documentGuide    DocumentGuide?    @relation(fields: [documentGuideId], references: [id])
+}
+
+// 8. Avaliações do Atendimento (Para painel admin + sistema de aprendizado)
+model SessionFeedback {
+  id              String      @id @default(uuid())
+  sessionId       String
+  phoneNumber     String
+  rating          Int         // Nota de 1 a 5
+  comment         String?     // Comentário opcional do usuário
+  
+  // Controle para o sistema de aprendizado supervisionado 
+  reviewedByAgent Boolean     @default(false) // Se o atendente humano já analisou este atendimento
+  agentFeedback   String?     // Análise do agente (ex: "Bot respondeu artigo incorreto, ajustar RAG")
+  resolvedAction  String?     // Ação tomada (ex: "Base de conhecimento atualizada", "Prompt ajustado")
+
+  createdAt       DateTime    @default(now())
+
+  session         UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }

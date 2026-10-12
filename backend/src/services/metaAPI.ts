@@ -4,17 +4,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Variável para guardar a instância na memória depois da primeira vez
 let metaApiInstance: AxiosInstance | null = null;
 
-// Função que monta o Axios apenas quando for realmente necessário
 const getMetaApi = (): AxiosInstance => {
   if (!metaApiInstance) {
     const META_WA_TOKEN = process.env.META_WA_TOKEN;
     const META_PHONE_NUMBER_ID = process.env.META_PHONE_NUMBER_ID;
 
     if (!META_WA_TOKEN || !META_PHONE_NUMBER_ID) {
-      throw new Error("As variáveis de ambiente META_WA_TOKEN e META_PHONE_NUMBER_ID devem estar definidas.");
+      throw new Error("Variáveis META_WA_TOKEN e META_PHONE_NUMBER_ID são obrigatórias.");
     }
 
     metaApiInstance = axios.create({
@@ -30,17 +28,17 @@ const getMetaApi = (): AxiosInstance => {
 
 export const sendTextMessage = async (to: string, text: string) => {
   try {
-    const api = getMetaApi(); // <-- Chama a função aqui dentro!
+    const api = getMetaApi();
     const response = await api.post('/messages', {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to,
-        type: "text",
-        text: { body: text },
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "text",
+      text: { body: text },
     });
     return response.data;
   } catch (error: any) {
-    console.error("Erro ao enviar mensagem via Meta API:", error.response?.data || error.message);
+    console.error("Erro ao enviar mensagem de texto via Meta API:", error.response?.data || error.message);
     throw error;
   }
 };
@@ -63,8 +61,7 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
           })),
         },
       };
-    } 
-    else {
+    } else {
       interactiveConfig = {
         type: 'list',
         body: { text },
@@ -83,7 +80,7 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
       };
     }
 
-    const api = getMetaApi(); // <-- Chama a função aqui dentro também!
+    const api = getMetaApi();
     const response = await api.post('/messages', {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -94,6 +91,51 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
     return response.data;
   } catch (error: any) {
     console.error(`❌ Erro ao enviar interação para ${to}:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Envia uma mensagem interativa de Lista com seções, títulos e descrições.
+ */
+export const sendListMessage = async (
+  to: string,
+  title: string,
+  bodyText: string,
+  buttonText: string,
+  sections: Array<{
+    title: string;
+    rows: Array<{ id: string; title: string; description?: string }>;
+  }>
+) => {
+  try {
+    const api = getMetaApi();
+    const response = await api.post('/messages', {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'list',
+        header: { type: 'text', text: title },
+        body: { text: bodyText },
+        footer: { text: 'PROCON Municipal' },
+        action: {
+          button: buttonText,
+          sections: sections.map((sec) => ({
+            title: sec.title.substring(0, 24),
+            rows: sec.rows.map((row) => ({
+              id: row.id,
+              title: row.title.substring(0, 24),
+              description: row.description ? row.description.substring(0, 72) : undefined,
+            })),
+          })),
+        },
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error(`❌ Erro ao enviar lista interativa para ${to}:`, error.response?.data || error.message);
     throw error;
   }
 };
