@@ -2,9 +2,96 @@ import type { Request, Response } from 'express';
 import { prisma } from '../../database/index.js';
 import { sendTextMessage, sendInteractiveMessage } from '../../services/metaAPI.js';
 import { answerWithRAG, generateOrientativeResponse } from '../../services/llm/llmService.js';
+import {
+  createAppointment,
+  getUpcomingSlots,
+  formatSlotLabel,
+  AppointmentError,
+} from '../../services/appointments/appointmentService.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+// Título do Step do fluxo que representa o agendamento presencial (ver prisma/seed/seed.ts)
+const AGENDAMENTO_STEP_TITLE = 'Fluxo Agendamento';
+
+const agendarPromptOptions = [
+  { id: 'btn_agendar_sim', text: 'Sim, quero agendar' },
+  { id: 'btn_agendar_nao', text: 'Não, obrigado' }
+];
+
+// Registra no histórico (ChatLog) o que o atendente presencial precisará ler depois
+const logMessage = async (
+  sessionId: string,
+  phoneNumber: string,
+  direction: 'INBOUND' | 'OUTBOUND',
+  messageText: string
+) => {
+  await prisma.chatLog.create({ data: { sessionId, phoneNumber, direction, messageText } });
+};
+
+// Oferece os próximos horários livres como lista do WhatsApp (ids: slot_<ISO UTC>)
+const offerSlots = async (phoneNumber: string, sessionId: string) => {
+  const slots = await getUpcomingSlots(8);
+
+  if (slots.length === 0) {
+    const text = 'No momento não há horários disponíveis para agendamento. Tente novamente mais tarde ou compareça à unidade do PROCON.';
+    await sendTextMessage(phoneNumber, text);
+    await logMessage(sessionId, phoneNumber, 'OUTBOUND', text);
+    return;
+  }
+
+  const text = 'Escolha o melhor horário para o seu atendimento presencial:';
+  await sendInteractiveMessage(
+    phoneNumber,
+    text,
+    slots.map((s) => ({ id: `slot_${s.scheduledAt}`, text: s.label }))
+  );
+  await logMessage(sessionId, phoneNumber, 'OUTBOUND', `${text} ${slots.map((s) => s.label).join(' | ')}`);
+};
+
+// Cria o agendamento vinculado a este número (e, portanto, a toda a conversa já registrada)
+const handleSlotSelection = async (phoneNumber: string, sessionId: string, isoDate: string) => {
+  const scheduledAt = new Date(isoDate);
+
+  if (Number.isNaN(scheduledAt.getTime())) {
+    await offerSlots(phoneNumber, sessionId);
+    return;
+  }
+
+  const label = formatSlotLabel(scheduledAt);
+  await logMessage(sessionId, phoneNumber, 'INBOUND', `[Horário escolhido] ${label}`);
+
+  try {
+    await createAppointment({
+      phoneNumber,
+      scheduledAt,
+      subject: 'Agendamento solicitado pelo WhatsApp',
+      source: 'WHATSAPP'
+    });
+
+    const text = `✅ Atendimento presencial agendado para *${label}*.\n\nLeve seus documentos pessoais (RG/CPF) e os comprovantes do problema (notas, protocolos, prints, faturas). O atendente terá acesso ao histórico desta conversa.`;
+    await sendTextMessage(phoneNumber, text);
+    await logMessage(sessionId, phoneNumber, 'OUTBOUND', text);
+  } catch (error) {
+    if (error instanceof AppointmentError) {
+      if (error.code === 'ALREADY_SCHEDULED') {
+        const text = 'Você já possui um atendimento presencial pendente. Para alterá-lo, procure a unidade do PROCON.';
+        await sendTextMessage(phoneNumber, text);
+        await logMessage(sessionId, phoneNumber, 'OUTBOUND', text);
+        return;
+      }
+      if (['SLOT_TAKEN', 'INVALID_SLOT', 'PAST_DATE'].includes(error.code)) {
+        const text = 'Esse horário não está mais disponível. Vou te mostrar as opções atualizadas.';
+        await sendTextMessage(phoneNumber, text);
+        await logMessage(sessionId, phoneNumber, 'OUTBOUND', text);
+        await offerSlots(phoneNumber, sessionId);
+        return;
+      }
+    }
+    throw error;
+  }
+};
 
 export const verifyWebhook = async (req: Request, res: Response): Promise<any> => {
   const mode = req.query['hub.mode'];
@@ -188,17 +275,31 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               if (resolveu) {
                 await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece o seu contato. Tenha um ótimo dia!");
               } else {
-                const stepAgendamento = await prisma.step.findFirst({
-                  where: { title: 'Fluxo Agendamento' }
-                });
-                
-                if (stepAgendamento) {
-                  await sendTextMessage(phoneNumber, stepAgendamento.message);
-                } else {
-                   await sendTextMessage(phoneNumber, "Entendo. Para melhor auxiliá-lo, sugerimos o agendamento presencial em nossa unidade.");
-                }
+                const text = 'Entendo. Para melhor auxiliá-lo, sugerimos um atendimento presencial em nossa unidade. Deseja agendar?';
+                await sendInteractiveMessage(phoneNumber, text, agendarPromptOptions);
+                await logMessage(session.id, phoneNumber, 'OUTBOUND', text);
               }
               continue; 
+            }
+
+            // --- AGENDAMENTO PRESENCIAL (botões enviados após o RAG ou o feedback negativo) ---
+            if (selectedOptionId === 'btn_agendar_nao') {
+              const text = 'Tudo bem! Se precisar de ajuda, é só enviar uma mensagem. O PROCON agradece o seu contato.';
+              await logMessage(session.id, phoneNumber, 'INBOUND', '[Botão] Não, obrigado');
+              await sendTextMessage(phoneNumber, text);
+              await logMessage(session.id, phoneNumber, 'OUTBOUND', text);
+              continue;
+            }
+
+            if (selectedOptionId === 'btn_agendar_sim') {
+              await logMessage(session.id, phoneNumber, 'INBOUND', '[Botão] Sim, quero agendar');
+              await offerSlots(phoneNumber, session.id);
+              continue;
+            }
+
+            if (typeof selectedOptionId === 'string' && selectedOptionId.startsWith('slot_')) {
+              await handleSlotSelection(phoneNumber, session.id, selectedOptionId.slice('slot_'.length));
+              continue;
             }
 
             if (selectedOptionId) {
@@ -229,7 +330,13 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           // ==========================================================
           // 4. ENVIO FINAL (Se for um Step do fluxo programado)
           // ==========================================================
-          if (responseStep) {
+          if (responseStep && responseStep.title === AGENDAMENTO_STEP_TITLE) {
+            await prisma.userSession.update({
+              where: { id: session.id },
+              data: { currentStepId: responseStep.id }
+            });
+            await offerSlots(phoneNumber, session.id);
+          } else if (responseStep) {
             await prisma.userSession.update({
               where: { id: session.id },
               data: { currentStepId: responseStep.id }

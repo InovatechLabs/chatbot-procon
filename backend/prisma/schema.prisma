@@ -53,6 +53,7 @@ model UserSession {
   // Relacionamentos
   currentStep    Step?    @relation(fields: [currentStepId], references: [id])
   chatLogs       ChatLog[] // Historico atrelado a essa sessao especifica
+  appointments   Appointment[] // Atendimentos presenciais agendados por este usuario
 }
 
 // Modelo para usar futuramente (aprendizado do bot)
@@ -79,4 +80,47 @@ model KnowledgeBase {
   distincao String?
   
   embedding Unsupported("vector(1024)")? 
+}
+
+// ============================================================
+// AGENDAMENTO DE ATENDIMENTO PRESENCIAL
+// ============================================================
+
+enum AppointmentStatus {
+  PENDING    // agendado, ainda nao realizado
+  COMPLETED  // cidadao foi atendido
+  CANCELLED  // cancelado (libera o horario)
+}
+
+// Atendente presencial (opcional: sem nenhum cadastrado, cada horario comporta 1 atendimento)
+model Attendant {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  appointments Appointment[]
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  phoneNumber String            // Mesma chave de UserSession/ChatLog (somente digitos, ex: 5511999999999)
+  citizenName String?
+  subject     String?
+  notes       String?
+  scheduledAt DateTime          // Sempre em UTC; a grade de horarios usa America/Sao_Paulo
+  durationMin Int               @default(30)
+  status      AppointmentStatus @default(PENDING)
+  source      String            @default("PANEL") // PANEL (painel admin) ou WHATSAPP (agendado pelo bot)
+  attendantId String?
+  sessionId   String?           // Atalho para a sessao do WhatsApp (null se o cidadao nunca falou com o bot)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  attendant Attendant?   @relation(fields: [attendantId], references: [id], onDelete: SetNull)
+  session   UserSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledAt])
+  @@index([phoneNumber])
+  @@index([attendantId, scheduledAt])
 }

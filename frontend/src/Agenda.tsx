@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { agendaService, type Agendamento } from './services/api';
+import { isAxiosError } from 'axios';
+import {
+  agendaService,
+  type Agendamento,
+  type HistoricoAtendimento,
+  type StatusAgendamento,
+} from './services/api';
 import './App.css';
 
 const IconChevronLeft = () => (
@@ -27,6 +33,33 @@ const MESES = [
 ];
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+const ROTULO_STATUS: Record<StatusAgendamento, string> = {
+  pendente: 'Pendente',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+};
+
+// 5511999999999 -> (11) 99999-9999
+const formatarTelefone = (digitos: string) => {
+  const d = digitos.startsWith('55') ? digitos.slice(2) : digitos;
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return digitos;
+};
+
+const formatarDataHora = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+// Usa a mensagem enviada pelo back-end (ex.: "Horário indisponível.") quando houver
+const mensagemErro = (err: unknown, padrao: string) =>
+  isAxiosError(err) && typeof err.response?.data?.message === 'string' ? err.response.data.message : padrao;
+
 const toISODate = (d: Date) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -46,7 +79,7 @@ interface FormAgendamento {
   telefone: string;
   assunto: string;
   horario: string;
-  status: 'confirmado' | 'pendente' | 'cancelado';
+  status: StatusAgendamento;
 }
 
 const FORM_VAZIO: FormAgendamento = {
@@ -68,6 +101,10 @@ export default function Agenda() {
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState<FormAgendamento>(FORM_VAZIO);
   const [erro, setErro] = useState('');
+  const [historicoAlvo, setHistoricoAlvo] = useState<Agendamento | null>(null);
+  const [historico, setHistorico] = useState<HistoricoAtendimento | null>(null);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
+  const [historicoErro, setHistoricoErro] = useState('');
 
   useEffect(() => {
     carregarAgendamentos();
@@ -157,7 +194,7 @@ export default function Agenda() {
     setForm({
       id: agendamento.id,
       nomeCliente: agendamento.nomeCliente,
-      telefone: agendamento.telefone,
+      telefone: formatarTelefone(agendamento.telefone),
       assunto: agendamento.assunto,
       horario: agendamento.horario,
       status: agendamento.status,
@@ -183,10 +220,10 @@ export default function Agenda() {
     try {
       if (form.id) {
         await agendaService.atualizarAgendamento(form.id, {
-          nomeCliente: form.nomeCliente,
-          telefone: form.telefone,
-          assunto: form.assunto,
+          data: diaSelecionado,
           horario: form.horario,
+          nomeCliente: form.nomeCliente,
+          assunto: form.assunto,
           status: form.status,
         });
       } else {
@@ -202,7 +239,7 @@ export default function Agenda() {
       carregarAgendamentos();
     } catch (err) {
       console.error('Erro ao salvar agendamento:', err);
-      setErro('Erro ao salvar agendamento. Tente novamente.');
+      setErro(mensagemErro(err, 'Erro ao salvar agendamento. Tente novamente.'));
     } finally {
       setSalvando(false);
     }
@@ -215,8 +252,29 @@ export default function Agenda() {
       carregarAgendamentos();
     } catch (err) {
       console.error('Erro ao cancelar agendamento:', err);
-      alert('Erro ao cancelar agendamento.');
+      alert(mensagemErro(err, 'Erro ao cancelar agendamento.'));
     }
+  };
+
+  const abrirHistorico = async (agendamento: Agendamento) => {
+    setHistoricoAlvo(agendamento);
+    setHistorico(null);
+    setHistoricoErro('');
+    setHistoricoLoading(true);
+    try {
+      setHistorico(await agendaService.getHistorico(agendamento.id));
+    } catch (err) {
+      console.error('Erro ao carregar conversa:', err);
+      setHistoricoErro(mensagemErro(err, 'Não foi possível carregar a conversa.'));
+    } finally {
+      setHistoricoLoading(false);
+    }
+  };
+
+  const fecharHistorico = () => {
+    setHistoricoAlvo(null);
+    setHistorico(null);
+    setHistoricoErro('');
   };
 
   if (loading) {
@@ -291,13 +349,17 @@ export default function Agenda() {
                 <div key={a.id} className="agenda-item">
                   <div className="agenda-item-time">{a.horario}</div>
                   <div className="agenda-item-info">
-                    <span className="table-strong">{a.nomeCliente}</span>
-                    <span className="table-muted">{a.telefone}{a.assunto ? ` · ${a.assunto}` : ''}</span>
+                    <span className="table-strong">{a.nomeCliente || 'Nome não informado'}</span>
+                    <span className="table-muted">{formatarTelefone(a.telefone)}{a.assunto ? ` · ${a.assunto}` : ''}</span>
                   </div>
-                  <span className={`tag badge-agenda-${a.status}`}>{a.status}</span>
+                  {a.origem === 'WHATSAPP' && <span className="tag badge-agenda-whatsapp">WhatsApp</span>}
+                  <span className={`tag badge-agenda-${a.status}`}>{ROTULO_STATUS[a.status]}</span>
                   <div className="agenda-item-actions">
+                    <button type="button" className="btn-ghost" onClick={() => abrirHistorico(a)}>Conversa</button>
                     <button type="button" className="btn-ghost" onClick={() => abrirModalEdicao(a)}>Editar</button>
-                    <button type="button" className="btn-icon" onClick={() => handleCancelar(a.id)}><IconTrash /></button>
+                    {a.status === 'pendente' && (
+                      <button type="button" className="btn-icon" title="Cancelar agendamento" onClick={() => handleCancelar(a.id)}><IconTrash /></button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -337,6 +399,7 @@ export default function Agenda() {
                     value={form.telefone}
                     onChange={e => setForm({ ...form, telefone: e.target.value })}
                     placeholder="(00) 00000-0000"
+                    readOnly={!!form.id}
                     required
                   />
                 </div>
@@ -376,7 +439,7 @@ export default function Agenda() {
                     onChange={e => setForm({ ...form, status: e.target.value as FormAgendamento['status'] })}
                   >
                     <option value="pendente">Pendente</option>
-                    <option value="confirmado">Confirmado</option>
+                    <option value="concluido">Concluído</option>
                     <option value="cancelado">Cancelado</option>
                   </select>
                 </div>
@@ -386,6 +449,60 @@ export default function Agenda() {
                 {salvando ? 'Salvando...' : 'Salvar agendamento'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* HISTÓRICO DA CONVERSA DO WHATSAPP */}
+      {historicoAlvo && (
+        <div className="modal-overlay" onClick={fecharHistorico}>
+          <div className="modal-card modal-card-wide" onClick={e => e.stopPropagation()}>
+            <div className="panel-header-actions">
+              <div>
+                <h3>Conversa do WhatsApp</h3>
+                <p className="node-path">
+                  {historicoAlvo.nomeCliente || 'Nome não informado'} · {formatarTelefone(historicoAlvo.telefone)}
+                </p>
+              </div>
+              <button type="button" className="btn-icon" onClick={fecharHistorico}><IconX /></button>
+            </div>
+
+            {historicoLoading && <p className="help-text">Carregando conversa...</p>}
+            {historicoErro && <div className="login-error">{historicoErro}</div>}
+
+            {historico && (
+              <>
+                {historico.sessao && (
+                  <p className="help-text">
+                    Etapa atual no bot: {historico.sessao.etapaAtual || '—'} · Status: {historico.sessao.status}
+                    {historico.sessao.nota !== null ? ` · Nota: ${historico.sessao.nota}` : ''}
+                  </p>
+                )}
+
+                {historico.mensagens.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon"><IconCalendar /></div>
+                    <h4>Sem conversa registrada</h4>
+                    <p>Nenhuma mensagem do WhatsApp foi encontrada para este número.</p>
+                  </div>
+                ) : (
+                  <div className="chat-history">
+                    {historico.truncado && (
+                      <p className="help-text">Exibindo apenas as mensagens mais recentes.</p>
+                    )}
+                    {historico.mensagens.map(m => (
+                      <div key={m.id} className={`chat-bubble ${m.direction === 'INBOUND' ? 'inbound' : 'outbound'}`}>
+                        <span className="chat-bubble-meta">
+                          {m.direction === 'INBOUND' ? 'Cidadão' : 'Assistente'} · {formatarDataHora(m.timestamp)}
+                          {m.etapa ? ` · ${m.etapa}` : ''}
+                        </span>
+                        <p>{m.messageText}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

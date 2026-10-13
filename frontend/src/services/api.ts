@@ -6,16 +6,19 @@ const api = axios.create({
 });
 
 // ============================================
-// TIPOS — AGENDA
+// TIPOS — AGENDA (contrato da tela)
 // ============================================
+export type StatusAgendamento = 'pendente' | 'concluido' | 'cancelado';
+
 export interface Agendamento {
   id: string;
-  data: string;        // formato YYYY-MM-DD
-  horario: string;      // formato HH:mm
-  nomeCliente: string;
-  telefone: string;
+  data: string;        // YYYY-MM-DD (horário de Brasília)
+  horario: string;     // HH:mm
+  nomeCliente: string; // vazio quando o agendamento veio do WhatsApp e ninguém preencheu
+  telefone: string;    // somente dígitos: é a chave que liga o agendamento à conversa do WhatsApp
   assunto: string;
-  status: 'confirmado' | 'pendente' | 'cancelado';
+  status: StatusAgendamento;
+  origem: 'PANEL' | 'WHATSAPP';
 }
 
 export interface NovoAgendamentoDTO {
@@ -27,11 +30,26 @@ export interface NovoAgendamentoDTO {
 }
 
 export interface AtualizarAgendamentoDTO {
-  nomeCliente?: string;
-  telefone?: string;
-  assunto?: string;
+  data?: string;
   horario?: string;
-  status?: 'confirmado' | 'pendente' | 'cancelado';
+  nomeCliente?: string;
+  assunto?: string;
+  status?: StatusAgendamento;
+}
+
+export interface MensagemHistorico {
+  id: string;
+  direction: 'INBOUND' | 'OUTBOUND'; // INBOUND = cidadão, OUTBOUND = bot
+  messageText: string;
+  timestamp: string;
+  etapa: string | null;              // título do Step do fluxo em que a mensagem ocorreu
+}
+
+export interface HistoricoAtendimento {
+  agendamento: Agendamento;
+  sessao: { status: string; nota: number | null; atualizadoEm: string; etapaAtual: string | null } | null;
+  mensagens: MensagemHistorico[];
+  truncado: boolean;
 }
 
 export const adminService = {
@@ -97,26 +115,75 @@ export const adminService = {
 };
 
 // ============================================
-// SERVIÇO — AGENDA / CALENDÁRIO
+// SERVIÇO — AGENDA / GESTÃO DE ATENDIMENTO
+// Endpoints: /appointments (back-end). Aqui ficam os conversores entre o contrato da API
+// (inglês, status em maiúsculas, data em UTC) e o contrato da tela (português, horário de Brasília).
 // ============================================
+const TZ_OFFSET = '-03:00';
+const TZ_OFFSET_MIN = -180;
+
+interface AppointmentApi {
+  id: string;
+  phoneNumber: string;
+  citizenName: string | null;
+  subject: string | null;
+  scheduledAt: string;
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  source: string;
+}
+
+const STATUS_API_PARA_UI = {
+  PENDING: 'pendente',
+  COMPLETED: 'concluido',
+  CANCELLED: 'cancelado',
+} as const;
+
+const STATUS_UI_PARA_API = {
+  pendente: 'PENDING',
+  concluido: 'COMPLETED',
+  cancelado: 'CANCELLED',
+} as const;
+
+const paraAgendamento = (a: AppointmentApi): Agendamento => {
+  const local = new Date(new Date(a.scheduledAt).getTime() + TZ_OFFSET_MIN * 60_000).toISOString();
+  return {
+    id: a.id,
+    data: local.slice(0, 10),
+    horario: local.slice(11, 16),
+    nomeCliente: a.citizenName ?? '',
+    telefone: a.phoneNumber,
+    assunto: a.subject ?? '',
+    status: STATUS_API_PARA_UI[a.status],
+    origem: a.source === 'WHATSAPP' ? 'WHATSAPP' : 'PANEL',
+  };
+};
+
+const paraScheduledAt = (data: string, horario: string) => `${data}T${horario}:00${TZ_OFFSET}`;
+
 export const agendaService = {
-  // Lista agendamentos de um mês (params.mes no formato 'YYYY-MM')
-  getAgendamentos: async (params?: { mes?: string }) => {
+  // mes no formato 'YYYY-MM'
+  getAgendamentos: async (params: { mes: string }): Promise<{ data: Agendamento[] }> => {
     try {
-      const response = await api.get('/agenda', { params });
-      return response.data;
+      const ano = Number(params.mes.slice(0, 4));
+      const mes = Number(params.mes.slice(5, 7));
+      const ultimoDia = new Date(ano, mes, 0).getDate();
+      const response = await api.get('/appointments', {
+        params: { from: `${params.mes}-01`, to: `${params.mes}-${String(ultimoDia).padStart(2, '0')}` },
+      });
+      const lista: AppointmentApi[] = Array.isArray(response.data?.data) ? response.data.data : [];
+      return { data: lista.map(paraAgendamento) };
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       throw error;
     }
   },
 
-  // Retorna os horários livres para uma data específica (YYYY-MM-DD),
-  // considerando as regras de disponibilidade definidas no chatbot.
-  getHorariosDisponiveis: async (data: string) => {
+  // Horários livres de um dia (YYYY-MM-DD), conforme a grade e a capacidade definidas no back-end
+  getHorariosDisponiveis: async (data: string): Promise<{ data: string[] }> => {
     try {
-      const response = await api.get(`/agenda/horarios/${data}`);
-      return response.data;
+      const response = await api.get('/appointments/availability', { params: { date: data } });
+      const slots: { time: string; available: boolean }[] = Array.isArray(response.data?.data) ? response.data.data : [];
+      return { data: slots.filter((s) => s.available).map((s) => s.time) };
     } catch (error) {
       console.error('Erro ao buscar horários disponíveis:', error);
       throw error;
@@ -124,24 +191,59 @@ export const agendaService = {
   },
 
   criarAgendamento: async (dados: NovoAgendamentoDTO) => {
-    const response = await api.post('/agenda', dados);
+    const response = await api.post('/appointments', {
+      phoneNumber: dados.telefone,
+      scheduledAt: paraScheduledAt(dados.data, dados.horario),
+      citizenName: dados.nomeCliente,
+      ...(dados.assunto ? { subject: dados.assunto } : {}),
+    });
     return response.data;
   },
 
+  // Edita dados, reagenda (data + horario) ou muda o status. O back-end ignora horário inalterado.
   atualizarAgendamento: async (id: string, dados: AtualizarAgendamentoDTO) => {
-    const response = await api.put(`/agenda/${id}`, dados);
-    return response.data;
-  },
-
-  // Reagendamento: atualiza data/horário de um agendamento existente
-  reagendar: async (id: string, dados: { data: string; horario: string }) => {
-    const response = await api.put(`/agenda/${id}/reagendar`, dados);
+    const response = await api.patch(`/appointments/${id}`, {
+      ...(dados.data && dados.horario ? { scheduledAt: paraScheduledAt(dados.data, dados.horario) } : {}),
+      ...(dados.nomeCliente ? { citizenName: dados.nomeCliente } : {}),
+      ...(dados.assunto ? { subject: dados.assunto } : {}),
+      ...(dados.status ? { status: STATUS_UI_PARA_API[dados.status] } : {}),
+    });
     return response.data;
   },
 
   cancelarAgendamento: async (id: string) => {
-    const response = await api.delete(`/agenda/${id}`);
+    const response = await api.delete(`/appointments/${id}`);
     return response.data;
+  },
+
+  // Conversa do WhatsApp do cidadão (para o atendente consultar antes/durante o atendimento)
+  getHistorico: async (id: string): Promise<HistoricoAtendimento> => {
+    try {
+      const response = await api.get(`/appointments/${id}/history`);
+      const d = response.data?.data;
+      return {
+        agendamento: paraAgendamento(d.appointment),
+        sessao: d.session
+          ? {
+              status: d.session.status,
+              nota: d.session.rating ?? null,
+              atualizadoEm: d.session.updatedAt,
+              etapaAtual: d.session.currentStep?.title ?? null,
+            }
+          : null,
+        mensagens: (d.messages ?? []).map((m: any) => ({
+          id: m.id,
+          direction: m.direction,
+          messageText: m.messageText,
+          timestamp: m.timestamp,
+          etapa: m.step?.title ?? null,
+        })),
+        truncado: !!d.truncated,
+      };
+    } catch (error) {
+      console.error('Erro ao buscar histórico do atendimento:', error);
+      throw error;
+    }
   },
 };
 
