@@ -48,6 +48,14 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
     const classification = await classifyReport(userQuestion, formattedHistory);
     console.log('📋 Classificação:', classification);
 
+    if (classification.categoria === 'AGENDAMENTO') {
+  return {
+    tipoResposta: 'redirecionamento',
+    texto: "Posso te ajudar a agendar um atendimento presencial no PROCON para que nossa equipe analise o seu caso. Para isso, clique no botão Agendar Consulta abaixo desta mensagem e prosseguiremos com o seu agendamento." + DISCLAIMER,
+    artigo: null
+  };
+}
+
     if (classification.categoria !== 'CONSUMO' && classification.categoria !== 'AMBIGUO') {
       return {
         tipoResposta: 'redirecionamento',

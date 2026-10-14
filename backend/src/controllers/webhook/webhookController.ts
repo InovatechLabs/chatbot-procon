@@ -1,17 +1,14 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../../database/index.js';
-import { sendTextMessage, sendInteractiveMessage } from '../../services/metaAPI.js';
+import { sendTextMessage, sendInteractiveMessage, sendListMessage } from '../../services/metaAPI.js';
 import { answerWithRAG, generateOrientativeResponse } from '../../services/llm/llmService.js';
-import { getAvailableSlots, createAppointment } from '../../services/schedule/scheduleService.js';
+import { getAvailableSlots, createAppointment, getPendingAppointment } from '../../services/schedule/scheduleService.js';
 import { sendDocumentCategoryList, handleDocumentCategorySelection } from '../../services/documents/documentService.js';
-import { cleanAndValidateCpf, getNextBusinessDays } from '../../utils/validators/index.js';
+import { cleanAndValidateCpf, getNextBusinessDays, validateFullName } from '../../utils/validators/index.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-/**
- * Validação do Webhook Meta API.
- */
 export const verifyWebhook = async (req: Request, res: Response): Promise<any> => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
@@ -23,9 +20,6 @@ export const verifyWebhook = async (req: Request, res: Response): Promise<any> =
   return res.sendStatus(403);
 };
 
-/**
- * Encerra a sessão atual marcando como RESOLVED para que a próxima interação inicie zerada.
- */
 const closeCurrentSession = async (sessionId: string) => {
   await prisma.userSession.update({
     where: { id: sessionId },
@@ -34,37 +28,133 @@ const closeCurrentSession = async (sessionId: string) => {
 };  
 
 /**
- * Dispara a triagem de categoria para o agendamento presencial.
+ * Dispara a triagem de categoria via Lista Interativa (evita duplicação de mensagens de botões).
  */
 const triggerCategorySelection = async (phoneNumber: string, sessionId: string) => {
+
+  const pending = await getPendingAppointment(phoneNumber);
+
+  if (pending) {
+    const dateFormatted = pending.scheduledAt.toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      weekday: 'long',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+
+    const timeFormatted = pending.scheduledAt.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    const pendingMsg = `⚠️ *Você já possui um agendamento pendente no PROCON!*
+
+📅 *Data:* ${dateFormatted}
+⏰ *Horário:* ${timeFormatted}
+📋 *Assunto:* ${pending.categoryName}
+👤 *Nome:* ${pending.userName}
+
+Para garantir a organização dos atendimentos, cada cidadão pode manter apenas um agendamento ativo por vez. Se precisar de orientações sobre o seu caso, você pode mandar sua dúvida por texto aqui a qualquer momento.`;
+
+    await sendTextMessage(phoneNumber, pendingMsg);
+    return;
+  }
+  
   await prisma.userSession.update({
     where: { id: sessionId },
     data: { stepState: 'SCH_STEP_CAT_SELECT', currentStepId: null, isChat: false },
   });
 
-  await sendTextMessage(
+  await sendListMessage(
     phoneNumber,
-    "📋 *Triagem para Agendamento Presencial*\n\nSelecione o assunto da sua reclamação:"
+    '📋 Triagem de Agendamento',
+    'Para iniciarmos o seu agendamento presencial, selecione abaixo a categoria que melhor descreve o seu problema:',
+    'Ver Categorias',
+    [
+      {
+        title: 'Cobranças e Benefícios',
+        rows: [
+          { id: 'btn_sch_cat_CARTAO_SEGURO', title: 'Seguro em Cartão', description: 'Cobrança não contratada em fatura' },
+          { id: 'btn_sch_cat_EMPRESTIMO_FOLHA', title: 'Empréstimo em Folha', description: 'Desconto de contrato quitado' },
+          { id: 'btn_sch_cat_INSS_RMC_RCC', title: 'Desconto INSS / RMC', description: 'Descontos de empréstimo ou RMC/RCC' },
+        ],
+      },
+      {
+        title: 'Outros Temas',
+        rows: [
+          { id: 'btn_sch_cat_CONTRATO_CANCELAMENTO', title: 'Contratos / Cancelamento', description: 'Dificuldades com planos e serviços' },
+          { id: 'btn_sch_cat_GARANTIA_VICIO', title: 'Garantia e Defeito', description: 'Produtos com defeito ou sem suporte' },
+          { id: 'btn_sch_cat_GERAL', title: 'Outros Assuntos', description: 'Demais dúvidas e reclamações' },
+        ],
+      },
+    ]
   );
-
-  const group1 = [
-    { id: 'btn_sch_cat_CARTAO_SEGURO', text: 'Seguro em Cartão' },
-    { id: 'btn_sch_cat_EMPRESTIMO_FOLHA', text: 'Empréstimo em Folha' },
-    { id: 'btn_sch_cat_INSS_RMC_RCC', text: 'Desconto INSS/RMC/RCC' },
-  ];
-  await sendInteractiveMessage(phoneNumber, "Opções de Cobrança e Benefício:", group1);
-
-  const group2 = [
-    { id: 'btn_sch_cat_CONTRATO_CANCELAMENTO', text: 'Contratos/Cancelamento' },
-    { id: 'btn_sch_cat_GARANTIA_VICIO', text: 'Garantia e Defeito' },
-    { id: 'btn_sch_cat_GERAL', text: 'Outros Assuntos' },
-  ];
-  await sendInteractiveMessage(phoneNumber, "Outros temas de consumo:", group2);
 };
 
-/**
- * Processamento principal das mensagens do Webhook.
- */
+const sendRagResponseWithCheck = async (phoneNumber: string, ragResult: any, sessionId: string) => {
+  const pending = await getPendingAppointment(phoneNumber);
+  let messageToDisplay = ragResult.texto;
+
+  if (ragResult.tipoResposta === 'redirecionamento') {
+    if (pending) {
+      const dateFormatted = pending.scheduledAt.toLocaleDateString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+
+      const timeFormatted = pending.scheduledAt.toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+      // Substitui o texto pelo aviso fixo de pendência
+      messageToDisplay = `⚠️ *Você já possui um agendamento presencial pendente no PROCON!*
+
+📅 *Data:* ${dateFormatted}
+⏰ *Horário:* ${timeFormatted}
+📋 *Assunto:* ${pending.categoryName}
+
+Para garantir a organização da agenda, cada cidadão pode manter apenas um agendamento ativo por vez. Não é possível realizar uma nova marcação até que a consulta atual seja concluída ou resolvida.
+
+Se precisar de orientações adicionais ou tirar dúvidas até o dia do atendimento, pode continuar digitando por escrito aqui a qualquer momento!`;
+
+      const options = [
+        { id: 'btn_feedback_sim', text: '👍 Entendi' },
+        { id: 'btn_go_menu', text: '📋 Menu Principal' },
+      ];
+
+      await sendInteractiveMessage(phoneNumber, messageToDisplay, options);
+    } else {
+      const options = [
+        { id: 'btn_agendar_sim', text: '📅 Agendar Consulta' },
+        { id: 'btn_agendar_nao', text: 'Não, obrigado' },
+      ];
+      await sendInteractiveMessage(phoneNumber, messageToDisplay, options);
+    }
+  } else if (ragResult.tipoResposta === 'clarificacao') {
+    await sendTextMessage(phoneNumber, messageToDisplay);
+  } else {
+    messageToDisplay = `${ragResult.texto}\n\nEssa orientação solucionou sua dúvida?`;
+    const feedbackOptions = [
+      { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
+      { id: 'btn_feedback_nao', text: '👎 Não resolveu' },
+    ];
+    await sendInteractiveMessage(phoneNumber, messageToDisplay, feedbackOptions);
+  }
+
+  await prisma.chatLog.create({
+    data: { sessionId, phoneNumber, direction: 'OUTBOUND', messageText: messageToDisplay },
+  });
+};
+
 export const handleWebhookEvent = async (req: Request, res: Response): Promise<any> => {
   const { body } = req;
 
@@ -83,20 +173,30 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
       const phoneNumber = message.from;
       let responseStep = null;
 
-      // 1. GERENCIAMENTO DE SESSÃO ISOLADA
+      const SESSION_TIMEOUT_MINUTES = 30;
+
       let session = await prisma.userSession.findFirst({
         where: { phoneNumber, status: 'OPEN' },
         orderBy: { createdAt: 'desc' },
       });
 
-      // Se não houver sessão aberta, cria uma nova linha com ID novo (contexto limpo)
+      if (session) {
+        const now = new Date();
+        const diffInMinutes = (now.getTime() - new Date(session.updatedAt).getTime()) / (1000 * 60);
+
+        if (diffInMinutes > SESSION_TIMEOUT_MINUTES) {
+          await closeCurrentSession(session.id);
+          session = null;
+        }
+      }
+
       if (!session) {
         session = await prisma.userSession.create({
           data: { phoneNumber, isChat: false, status: 'OPEN' },
         });
       }
 
-      // 2. PROCESSAMENTO DE TEXTO LIVRE
+      // PROCESSAMENTO DE TEXTO LIVRE
       if (message.type === 'text') {
         const originalText = message.text.body;
         const userText = originalText.toLowerCase().trim();
@@ -105,7 +205,6 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           data: { sessionId: session.id, phoneNumber, direction: 'INBOUND', messageText: originalText },
         });
 
-        // COMANDOS DE FUGA: Encerra sessão antiga e cria uma nova limpa
         const escapeCommands = ['menu', 'sair', 'voltar', 'cancelar', 'iniciar'];
         if (escapeCommands.includes(userText)) {
           await closeCurrentSession(session.id);
@@ -119,39 +218,64 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           const categoryKey = session.stepState.replace('SCH_STEP_NAME:', '');
           const userName = originalText.trim();
 
+          if (!validateFullName(userName)) {
+            await sendTextMessage(
+              phoneNumber,
+              "⚠️ *Nome inválido!* Por favor, digite o seu *Nome Completo* (Nome e Sobrenome, sem números ou símbolos):"
+            );
+            continue;
+          }
+
+          // Grava o nome no campo da sessão e avança o estado de forma limpa
           await prisma.userSession.update({
             where: { id: session.id },
-            data: { userName, stepState: `SCH_STEP_CPF:${categoryKey}:${userName}`, currentStepId: null },
+            data: { 
+              userName, 
+              stepState: `SCH_STEP_CPF:${categoryKey}`, 
+              currentStepId: null 
+            },
           });
 
-          await sendTextMessage(phoneNumber, `Obrigado, *${userName}*!\n\nAgora, por favor, digite o seu **CPF** (apenas números ou formatado):`);
+          await sendTextMessage(phoneNumber, `Obrigado, *${userName}*!\n\nAgora, por favor, digite o seu *CPF* (apenas números ou formatado):`);
           continue;
         }
 
         // Estado: Coleta de CPF
         if (session.stepState?.startsWith('SCH_STEP_CPF:')) {
-          const parts = session.stepState.split(':');
-          const categoryKey = parts[1] ?? 'GERAL';
-          const userName = parts[2] ?? 'Cidadão';
+          const categoryKey = session.stepState.replace('SCH_STEP_CPF:', '');
 
           const validCpf = cleanAndValidateCpf(originalText);
           if (!validCpf) {
-            await sendTextMessage(phoneNumber, "⚠️ *CPF Inválido!* Por favor, digite um CPF válido contendo 11 dígitos:");
+            await sendTextMessage(
+              phoneNumber, 
+              "⚠️ *CPF Inválido!* O CPF digitado não é válido. Por favor, digite um CPF correto contendo 11 dígitos (ex: 123.456.789-00):"
+            );
             continue;
           }
 
+          // Grava o CPF no campo da sessão
           await prisma.userSession.update({
             where: { id: session.id },
-            data: { userCpf: validCpf, stepState: `SCH_STEP_DATE:${categoryKey}:${userName}:${validCpf}`, currentStepId: null },
+            data: { 
+              userCpf: validCpf, 
+              stepState: `SCH_STEP_DATE:${categoryKey}`, 
+              currentStepId: null 
+            },
           });
 
-          const nextDays = getNextBusinessDays(3);
-          const dateOptions = nextDays.map((d) => ({ id: `btn_sch_date_${d.dateStr}`, text: d.label }));
+          const nextDays = getNextBusinessDays(5);
+          const dateRows = nextDays.map((d) => ({
+            id: `btn_sch_date_${d.dateStr}`,
+            title: d.label,
+            description: `Atendimento presencial em ${d.dateStr.split('-').reverse().join('/')}`
+          }));
 
-          await sendInteractiveMessage(
+          await sendListMessage(
             phoneNumber,
-            `CPF *${validCpf}* registrado!\n\nEscolha o dia de sua preferência para o atendimento presencial no PROCON:`,
-            dateOptions
+            '📅 Datas Disponíveis',
+            `CPF *${validCpf}* registrado com sucesso!\n\nPor favor, selecione o dia de sua preferência para o atendimento presencial no PROCON:`,
+            'Ver Datas',
+            [{ title: 'Próximos Dias Úteis', rows: dateRows }]
           );
           continue;
         }
@@ -184,22 +308,8 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             data: { sessionId: session.id, phoneNumber, direction: 'OUTBOUND', messageText: ragResult.texto },
           });
 
-          if (ragResult.tipoResposta === 'redirecionamento') {
-            const options = [
-              { id: 'btn_agendar_sim', text: '📅 Agendar Consulta' },
-              { id: 'btn_agendar_nao', text: 'Não, obrigado' },
-            ];
-            await sendInteractiveMessage(phoneNumber, ragResult.texto, options);
-          } else if (ragResult.tipoResposta === 'clarificacao') {
-            await sendTextMessage(phoneNumber, ragResult.texto);
-          } else {
-            const finalMessage = `${ragResult.texto}\n\nEssa orientação solucionou sua dúvida?`;
-            const options = [
-              { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
-              { id: 'btn_feedback_nao', text: '👎 Não resolveu' },
-            ];
-            await sendInteractiveMessage(phoneNumber, finalMessage, options);
-          }
+          await sendRagResponseWithCheck(phoneNumber, ragResult, session.id);
+          continue;
         } else {
           // Navegação do Menu Inicial
           const greetings = ['oi', 'ola', 'olá', 'bom dia', 'boa tarde', 'boa noite'];
@@ -223,29 +333,14 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
               data: { sessionId: session.id, phoneNumber, direction: 'OUTBOUND', messageText: ragResult.texto },
             });
 
-            if (ragResult.tipoResposta === 'redirecionamento') {
-              const options = [
-                { id: 'btn_agendar_sim', text: '📅 Agendar Consulta' },
-                { id: 'btn_agendar_nao', text: 'Não, obrigado' },
-              ];
-              await sendInteractiveMessage(phoneNumber, ragResult.texto, options);
-            } else if (ragResult.tipoResposta === 'clarificacao') {
-              await sendTextMessage(phoneNumber, ragResult.texto);
-            } else {
-              const finalMessage = `${ragResult.texto}\n\nEssa orientação solucionou sua dúvida?`;
-              const options = [
-                { id: 'btn_feedback_sim', text: '👍 Sim, resolveu' },
-                { id: 'btn_feedback_nao', text: '👎 Não resolveu' },
-              ];
-              await sendInteractiveMessage(phoneNumber, finalMessage, options);
-            }
+            await sendRagResponseWithCheck(phoneNumber, ragResult, session.id);
             continue;
           }
         }
       }
 
-      // 3. PROCESSAMENTO DE BOTÕES E OPÇÕES INTERATIVAS
-      else if (message.type === 'interactive') {
+      // PROCESSAMENTO DE BOTÕES E OPÇÕES INTERATIVAS
+else if (message.type === 'interactive') {
         let selectedOptionId: string | null = null;
 
         if (message.interactive.type === 'button_reply') {
@@ -256,7 +351,28 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
 
         if (!selectedOptionId) continue;
 
-        // Disparador de Agendamento
+        if (selectedOptionId === 'btn_go_menu') {
+          await prisma.userSession.update({
+            where: { id: session.id },
+            data: { isChat: false, currentStepId: null, stepState: null },
+          });
+
+          const startStep = await prisma.step.findFirst({
+            where: { isStart: true },
+            include: { options: true },
+          });
+
+          if (startStep) {
+            await prisma.userSession.update({
+              where: { id: session.id },
+              data: { currentStepId: startStep.id },
+            });
+
+            await sendInteractiveMessage(phoneNumber, startStep.message, startStep.options);
+          }
+          continue;
+        }
+
         if (selectedOptionId === 'btn_agendar_sim') {
           await triggerCategorySelection(phoneNumber, session.id);
           continue;
@@ -270,13 +386,12 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           ];
           await sendInteractiveMessage(
             phoneNumber,
-            "Compreendido! Antes de encerrar, como você avalia o atendimento do nosso assistente virtual hoje?",
+            "Entendido! Antes de encerrar, como você avalia o atendimento do nosso assistente virtual hoje?",
             ratingOptions
           );
           continue;
         }
 
-        // Resposta de Orientação
         if (selectedOptionId === 'btn_feedback_sim') {
           const ratingOptions = [
             { id: 'btn_rate_5', text: '⭐ 5 - Excelente' },
@@ -305,13 +420,11 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           continue;
         }
 
-        // Lista de Documentos Necessários
         if (selectedOptionId.startsWith('doc_req_')) {
           await handleDocumentCategorySelection(phoneNumber, selectedOptionId);
           continue;
         }
 
-        // Agendamento: Categoria
         if (selectedOptionId.startsWith('btn_sch_cat_')) {
           const categoryKey = selectedOptionId.replace('btn_sch_cat_', '');
           await prisma.userSession.update({
@@ -319,11 +432,10 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             data: { stepState: `SCH_STEP_NAME:${categoryKey}`, currentStepId: null },
           });
 
-          await sendTextMessage(phoneNumber, "Para iniciarmos seu agendamento, por favor, digite o seu **Nome Completo**:");
+          await sendTextMessage(phoneNumber, "Para iniciarmos seu agendamento, por favor, digite o seu *Nome Completo*:");
           continue;
         }
 
-        // Agendamento: Seleção de Data
         if (selectedOptionId.startsWith('btn_sch_date_')) {
           const selectedDate = selectedOptionId.replace('btn_sch_date_', '');
           if (!session.stepState?.startsWith('SCH_STEP_DATE:')) {
@@ -331,40 +443,52 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             continue;
           }
 
-          const parts = session.stepState.split(':');
-          const categoryKey = parts[1] ?? 'GERAL';
-          const userName = parts[2] ?? 'Cidadão';
-          const userCpf = parts[3] ?? '000.000.000-00';
-
+          const categoryKey = session.stepState.replace('SCH_STEP_DATE:', '');
           const availableSlots = await getAvailableSlots(selectedDate);
+
           if (availableSlots.length === 0) {
             await sendTextMessage(phoneNumber, "⚠️ Não há horários vagos para esta data. Por favor, escolha outro dia:");
-            const nextDays = getNextBusinessDays(3);
-            const dateOptions = nextDays.map((d) => ({ id: `btn_sch_date_${d.dateStr}`, text: d.label }));
-            await sendInteractiveMessage(phoneNumber, "Datas disponíveis:", dateOptions);
+
+            const nextDays = getNextBusinessDays(5);
+            const dateRows = nextDays.map((d) => ({
+              id: `btn_sch_date_${d.dateStr}`,
+              title: d.label,
+              description: `Atendimento em ${d.dateStr.split('-').reverse().join('/')}`
+            }));
+
+            await sendListMessage(
+              phoneNumber,
+              '📅 Escolha outra Data',
+              'Não encontramos horários para a data selecionada. Escolha outro dia:',
+              'Ver Datas',
+              [{ title: 'Datas Disponíveis', rows: dateRows }]
+            );
             continue;
           }
 
           await prisma.userSession.update({
             where: { id: session.id },
-            data: { stepState: `SCH_STEP_SLOT:${categoryKey}:${userName}:${userCpf}:${selectedDate}`, currentStepId: null },
+            data: { stepState: `SCH_STEP_SLOT:${categoryKey}:${selectedDate}`, currentStepId: null },
           });
 
-          const slotOptions = availableSlots.slice(0, 3).map((slot) => ({
+          const slotRows = availableSlots.slice(0, 10).map((slot) => ({
             id: `btn_sch_slot_${slot.dateTimeIso}`,
-            text: `Horário: ${slot.time}`,
+            title: `Horário: ${slot.time}`,
+            description: 'Vaga disponível para atendimento presencial'
           }));
 
           const [yyyy, mm, dd] = selectedDate.split('-');
-          await sendInteractiveMessage(
+
+          await sendListMessage(
             phoneNumber,
-            `Horários livres para o dia **${dd}/${mm}/${yyyy}**:\n\nSelecione o melhor horário para você:`,
-            slotOptions
+            '⏰ Horários Disponíveis',
+            `Horários livres para o dia *${dd}/${mm}/${yyyy}*:\n\nSelecione o melhor horário para você:`,
+            'Ver Horários',
+            [{ title: 'Horários para Agendamento', rows: slotRows }]
           );
           continue;
         }
 
-        // Agendamento: Confirmação de Horário
         if (selectedOptionId.startsWith('btn_sch_slot_')) {
           const dateTimeIso = selectedOptionId.replace('btn_sch_slot_', '');
           if (!session.stepState?.startsWith('SCH_STEP_SLOT:')) {
@@ -374,8 +498,9 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
 
           const parts = session.stepState.split(':');
           const categoryKey = parts[1] ?? 'GERAL';
-          const userName = parts[2] ?? 'Cidadão';
-          const userCpf = parts[3] ?? '000.000.000-00';
+
+          const userName = session.userName ?? 'Cidadão';
+          const userCpf = session.userCpf ?? '000.000.000-00';
 
           const appointment = await createAppointment({
             sessionId: session.id,
@@ -385,6 +510,11 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             phoneNumber,
             scheduledAtIso: dateTimeIso,
             issueSummary: 'Solicitado via Atendente Virtual WhatsApp',
+          });
+
+          await prisma.userSession.update({
+            where: { id: session.id },
+            data: { stepState: null, currentStepId: null },
           });
 
           const dateFormatted = appointment.scheduledAt.toLocaleDateString('pt-BR', {
@@ -399,6 +529,7 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
             timeZone: 'America/Sao_Paulo',
             hour: '2-digit',
             minute: '2-digit',
+            hour12: false
           });
 
           const docListText = appointment.documentGuide?.requiredDocs?.length
@@ -415,7 +546,7 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
 
 📍 *Local:* Procon Municipal de Jacareí - Av. Cap. Joaquim Pinheiro do Prado, nº 222 - Centro, Jacareí - SP
 
-⚠️ *DOCUMENTOS OBRIGATÓRIOS PARA A CONSULTA:*
+*Documentos obrigatórios para a consulta:*
 ${docListText}
 
 ${appointment.documentGuide?.observations ? `💡 *Aviso Importante:* ${appointment.documentGuide.observations}\n` : ''}
@@ -432,7 +563,6 @@ Digite *menu* a qualquer momento para voltar ao início.`;
           continue;
         }
 
-        // Processamento da Avaliação (1 a 5 Estrelas)
         if (selectedOptionId.startsWith('btn_rate_')) {
           const rating = parseInt(selectedOptionId.replace('btn_rate_', ''), 10);
 
@@ -448,12 +578,11 @@ Digite *menu* a qualquer momento para voltar ao início.`;
             await sendTextMessage(phoneNumber, "Agradecemos por avaliar. Poderia nos enviar um breve comentário sobre o que podemos melhorar?");
           } else {
             await closeCurrentSession(session.id);
-            await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece seu contato. Tenha um excelente dia! ⚖️");
+            await sendTextMessage(phoneNumber, "Ficamos felizes em ajudar! O PROCON agradece seu contato. Tenha um excelente dia!");
           }
           continue;
         }
 
-        // Navegação de Menu Determinístico
         const optionClicked = await prisma.option.findUnique({
           where: { id: selectedOptionId },
         });
@@ -480,7 +609,14 @@ Digite *menu* a qualquer momento para voltar ao início.`;
         }
       }
 
-      // 4. Envio de Passo do Menu Programado
+      else {
+        await sendTextMessage(
+          phoneNumber,
+          "No momento, consigo responder apenas a *mensagens de texto* ou *seleções nos botões dos menus*. Por favor, envie sua dúvida por escrito para que eu possa te ajudar!"
+        );
+      }
+
+      // Envio de Passo do Menu Programado
       if (responseStep) {
         await prisma.userSession.update({
           where: { id: session.id },

@@ -74,7 +74,15 @@ const normalizarArtigo = (texto: string | null) => {
 const getOrResetEvalSession = async (caseId: string): Promise<{ id: string; phoneNumber: string }> => {
   const phoneNumber = `eval-${caseId}`;
 
-  const existing = await prisma.userSession.findUnique({ where: { phoneNumber } });
+  const existing = await prisma.userSession.findFirst({
+    where: {
+      phoneNumber,
+      status: 'OPEN',
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
   if (existing) {
     await prisma.userSession.delete({ where: { id: existing.id } });
   }

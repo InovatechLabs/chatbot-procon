@@ -1,4 +1,3 @@
-import axios from "axios";
 import { generateText } from "../../ollama/ollamaClient.js";
 
 type Categoria =
@@ -6,6 +5,7 @@ type Categoria =
   | 'FORA_ESCOPO_PARTICULAR'
   | 'FORA_ESCOPO_TRIBUTO'
   | 'FORA_ESCOPO_ILICITO'
+  | 'AGENDAMENTO'
   | 'AMBIGUO';
 
 interface ClassificationResult {
@@ -18,7 +18,7 @@ const CLASSIFICATION_SCHEMA = {
   properties: {
     categoria: {
       type: "string",
-      enum: ["CONSUMO", "FORA_ESCOPO_PARTICULAR", "FORA_ESCOPO_TRIBUTO", "FORA_ESCOPO_ILICITO", "AMBIGUO"]
+      enum: ["CONSUMO", "FORA_ESCOPO_PARTICULAR", "FORA_ESCOPO_TRIBUTO", "FORA_ESCOPO_ILICITO", "AGENDAMENTO", "AMBIGUO"]
     },
     motivo: { type: "string" }
   },
@@ -31,23 +31,19 @@ export const classifyReport = async (
 ): Promise<ClassificationResult> => {
 
   const classificationPrompt = `
-Você é um classificador jurídico do PROCON. Sua ÚNICA tarefa é ler o relato abaixo e devolver uma classificação.
+Você é um classificador de intenção e triador jurídico do PROCON. Sua função é ler o histórico e a última mensagem do cidadão para categorizar o atendimento.
 
-REGRA 1. ANTI-ASSUNÇÃO
-- NUNCA presuma que "comprei" ou "contratei" significa automaticamente uma compra em loja/empresa. Pode ter sido de um vizinho (particular) ou um serviço ilícito. Se o texto não der pistas mínimas de O QUE foi negociado ou QUEM é o fornecedor, é estritamente proibido classificar como CONSUMO.
-PORÉM, dúvidas teóricas ou perguntas gerais sobre leis e direitos contra empresas SÃO consideradas CONSUMO.
+REGRA DE OURO (PRIORIDADE ABSOLUTA):
+1. "AGENDAMENTO": Se a última mensagem indica que o cidadão quer agendar atendimento presencial, ir ao posto do PROCON, saber como/onde dar entrada fisicamente na reclamação ou falar com um atendente humano. 
+   - Esta regra TEM PRIORIDADE SOBRE TODAS AS OUTRAS e NÃO exige detalhes de compra ou produto.
 
-AVALIE NESTA ORDEM E ESCOLHA A CATEGORIA ADEQUADA:
+SE NÃO FOR AGENDAMENTO, AVALIE AS OUTRAS CATEGORIAS NA SEGUINTE ORDEM:
 
-- "AMBIGUO": Faltam informações para saber a natureza do negócio ou quem são as partes. Use se o relato disser apenas "comprei uma coisa", "fiz um contrato", "deu problema com o cara", sem especificar O QUE é ou DE QUEM foi comprado (se é loja ou particular).
-- "FORA_ESCOPO_PARTICULAR": Negócio pontual entre pessoas físicas (sem fornecedor habitual). Ex: comprar carro usado de um vizinho, aluguel de imóvel direto com o proprietário, contratar um conhecido para um favor.
-- "FORA_ESCOPO_TRIBUTO": Cobrança de impostos, taxas, multas (trânsito, prefeitura) por órgão público.
-- "FORA_ESCOPO_ILICITO": O objeto do contrato é crime/contravenção. Ex: comprar drogas, armas, invasão de celular/whatsapp, documentos falsos. Use o teste: "Se entregue perfeitamente, seria crime?". Se SIM, é ilícito.
-- "CONSUMO": Apenas se houver evidência (clara ou subentendida pelo contexto do produto) de uma relação entre consumidor e um fornecedor profissional (loja, empresa, site, banco, prestador de serviço profissional).
-
-IMPORTANTE:
-- Julgue pela NATUREZA DO SERVIÇO/PRODUTO CONTRATADO. (ex: "não devolveram meu dinheiro" não é CONSUMO se o serviço em si era ilegal ou particular).
-- Não julgue se a pessoa é culpada de algo. Apenas classifique a situação.
+2. "FORA_ESCOPO_ILICITO": O objeto do contrato ou serviço é crime/contravenção (ex: comprar drogas, armas, invasão de celular/WhatsApp, documentos falsos).
+3. "FORA_ESCOPO_TRIBUTO": Cobrança de impostos, IPTU, IPVA, taxas ou multas de trânsito por órgãos públicos.
+4. "FORA_ESCOPO_PARTICULAR": Negócio pontual entre pessoas físicas sem habitualidade comercial (ex: comprar carro do vizinho, aluguel direto com proprietário sem imobiliária, favor entre amigos). NUNCA use para lojas, empresas ou dúvidas sobre procedimentos do PROCON.
+5. "AMBIGUO": O relato é extremamente vago e impede saber se a negociação foi com loja ou particular (ex: "comprei um negócio aí", "fiz um contrato e deu ruim"), sem dar pistas do produto ou fornecedor.
+6. "CONSUMO": Há evidência (clara ou implícita no contexto) de relação entre consumidor e fornecedor profissional (loja, empresa, site, banco, operadora, prestador habitual) OU dúvidas teóricas sobre o Código de Defesa do Consumidor.
 
 HISTÓRICO DA CONVERSA:
 ${formattedHistory}
@@ -57,7 +53,7 @@ ${formattedHistory}
 
 Classifique o relato acima.
 No campo "categoria", coloque a categoria escolhida.
-No campo "motivo", explique em uma frase o motivo da escolha, com base nas regras acima.
+No campo "motivo", explique em uma frase curta o motivo da escolha.
 `;
 
   try {
@@ -68,6 +64,6 @@ No campo "motivo", explique em uma frase o motivo da escolha, com base nas regra
     
   } catch (err) {
     console.error('Falha ao parsear classificação, usando fallback AMBIGUO:', err);
-    return { categoria: 'AMBIGUO', motivo: 'Falha no parsing da classificação' };
+    return { categoria: 'AMBIGUO', motivo: 'Falha no parsing da resposta estruturada' };
   }
 };
