@@ -1,6 +1,7 @@
 // src/services/ia/llmService.ts
 import { prisma } from '../../../src/database/index.js';
 import { classifyReport } from './helpers/classifyReport.js';
+import { processThinkingOutput } from './helpers/processThinkingOutput.js';
 import { buildBM25Index } from '../../../src/utils/functions/bm25.js';
 import { reciprocalRankFusion } from '../../../src/utils/functions/hybridSearch.js';
 
@@ -9,9 +10,13 @@ import { getEmbedding, generateText } from '../ollama/ollamaClient.js';
 import { getVectorResults, getAllArticles } from '../../database/repositories/knowledgeRepository.js';
 import { ragPrompt, orientationPrompt } from '../llm/prompts/index.js';
 import { RAG_RESPONSE_SCHEMA } from '../llm/prompts/schemas/index.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const MAX_VECTOR_DISTANCE = 0.58; 
 const DISCLAIMER = "\n\n*Resposta processada por inteligência artificial baseada nas diretrizes do PROCON. Possui caráter orientativo e não substitui o atendimento formal.*";
+
+const ENABLE_THINKING = process.env.LLM_ENABLE_THINKING === 'true';
 
 const RESPOSTAS_FORA_ESCOPO: Record<string, string> = {
   FORA_ESCOPO_PARTICULAR:
@@ -28,11 +33,30 @@ export interface RagResult {
   artigo: string | null;
 }
 
-/* 
-* Função principal que integra a classificação do relato, busca de informações e geração de resposta orientativa, utilizando Retrieval-Augmented Generation (RAG).
-*/
+function sanitizeArtigoField(rawArtigo: string | null | undefined): string | null {
+  if (!rawArtigo) return null;
+
+  const limpo = rawArtigo.trim();
+  if (!limpo || /^(null|undefined|none|nenhum|n\/a|-)$/i.test(limpo)) {
+    return null;
+  }
+
+  // Busca a primeira ocorrência do padrão "Art. XX" ou "Artigo XX"
+  const match = limpo.match(/art(?:igo)?\.?\s*(\d+[\s-]*[a-z]?)/i);
+  if (match && match[1]) {
+    const num = match[1]
+      .replace(/\s+/g, '')                  // Remove espaços
+      .replace(/([0-9])([a-z])/i, '$1-$2')  // Garante hífen ex: 54G -> 54-G
+      .toUpperCase();
+    return `Art. ${num}`;
+  }
+
+  return null;
+}
 
 export const answerWithRAG = async (userQuestion: string, sessionId: string): Promise<RagResult> => {
+  const startTime = performance.now();
+
   try {
     const chatHistory = await prisma.chatLog.findMany({
       where: { sessionId: sessionId },
@@ -49,12 +73,12 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
     console.log('📋 Classificação:', classification);
 
     if (classification.categoria === 'AGENDAMENTO') {
-  return {
-    tipoResposta: 'redirecionamento',
-    texto: "Posso te ajudar a agendar um atendimento presencial no PROCON para que nossa equipe analise o seu caso. Para isso, clique no botão Agendar Consulta abaixo desta mensagem e prosseguiremos com o seu agendamento." + DISCLAIMER,
-    artigo: null
-  };
-}
+      return {
+        tipoResposta: 'redirecionamento',
+        texto: "Posso te ajudar a agendar um atendimento presencial no PROCON para que nossa equipe analise o seu caso. Para isso, clique no botão Agendar Consulta abaixo desta mensagem e prosseguiremos com o seu agendamento." + DISCLAIMER,
+        artigo: null
+      };
+    }
 
     if (classification.categoria !== 'CONSUMO' && classification.categoria !== 'AMBIGUO') {
       return {
@@ -105,20 +129,30 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
         return `[LEI: ${res!.title}]\n${cleanContent}${distincaoTag}`;
       }).join('\n\n');
 
-    const prompt = ragPrompt(formattedHistory, combinedLaws);
+    let prompt = ragPrompt(formattedHistory, combinedLaws);
+
     const raw = await generateText(prompt, RAG_RESPONSE_SCHEMA);
 
+    const { thinking, cleanText } = processThinkingOutput(raw);
+    const durationMs = Math.round(performance.now() - startTime);
+
+    console.log(`⏱️ Tempo do RAG LLM: ${durationMs}ms | Thinking: ${ENABLE_THINKING ? 'ON' : 'OFF'}`);
+    if (thinking) {
+      console.log(`🧠 [Raciocínio Qwen 3.5]:\n${thinking}\n----------------------------------`);
+    }
+
     try {
-      const parsed = JSON.parse(raw) as RagResult;
-      
+      const parsed = JSON.parse(cleanText) as RagResult;
+      const artigoSanitizado = sanitizeArtigoField(parsed.artigo);
+
       return {
         tipoResposta: parsed.tipoResposta,
         texto: parsed.texto + DISCLAIMER,
-        artigo: parsed.artigo
+        artigo: artigoSanitizado
       };
       
     } catch (err) {
-      console.error('Falha ao parsear resposta estruturada do RAG:', err, raw);
+      console.error('Falha ao parsear resposta estruturada do RAG:', err, 'Texto Limpo Tentado:', cleanText);
       return {
         tipoResposta: 'redirecionamento',
         texto: 'Não consegui processar sua solicitação corretamente. Gostaria de agendar um atendimento presencial?' + DISCLAIMER,
@@ -136,16 +170,14 @@ export const answerWithRAG = async (userQuestion: string, sessionId: string): Pr
   }
 };
 
-/**
- * Função responsável por integrar com a LLM local (Ollama)
- * Cumpre os requisitos RP03 (Separação da IA), RP05 (Local) e RF04/RF05 (Resumo e Explicação).
- */
-
 export const generateOrientativeResponse = async (userPath: string, officialText: string): Promise<string> => {
   try {
     const prompt = orientationPrompt(userPath, officialText);
     const aiText = await generateText(prompt);
-    return aiText + DISCLAIMER;
+
+    // Trata a saída também para respostas simples sem JSON
+    const { cleanText } = processThinkingOutput(aiText);
+    return cleanText + DISCLAIMER;
   } catch (error) {
     console.error('Erro na API do Ollama. Usando Fallback de Segurança:', error);
     return officialText + DISCLAIMER;

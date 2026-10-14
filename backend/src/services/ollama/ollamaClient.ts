@@ -33,6 +33,7 @@ export const generateText = async (
 ): Promise<string> => {
   const generateUrl = process.env.OLLAMA_GENERATE_URL;
   const generateModel = process.env.OLLAMA_GENERATE_MODEL_NAME;
+  const ENABLE_THINKING = process.env.LLM_ENABLE_THINKING === 'true';
 
   if (!generateUrl || !generateModel) {
     throw new Error('As variáveis OLLAMA_GENERATE_URL e OLLAMA_GENERATE_MODEL_NAME devem estar definidas no .env');
@@ -43,7 +44,8 @@ export const generateText = async (
     prompt: prompt,
     stream: false,
     ...(schema ? { format: schema } : {}),
-    ...(options ? { options } : {})
+    ...(options ? { options } : {}),
+    think: ENABLE_THINKING
   });
   
   let output = response.data.response as string;
