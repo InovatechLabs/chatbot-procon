@@ -304,10 +304,6 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
           await sendTextMessage(phoneNumber, "⏳ *Pesquisando no Código de Defesa do Consumidor...*");
           const ragResult = await answerWithRAG(originalText, session.id);
 
-          await prisma.chatLog.create({
-            data: { sessionId: session.id, phoneNumber, direction: 'OUTBOUND', messageText: ragResult.texto },
-          });
-
           await sendRagResponseWithCheck(phoneNumber, ragResult, session.id);
           continue;
         } else {
@@ -328,10 +324,6 @@ export const handleWebhookEvent = async (req: Request, res: Response): Promise<a
 
             await sendTextMessage(phoneNumber, "⏳ *Analisando seu relato...*");
             const ragResult = await answerWithRAG(originalText, session.id);
-
-            await prisma.chatLog.create({
-              data: { sessionId: session.id, phoneNumber, direction: 'OUTBOUND', messageText: ragResult.texto },
-            });
 
             await sendRagResponseWithCheck(phoneNumber, ragResult, session.id);
             continue;

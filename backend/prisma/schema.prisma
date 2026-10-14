@@ -1,142 +1,154 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
   extensions = [vector]
 }
 
 enum AppointmentStatus {
-  SCHEDULED   // Agendado
-  COMPLETED   // Compareceu / Atendido
-  CANCELLED   // Cancelado pelo usuário ou agente
-  NO_SHOW     // Falta (não compareceu)
+  PENDING   // Agendado / Pendente
+  COMPLETED // Atendimento Concluído
+  CANCELLED // Cancelado
+  NO_SHOW   // Não Compareceu
 }
 
-// 1. A Etapa/Pergunta (O que o bot fala)
+// 1. Etapas do Menu Determinístico do Bot
 model Step {
   id          String   @id @default(uuid())
-  title       String   // Nome interno pro Painel Web (Ex: "Menu Principal")
-  message     String   // O texto que vai pro WhatsApp 
-  isStart     Boolean  @default(false) // Define se é a primeira mensagem que o bot manda quando recebemos uma msg
+  title       String
+  message     String
+  isStart     Boolean  @default(false)
 
-  // Relacionamentos
-  options         Option[] @relation("StepToOptions") // As opçoes de resposta dessa etapa
-  targetedBy      Option[] @relation("OptionToNextStep") // Quais opçoes de outras etapas apontam para cá
-  activeSessions  UserSession[] // Pessoas que estao paradas lendo essa etapa agora
-  chatLogs        ChatLog[]
+  options        Option[]      @relation("StepToOptions")
+  targetedBy     Option[]      @relation("OptionToNextStep")
+  activeSessions UserSession[]
+  chatLogs       ChatLog[]
 }
 
-// 2. Alternativas
+// 2. Alternativas do Menu
 model Option {
-  id          String   @id @default(uuid())
-  stepId      String   // A qual Etapa essa opçao pertence
-  text        String   // O que o usuario tem que digitar 
-  nextStepId  String?  // Para qual Etapa o bot deve mandar o usuario se ele escolher isso
+  id         String  @id @default(uuid())
+  stepId     String
+  text       String
+  nextStepId String?
 
-  // Relacionamentos
-  step        Step     @relation("StepToOptions", fields: [stepId], references: [id])
-  nextStep    Step?    @relation("OptionToNextStep", fields: [nextStepId], references: [id])
+  step     Step  @relation("StepToOptions", fields: [stepId], references: [id])
+  nextStep Step? @relation("OptionToNextStep", fields: [nextStepId], references: [id])
 }
 
-// 3. Memoria do Bot (Sessao do Usuario)
+// 3. Sessão do Usuário
 model UserSession {
-  id            String            @id @default(uuid())
-  phoneNumber   String            // Removido o @unique para permitir múltiplas sessões históricas
+  id            String   @id @default(uuid())
+  phoneNumber   String   // Permite múltiplas sessões históricas por número (isolamento de RAG)
   userName      String?
   userCpf       String?
-  isChat        Boolean           @default(false)
-  status        String            @default("OPEN")
+  isChat        Boolean  @default(false)
+  status        String   @default("OPEN")
   currentStepId String?
-  currentStep   Step?             @relation(fields: [currentStepId], references: [id])
-  stepState     String?           
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  appointments  Appointment[]
-  chatLogs      ChatLog[]
-  feedbacks     SessionFeedback[]
+  stepState     String?
+  rating        Int?     // Avaliação dada pelo cidadão
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  currentStep  Step?             @relation(fields: [currentStepId], references: [id])
+  chatLogs     ChatLog[]
+  appointments Appointment[]
+  feedbacks    SessionFeedback[]
 }
 
-// Modelo para usar futuramente (aprendizado do bot)
+// 4. Logs de Conversa
 model ChatLog {
-  id           String   @id @default(uuid())
-  sessionId    String   // Vínculo da sessao de chat
-  phoneNumber  String   // Quem enviou
-  direction    String   // "INBOUND" (usuário enviou) ou "OUTBOUND" (bot enviou)
-  messageText  String   // O texto exato da mensagem
-  timestamp    DateTime @default(now())
+  id          String   @id @default(uuid())
+  sessionId   String
+  phoneNumber String
+  direction   String   // "INBOUND" ou "OUTBOUND"
+  messageText String
+  timestamp   DateTime @default(now())
 
-  session      UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
-  // Relacionar com o Step para a IA saber em qual contexto o usuário falou isso
-  stepId       String?
-  step         Step?    @relation(fields: [stepId], references: [id])
+  session UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  stepId  String?
+  step    Step?       @relation(fields: [stepId], references: [id])
 }
 
+// 5. Base de Conhecimento RAG
 model KnowledgeBase {
   id        String   @id @default(uuid())
-  title     String 
-  content   String   
+  title     String
+  content   String
   keywords  String[]
   distincao String?
-  
-  embedding Unsupported("vector(1024)")? 
+
+  embedding Unsupported("vector(1024)")?
 }
 
+// 6. Guia de Documentos Obrigatórios
 model DocumentGuide {
-  id            String        @id @default(uuid())
-  categoryKey   String        @unique // Ex: "CARTAO_SEGURO", "INSS_EMPRESTIMO", "CONTRATO_CANCELAMENTO", "GERAL"
-  categoryName  String        // Nome amigável para exibição
-  requiredDocs  String[]      // Lista de documentos obrigatórios
-  observations  String?       // Avisos específicos (ex: "se usou o dinheiro, só cabe proposta de quitação")
+  id           String   @id @default(uuid())
+  categoryKey  String   @unique
+  categoryName String
+  requiredDocs String[]
+  observations String?
 
-  appointments  Appointment[]
+  appointments Appointment[]
 }
 
-// 7. Tabela de Agendamentos Presenciais
+// 7. Atendentes do PROCON (Painel Admin)
+model Attendant {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  appointments Appointment[]
+}
+
+// 8. Tabela de Agendamentos Presenciais (Unificada Bot + Painel Admin)
 model Appointment {
-  id               String            @id @default(uuid())
-  sessionId        String
-  documentGuideId  String?
+  id              String            @id @default(uuid())
+  phoneNumber     String            // Formato DDI (ex: 5512999999999)
+  userName        String?           // Nome do cidadão
+  userCpf         String?           // CPF validado
+  citizenName     String?           // Alias para compatibilidade com o Painel Admin
+  subject         String?           // Categoria/Assunto
+  categoryName    String?           // Categoria legível
+  issueSummary    String?           // Resumo do relato
+  notes           String?           // Observações internas do atendente
+  scheduledAt     DateTime          // Data e hora marcada em UTC
+  durationMin     Int               @default(30)
+  status          AppointmentStatus @default(PENDING)
+  source          String            @default("WHATSAPP") // "WHATSAPP" ou "PANEL"
   
-  userName         String            // Nome do cidadão
-  userCpf          String            // CPF do cidadão
-  phoneNumber      String            // Telefone de contato
-  categoryName     String            // Categoria do problema
-  issueSummary     String?           // Resumo do problema relato no RAG ou triagem
-  
-  scheduledAt      DateTime          // Data e hora marcada
-  status           AppointmentStatus @default(SCHEDULED)
-  agentNotes       String?           // Observações inseridas pelos atendentes do PROCON no Painel
+  sessionId       String?
+  documentGuideId String?
+  attendantId     String?
+  agentNotes      String?
 
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  session          UserSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  documentGuide    DocumentGuide?    @relation(fields: [documentGuideId], references: [id])
+  session       UserSession?   @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  documentGuide DocumentGuide? @relation(fields: [documentGuideId], references: [id])
+  attendant     Attendant?     @relation(fields: [attendantId], references: [id], onDelete: SetNull)
+
+  @@index([scheduledAt])
+  @@index([phoneNumber])
+  @@index([attendantId, scheduledAt])
 }
 
-// 8. Avaliações do Atendimento (Para painel admin + sistema de aprendizado)
+// 9. Pesquisa de Satisfação
 model SessionFeedback {
-  id              String      @id @default(uuid())
+  id              String   @id @default(uuid())
   sessionId       String
   phoneNumber     String
-  rating          Int         // Nota de 1 a 5
-  comment         String?     // Comentário opcional do usuário
-  
-  // Controle para o sistema de aprendizado supervisionado 
-  reviewedByAgent Boolean     @default(false) // Se o atendente humano já analisou este atendimento
-  agentFeedback   String?     // Análise do agente (ex: "Bot respondeu artigo incorreto, ajustar RAG")
-  resolvedAction  String?     // Ação tomada (ex: "Base de conhecimento atualizada", "Prompt ajustado")
+  rating          Int
+  comment         String?
+  reviewedByAgent Boolean  @default(false)
+  agentFeedback   String?
+  resolvedAction  String?
+  createdAt       DateTime @default(now())
 
-  createdAt       DateTime    @default(now())
-
-  session         UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
