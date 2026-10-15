@@ -134,7 +134,7 @@ Se precisar de orientações adicionais ou tirar dúvidas até o dia do atendime
       await sendInteractiveMessage(phoneNumber, messageToDisplay, options);
     } else {
       const options = [
-        { id: 'btn_agendar_sim', text: '📅 Agendar Consulta' },
+        { id: 'btn_agendar_sim', text: '📅 Agendar Atendimento' },
         { id: 'btn_agendar_nao', text: 'Não, obrigado' },
       ];
       await sendInteractiveMessage(phoneNumber, messageToDisplay, options);
@@ -400,7 +400,7 @@ else if (message.type === 'interactive') {
 
         if (selectedOptionId === 'btn_feedback_nao') {
           const scheduleOptions = [
-            { id: 'btn_agendar_sim', text: '📅 Agendar Consulta' },
+            { id: 'btn_agendar_sim', text: '📅 Agendar Atendimento' },
             { id: 'btn_agendar_nao', text: 'Não, obrigado' },
           ];
 
