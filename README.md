@@ -187,6 +187,30 @@ A documentação técnica detalhada do projeto está disponível na pasta `docs/
 - Plano de Implementação e Plano de Testes
 - Manual do Desenvolvedor, Manual do Usuário e Plano de Manutenção
 
+Métricas de avaliação do modelo
+
+Resumo consolidado da avaliação do **Gemma3 12b**, com **Thinking desativado (OFF)**.
+
+### Orientação direta
+
+| Métrica | Acertos / Casos avaliados | Taxa de acerto |
+|---|---|---|
+| Categoria | 60/60 | 100,0% |
+| Tipo de resposta | 52/60 | 86,7% |
+| Artigo do Código de Defesa do Consumidor (CDC) | 47/60 | 78,3% |
+
+### Clarificação
+
+Casos em que o chatbot precisa solicitar mais informações ao usuário.
+
+| Métrica | Acertos / Casos avaliados | Taxa de acerto |
+|---|---|---|
+| Pergunta no primeiro turno | 3/6 | 50,0% |
+| Categoria final | 5/6 | 83,3% |
+| Artigo final | 3/6 | 50,0% |
+
+Os resultados se referem aos casos avaliados. As métricas de clarificação indicam oportunidades de aprimoramento na solicitação inicial de informações e na identificação do artigo ao final do atendimento.
+
 ## Licença
 
 Projeto acadêmico — uso educacional. Ajuste esta seção conforme a licença definida pela equipe/instituição.
