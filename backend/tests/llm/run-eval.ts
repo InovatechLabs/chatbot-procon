@@ -18,7 +18,7 @@ import { classifyReport } from '../../src/services/llm/helpers/classifyReport.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEST_CASES_PATH = path.join(__dirname, 'test-cases.json');
-const RESULTS_PATH = path.join(__dirname, 'eval-results.json');
+const RESULTS_PATH = path.resolve(__dirname, process.env.EVAL_RESULTS_PATH || 'eval-results.json');
 
 // ---------- Tipos do dataset ----------
 
@@ -27,7 +27,7 @@ interface CasoOrientacaoDireta {
   descricao: string;
   mensagem: string;
   categoriaEsperada: string;
-  tipoRespostaEsperada: 'orientacao_final' | 'redirecionamento';
+  tipoRespostaEsperada: 'orientacao_final' | 'redirecionamento' | 'fixa';
   artigoEsperado: string | null;
   observacao?: string;
 }
@@ -42,7 +42,7 @@ interface CasoClarificacao {
   descricao: string;
   mensagemInicial: string;
   categoriaEsperadaInicial: string;
-  tipoRespostaEsperada: 'clarificacao';
+  tipoRespostaEsperada: 'clarificacao' | 'fixa';
   clarificacaoEsperadaSobre: string[];
   conversaCompleta: {
     historico: HistoricoItem[];
@@ -145,10 +145,15 @@ const runOrientacaoDireta = async (casos: CasoOrientacaoDireta[]) => {
       const tClassify = Date.now() - t0;
 
       const t1 = Date.now();
-      const ragResult = await answerWithRAG(caso.mensagem, sessionId);
+      const ragResult = await answerWithRAG(caso.mensagem, sessionId, {
+        preClassification: classification,
+        includeDiagnostics: true,
+      });
       const tFull = Date.now() - t1;
 
-      const categoriaOk = classification.categoria === caso.categoriaEsperada;
+      // A categoria registrada agora é a mesma usada pelo pipeline.
+      const categoriaUsada = ragResult.diagnostics?.classificacaoUsada.categoria ?? classification.categoria;
+      const categoriaOk = categoriaUsada === caso.categoriaEsperada;
       const tipoRespostaOk = ragResult.tipoResposta === caso.tipoRespostaEsperada;
 
       // Validação com normalização de artigo
@@ -156,16 +161,23 @@ const runOrientacaoDireta = async (casos: CasoOrientacaoDireta[]) => {
       const artigoEsperadoNormalizado = normalizarArtigo(caso.artigoEsperado);
       const artigoOk = artigoObtidoNormalizado === artigoEsperadoNormalizado;
 
-      console.log(`  categoria:    ${categoriaOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperada}, obtido: ${classification.categoria})`);
+      console.log(`  categoria:    ${categoriaOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperada}, obtido: ${categoriaUsada})`);
       console.log(`  tipoResposta: ${tipoRespostaOk ? '✅' : '❌'} (esperado: ${caso.tipoRespostaEsperada}, obtido: ${ragResult.tipoResposta})`);
       console.log(`  artigo:       ${artigoOk ? '✅' : '❌'} (esperado: ${caso.artigoEsperado ?? 'nenhum'}, encontrado: ${ragResult.artigo || 'nenhum'})`);
+      if (ragResult.diagnostics?.motivoDescarte) {
+        console.log(`  descarte:     ${ragResult.diagnostics.motivoDescarte}`);
+        console.log(`  referência gerada: ${JSON.stringify(ragResult.diagnostics.referenciaGerada ?? null)} | normalizada: ${ragResult.diagnostics.referenciaNormalizada ?? 'nenhuma'}`);
+      }
+      if (ragResult.diagnostics?.candidatosRecuperados.length) {
+        console.log(`  candidatos:   ${ragResult.diagnostics.candidatosRecuperados.join(', ')}`);
+      }
       console.log(`  tempo:        classificação ${(tClassify / 1000).toFixed(2)}s | pipeline RAG ${(tFull / 1000).toFixed(2)}s`);
 
       resultados.push({
         id: caso.id,
         descricao: caso.descricao,
         categoriaEsperada: caso.categoriaEsperada,
-        categoriaObtida: classification.categoria,
+        categoriaObtida: categoriaUsada,
         categoriaOk,
         tipoRespostaEsperada: caso.tipoRespostaEsperada,
         tipoRespostaObtida: ragResult.tipoResposta,
@@ -176,6 +188,7 @@ const runOrientacaoDireta = async (casos: CasoOrientacaoDireta[]) => {
         tempoClassificacaoMs: tClassify,
         tempoPipelineMs: tFull,
         respostaTexto: ragResult.texto,
+        diagnostics: ragResult.diagnostics ?? null,
       });
     } catch (err: any) {
       console.error(`  ❌ ERRO ao rodar caso ${caso.id}:`, err);
@@ -205,13 +218,17 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
 
       const t0 = Date.now();
       const classificationInicial = await classifyReport(caso.mensagemInicial, `Cidadão: ${caso.mensagemInicial}`);
-      const ragResultInicial = await answerWithRAG(caso.mensagemInicial, sessionIdInicial);
+      const ragResultInicial = await answerWithRAG(caso.mensagemInicial, sessionIdInicial, {
+        preClassification: classificationInicial,
+        includeDiagnostics: true,
+      });
       const tInicial = Date.now() - t0;
 
-      const categoriaInicialOk = classificationInicial.categoria === caso.categoriaEsperadaInicial;
+      const categoriaInicialUsada = ragResultInicial.diagnostics?.classificacaoUsada.categoria ?? classificationInicial.categoria;
+      const categoriaInicialOk = categoriaInicialUsada === caso.categoriaEsperadaInicial;
       const fezPergunta = ragResultInicial.tipoResposta === 'clarificacao';
 
-      console.log(`  [inicial] categoria: ${categoriaInicialOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperadaInicial}, obtido: ${classificationInicial.categoria})`);
+      console.log(`  [inicial] categoria: ${categoriaInicialOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperadaInicial}, obtido: ${categoriaInicialUsada})`);
       console.log(`  [inicial] pediu clarificação: ${fezPergunta ? '✅' : '❌'} (tipoResposta: ${ragResultInicial.tipoResposta})`);
       console.log(`  [inicial] resposta: "${ragResultInicial.texto.slice(0, 120)}..."`);
 
@@ -224,18 +241,29 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
         .map(h => `${h.autor}: ${h.mensagem}`)
         .join('\n');
       const classificationFinal = await classifyReport(caso.conversaCompleta.mensagemFinal, historicoTexto);
-      const ragResultFinal = await answerWithRAG(caso.conversaCompleta.mensagemFinal, sessionIdCompleto);
+      const ragResultFinal = await answerWithRAG(caso.conversaCompleta.mensagemFinal, sessionIdCompleto, {
+        preClassification: classificationFinal,
+        includeDiagnostics: true,
+      });
       const tFinal = Date.now() - t1;
 
-      const categoriaFinalOk = classificationFinal.categoria === caso.conversaCompleta.categoriaEsperadaFinal;
+      const categoriaFinalUsada = ragResultFinal.diagnostics?.classificacaoUsada.categoria ?? classificationFinal.categoria;
+      const categoriaFinalOk = categoriaFinalUsada === caso.conversaCompleta.categoriaEsperadaFinal;
       
       // Validação normalizada de artigo
       const artigoFinalObtidoNormalizado = normalizarArtigo(ragResultFinal.artigo);
       const artigoFinalEsperadoNormalizado = normalizarArtigo(caso.conversaCompleta.artigoEsperadoFinal);
       const artigoFinalOk = artigoFinalObtidoNormalizado === artigoFinalEsperadoNormalizado;
 
-      console.log(`  [final]   categoria: ${categoriaFinalOk ? '✅' : '❌'} (esperado: ${caso.conversaCompleta.categoriaEsperadaFinal}, obtido: ${classificationFinal.categoria})`);
+      console.log(`  [final]   categoria: ${categoriaFinalOk ? '✅' : '❌'} (esperado: ${caso.conversaCompleta.categoriaEsperadaFinal}, obtido: ${categoriaFinalUsada})`);
       console.log(`  [final]   artigo:    ${artigoFinalOk ? '✅' : '❌'} (esperado: ${caso.conversaCompleta.artigoEsperadoFinal ?? 'nenhum'}, encontrado: ${ragResultFinal.artigo || 'nenhum'})`);
+      if (ragResultFinal.diagnostics?.motivoDescarte) {
+        console.log(`  [final]   descarte:  ${ragResultFinal.diagnostics.motivoDescarte}`);
+        console.log(`  [final]   referência gerada: ${JSON.stringify(ragResultFinal.diagnostics.referenciaGerada ?? null)} | normalizada: ${ragResultFinal.diagnostics.referenciaNormalizada ?? 'nenhuma'}`);
+      }
+      if (ragResultFinal.diagnostics?.candidatosRecuperados.length) {
+        console.log(`  [final]   candidatos: ${ragResultFinal.diagnostics.candidatosRecuperados.join(', ')}`);
+      }
       console.log(`  tempo: etapa inicial ${(tInicial / 1000).toFixed(2)}s | etapa final ${(tFinal / 1000).toFixed(2)}s`);
 
       resultados.push({
@@ -243,16 +271,19 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
         descricao: caso.descricao,
         etapaInicial: {
           categoriaEsperada: caso.categoriaEsperadaInicial,
-          categoriaObtida: classificationInicial.categoria,
+          categoriaObtida: categoriaInicialUsada,
           categoriaOk: categoriaInicialOk,
           fezPergunta,
+          tipoRespostaEsperado: caso.tipoRespostaEsperada,
+          tipoRespostaOk: ragResultInicial.tipoResposta === caso.tipoRespostaEsperada,
           tipoRespostaObtido: ragResultInicial.tipoResposta,
           resposta: ragResultInicial.texto,
           tempoMs: tInicial,
+          diagnostics: ragResultInicial.diagnostics ?? null,
         },
         etapaFinal: {
           categoriaEsperada: caso.conversaCompleta.categoriaEsperadaFinal,
-          categoriaObtida: classificationFinal.categoria,
+          categoriaObtida: categoriaFinalUsada,
           categoriaOk: categoriaFinalOk,
           artigoEsperado: caso.conversaCompleta.artigoEsperadoFinal,
           artigoObtido: ragResultFinal.artigo,
@@ -260,6 +291,7 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
           tipoRespostaObtido: ragResultFinal.tipoResposta,
           resposta: ragResultFinal.texto,
           tempoMs: tFinal,
+          diagnostics: ragResultFinal.diagnostics ?? null,
         },
       });
     } catch (err: any) {
@@ -280,10 +312,18 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
 
 const main = async () => {
   const dataset: Dataset = JSON.parse(fs.readFileSync(TEST_CASES_PATH, 'utf-8'));
+  const selectedIds = process.env.EVAL_CASE_IDS?.split(',').map(id => id.trim()).filter(Boolean);
+  if (selectedIds?.length) {
+    const known = [...dataset.orientacao_direta, ...dataset.precisa_clarificacao].map(item => item.id);
+    for (const id of selectedIds) if (!known.includes(id)) throw new Error(`Caso desconhecido: ${id}`);
+    dataset.orientacao_direta = dataset.orientacao_direta.filter(item => selectedIds.includes(item.id));
+    dataset.precisa_clarificacao = dataset.precisa_clarificacao.filter(item => selectedIds.includes(item.id));
+  }
 
   console.log('='.repeat(60));
   console.log(`INICIANDO BENCHMARK RAG PROCON`);
-  console.log(`Modelo LLM: ${process.env.LLM_MODEL || 'Ollama Default'}`);
+  console.log(`Modelo LLM: ${process.env.OLLAMA_GENERATE_MODEL_NAME || 'Desconhecido'}`);
+  console.log(`Modelo Embedding: ${process.env.OLLAMA_EMBEDDING_MODEL_NAME || 'Desconhecido'}`);
   console.log(`Thinking Mode: ${process.env.LLM_ENABLE_THINKING || 'false'}`);
   console.log('='.repeat(60));
 
@@ -301,12 +341,14 @@ const main = async () => {
   const acertosTipoRespostaDiretos = resultadosDiretos.filter((r: any) => r.tipoRespostaOk).length;
 
   const totalClarificacao = resultadosClarificacao.length;
-  const acertosPerguntaInicial = resultadosClarificacao.filter((r: any) => r.etapaInicial?.fezPergunta).length;
+  const casosPerguntaInicial = resultadosClarificacao.filter((r: any) => r.etapaInicial?.tipoRespostaEsperado === 'clarificacao');
+  const acertosPerguntaInicial = casosPerguntaInicial.filter((r: any) => r.etapaInicial?.fezPergunta).length;
+  const acertosTipoInicial = resultadosClarificacao.filter((r: any) => r.etapaInicial?.tipoRespostaOk).length;
   const acertosCategoriaFinal = resultadosClarificacao.filter((r: any) => r.etapaFinal?.categoriaOk).length;
   const acertosArtigoFinal = resultadosClarificacao.filter((r: any) => r.etapaFinal?.artigoOk).length;
 
   const summary = {
-    modelo: process.env.LLM_MODEL || 'Desconhecido',
+    modelo: process.env.OLLAMA_GENERATE_MODEL_NAME || 'Desconhecido',
     thinkingEnabled: process.env.LLM_ENABLE_THINKING === 'true',
     executadoEm: new Date().toISOString(),
     metricas: {
@@ -318,13 +360,15 @@ const main = async () => {
       },
       clarificacao: {
         totalCasos: totalClarificacao,
-        acertosTipoPerguntaTurno1: `${acertosPerguntaInicial}/${totalClarificacao} (${((acertosPerguntaInicial / (totalClarificacao || 1)) * 100).toFixed(1)}%)`,
+        acertosTipoPerguntaTurno1: `${acertosPerguntaInicial}/${casosPerguntaInicial.length} (${((acertosPerguntaInicial / (casosPerguntaInicial.length || 1)) * 100).toFixed(1)}%)`,
+        acertosTipoInicial: `${acertosTipoInicial}/${totalClarificacao}`,
         acertosCategoriaFinal: `${acertosCategoriaFinal}/${totalClarificacao} (${((acertosCategoriaFinal / (totalClarificacao || 1)) * 100).toFixed(1)}%)`,
         acertosArtigoFinal: `${acertosArtigoFinal}/${totalClarificacao} (${((acertosArtigoFinal / (totalClarificacao || 1)) * 100).toFixed(1)}%)`,
       },
     },
   };
 
+  if (fs.existsSync(RESULTS_PATH)) fs.copyFileSync(RESULTS_PATH, `${RESULTS_PATH}.${Date.now()}.bak`);
   fs.writeFileSync(
     RESULTS_PATH,
     JSON.stringify(
@@ -348,6 +392,7 @@ const main = async () => {
   console.log(`  - Artigo CDC:    ${summary.metricas.orientacaoDireta.acertosArtigo}`);
   console.log(`Clarificação:`);
   console.log(`  - Pergunta 1º Turno: ${summary.metricas.clarificacao.acertosTipoPerguntaTurno1}`);
+  console.log(`  - Tipo inicial (inclui administrativo): ${summary.metricas.clarificacao.acertosTipoInicial}`);
   console.log(`  - Categoria Final:   ${summary.metricas.clarificacao.acertosCategoriaFinal}`);
   console.log(`  - Artigo Final:      ${summary.metricas.clarificacao.acertosArtigoFinal}`);
   console.log(`\n📄 Relatório detalhado salvo em: ${RESULTS_PATH}`);

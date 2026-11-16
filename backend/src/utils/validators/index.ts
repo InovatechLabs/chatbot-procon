@@ -3,22 +3,24 @@
  */
 export const getNextBusinessDays = (count: number = 3): { dateStr: string; label: string }[] => {
   const days: { dateStr: string; label: string }[] = [];
-  const current = new Date();
+  // Parte do dia civil de São Paulo, independentemente do fuso do servidor.
+  const localDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const current = new Date(`${localDate}T12:00:00Z`);
   
-  current.setDate(current.getDate() + 1);
+  current.setUTCDate(current.getUTCDate() + 1);
   const weekDaysPt = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
   while (days.length < count) {
-    const dayOfWeek = current.getDay();
+    const dayOfWeek = current.getUTCDay();
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      const yyyy = current.getFullYear();
-      const mm = String(current.getMonth() + 1).padStart(2, '0');
-      const dd = String(current.getDate()).padStart(2, '0');
+      const yyyy = current.getUTCFullYear();
+      const mm = String(current.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(current.getUTCDate()).padStart(2, '0');
       const dateStr = `${yyyy}-${mm}-${dd}`;
       const label = `${weekDaysPt[dayOfWeek]} (${dd}/${mm})`;
       days.push({ dateStr, label });
     }
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
   return days;
 };
@@ -39,7 +41,7 @@ export const validateFullName = (name: string): boolean => {
 export const cleanAndValidateCpf = (cpf: string): string | null => {
   const digits = cpf.replace(/\D/g, '');
 
-  if (digits.length !== 11) return null;
+  if (digits.length !== 11 || !/^[\d.\-\s]+$/.test(cpf)) return null;
 
   // Rejeita sequências de números iguais (ex: 111.111.111-11)
   if (/^(\d)\1{10}$/.test(digits)) return null;

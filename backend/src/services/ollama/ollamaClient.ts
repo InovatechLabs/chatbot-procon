@@ -22,7 +22,7 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
   const response = await axios.post(embedUrl, {
     model: embedModel,
     prompt: text
-  });
+  }, { timeout: 30_000 });
   return response.data.embedding;
 };
 
@@ -46,7 +46,7 @@ export const generateText = async (
     ...(schema ? { format: schema } : {}),
     ...(options ? { options } : {}),
     think: ENABLE_THINKING
-  });
+  }, { timeout: 120_000 });
   
   let output = response.data.response as string;
 
