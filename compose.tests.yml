@@ -1,0 +1,17 @@
+name: procon-tests
+services:
+  db-tests:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: ci-only-disposable
+      POSTGRES_DB: procon_ci_control
+    ports:
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ci -d procon_ci_control"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

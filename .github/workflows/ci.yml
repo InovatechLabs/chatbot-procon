@@ -1,49 +1,63 @@
-name: CI - Container Test
-
+name: CI
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev ]
-
+    branches: [main, dev]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  smoke-test:
+  frontend:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
     steps:
-      - name: Checkout do Código
-        uses: actions/checkout@v4
-
-      - name: Subir a aplicação com Docker Compose
-        run: docker compose up -d --build
-
-      - name: Aguardar inicialização dos containers
-        run: sleep 15
-
-      - name: Verificar se os containers estão rodando
-        run: |
-          echo "Status dos Containers"
-          docker compose ps
-
-          # Obtém os nomes/IDs dos containers que deveriam estar rodando
-          CONTAINERS=$(docker compose ps -q)
-
-          for CONTAINER in $CONTAINERS; do
-            STATE=$(docker inspect --format='{{.State.Running}}' $CONTAINER)
-            NAME=$(docker inspect --format='{{.Name}}' $CONTAINER)
-
-            if [ "$STATE" != "true" ]; then
-              echo "ERRO: O container $NAME não está rodando!"
-              exit 1
-            else
-              echo "OK: O container $NAME está rodando perfeitamente."
-            fi
-          done
-
-      - name: Exibir logs dos containers (útil para depuração)
-        if: always()
-        run: docker compose logs
-
-      - name: Encerrar containers
-        if: always()
-        run: docker compose down
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci-only-disposable
+          POSTGRES_DB: procon_ci_control
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d procon_ci_control"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql://ci:ci-only-disposable@127.0.0.1:5432/procon_ci_control
+      TEST_DATABASE_URL: postgresql://ci:ci-only-disposable@127.0.0.1:5432/procon_ci_control
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run check
+      - run: npm run test:integration

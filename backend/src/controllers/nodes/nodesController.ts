@@ -29,7 +29,7 @@ export const getNodes = async (req: Request, res: Response) => {
 
     return res.status(200).json({ success: true, data: nosFormatados });
   } catch (error) {
-    console.error('Erro ao buscar nós:', error);
+    console.error('Erro ao buscar nós:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao buscar os nós do fluxo' });
   }
 };
@@ -46,7 +46,7 @@ export const createNode = async (req: Request, res: Response) => {
     });
     return res.status(201).json({ success: true, data: newStep });
   } catch (error) {
-    console.error('Erro ao criar nó:', error);
+    console.error('Erro ao criar nó:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao criar o nó' });
   }
 };
@@ -65,7 +65,7 @@ export const updateNode = async (req: Request, res: Response) => {
     });
     return res.status(200).json({ success: true, data: updatedStep });
   } catch (error) {
-    console.error('Erro ao atualizar nó:', error);
+    console.error('Erro ao atualizar nó:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao atualizar o nó' });
   }
 };
@@ -81,7 +81,7 @@ export const deleteNode = async (req: Request, res: Response) => {
     });
     return res.status(200).json({ success: true, message: 'Nó removido com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar nó:', error);
+    console.error('Erro ao deletar nó:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao remover o nó' });
   }
 };
@@ -98,7 +98,7 @@ export const createOption = async (req: Request, res: Response) => {
     });
     return res.status(201).json({ success: true, data: newOption });
   } catch (error) {
-    console.error('Erro ao criar alternativa:', error);
+    console.error('Erro ao criar alternativa:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao criar alternativa' });
   }
 };
@@ -120,7 +120,7 @@ export const updateOption = async (req: Request, res: Response) => {
     });
     return res.status(200).json({ success: true, data: updatedOption });
   } catch (error) {
-    console.error('Erro ao atualizar alternativa:', error);
+    console.error('Erro ao atualizar alternativa:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao atualizar alternativa' });
   }
 };
@@ -131,7 +131,7 @@ export const deleteOption = async (req: Request, res: Response) => {
     await prisma.option.delete({ where: { id } });
     return res.status(200).json({ success: true, message: 'Alternativa removida com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar alternativa:', error);
+    console.error('Erro ao deletar alternativa:', error instanceof Error ? error.name : 'erro');
     return res.status(500).json({ success: false, message: 'Falha ao deletar alternativa' });
   }
 };

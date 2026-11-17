@@ -4,17 +4,33 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "dev": "tsx watch src/index.ts",
-  "build": "tsc",
-  "start": "node dist/index.js",
-  "db:seed:analytics": "tsx prisma/seed/seedAnalytics.ts"
-},
+    "messages:queue": "tsx scripts/message-queue.ts",
+    "test:states:live": "tsx scripts/smoke-conversation-live.ts",
+    "test": "node scripts/run-tests.mjs unit",
+    "test:integration": "node scripts/run-tests.mjs integration",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run build && npm test",
+    "test:webhook": "node --import tsx --test --test-concurrency=1 tests/webhook/*.test.ts",
+    "privacy:backup": "tsx scripts/backup-before-privacy.ts",
+    "privacy:verify-backup": "tsx scripts/verify-private-backup.ts",
+    "privacy:setup": "tsx scripts/setup-privacy.ts",
+    "privacy:migrate": "tsx scripts/migrate-personal-data.ts",
+    "privacy:retention": "tsx scripts/retention.ts",
+    "test:privacy": "node --import tsx --test --test-concurrency=1 tests/privacy/*.test.ts",
+    "auth:setup": "tsx scripts/create-panel-user.ts",
+    "test:auth": "node --import tsx --test --test-concurrency=1 tests/auth/*.test.ts",
+    "auth:create-user": "tsx scripts/create-panel-user.ts",
+    "test:ux": "node --import tsx --test tests/ux/*.test.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "axios": "^1.19.0",
     "cors": "^2.8.6",
@@ -33,4 +49,3 @@
     "typescript": "^7.0.2"
   }
 }
-

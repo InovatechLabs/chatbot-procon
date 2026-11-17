@@ -1,20 +1,21 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import dotenv from 'dotenv';
+import { charLength, clip, splitMessage } from './whatsapp/messagePolicy.js';
+import { messageSender } from './whatsapp/outgoingContext.js';
+import type { MetaPayload } from './whatsapp/outgoingContext.js';
 
-dotenv.config();
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
-// Variável para guardar a instância na memória depois da primeira vez
 let metaApiInstance: AxiosInstance | null = null;
 
-// Função que monta o Axios apenas quando for realmente necessário
 const getMetaApi = (): AxiosInstance => {
   if (!metaApiInstance) {
     const META_WA_TOKEN = process.env.META_WA_TOKEN;
     const META_PHONE_NUMBER_ID = process.env.META_PHONE_NUMBER_ID;
 
     if (!META_WA_TOKEN || !META_PHONE_NUMBER_ID) {
-      throw new Error("As variáveis de ambiente META_WA_TOKEN e META_PHONE_NUMBER_ID devem estar definidas.");
+      throw new Error("Variáveis META_WA_TOKEN e META_PHONE_NUMBER_ID são obrigatórias.");
     }
 
     metaApiInstance = axios.create({
@@ -23,29 +24,53 @@ const getMetaApi = (): AxiosInstance => {
         Authorization: `Bearer ${META_WA_TOKEN}`,
         'Content-Type': 'application/json',
       },
+      timeout: 15_000,
     });
   }
   return metaApiInstance;
 };
 
+export async function deliverMetaPayload(payload: MetaPayload): Promise<any> {
+  return (await getMetaApi().post('/messages', payload)).data;
+}
+async function postMessage(payload: MetaPayload): Promise<any> {
+  const queue = messageSender();
+  return queue ? queue(payload) : deliverMetaPayload(payload);
+}
+
 export const sendTextMessage = async (to: string, text: string) => {
+  if (charLength(text) > 4096) {
+    for (const part of splitMessage(text, 4096)) await sendTextMessage(to, part);
+    return;
+  }
   try {
-    const api = getMetaApi(); // <-- Chama a função aqui dentro!
-    const response = await api.post('/messages', {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to,
-        type: "text",
-        text: { body: text },
+    const response = await postMessage({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "text",
+      text: { body: text },
     });
-    return response.data;
+    return response;
   } catch (error: any) {
-    console.error("Erro ao enviar mensagem via Meta API:", error.response?.data || error.message);
+    console.error('Falha no envio Meta API (texto).');
     throw error;
   }
 };
 
 export const sendInteractiveMessage = async (to: string, text: string, options: any[]) => {
+  if (!options.length) return sendTextMessage(to, text);
+  // Preserva o conteúdo completo; os controles acompanham apenas o último bloco.
+  const parts = splitMessage(text);
+  for (const part of parts.slice(0, -1)) await sendTextMessage(to, part);
+  text = parts.at(-1) ?? 'Escolha uma opção:';
+  if (options.length > 10) {
+    // Nós editados no painel também precisam continuar acessíveis.
+    for (let offset = 0; offset < options.length; offset += 10) {
+      await sendInteractiveMessage(to, offset === 0 ? text : 'Mais opções:', options.slice(offset, offset + 10));
+    }
+    return;
+  }
   try {
     let interactiveConfig: any = {};
 
@@ -58,13 +83,12 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
             type: 'reply',
             reply: {
               id: opt.id,
-              title: opt.text.substring(0, 20),
+              title: clip(opt.text, 20),
             },
           })),
         },
       };
-    } 
-    else {
+    } else {
       interactiveConfig = {
         type: 'list',
         body: { text },
@@ -75,7 +99,7 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
               title: 'Selecione uma opção',
               rows: options.map((opt) => ({
                 id: opt.id,
-                title: opt.text.substring(0, 24),
+                title: clip(opt.text, 24),
               })),
             },
           ],
@@ -83,17 +107,65 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
       };
     }
 
-    const api = getMetaApi(); // <-- Chama a função aqui dentro também!
-    const response = await api.post('/messages', {
+    const response = await postMessage({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to,
       type: 'interactive',
       interactive: interactiveConfig,
     });
-    return response.data;
+    return response;
   } catch (error: any) {
-    console.error(`❌ Erro ao enviar interação para ${to}:`, error.response?.data || error.message);
+    console.error('Falha no envio Meta API (interação).');
+    throw error;
+  }
+};
+
+/**
+ * Envia uma mensagem interativa de Lista com seções, títulos e descrições.
+ */
+export const sendListMessage = async (
+  to: string,
+  title: string,
+  bodyText: string,
+  buttonText: string,
+  sections: Array<{
+    title: string;
+    rows: Array<{ id: string; title: string; description?: string }>;
+  }>
+) => {
+  const rowCount = sections.reduce((total, section) => total + section.rows.length, 0);
+  if (rowCount < 1 || rowCount > 10) throw new Error('Listas do WhatsApp devem conter de 1 a 10 opções.');
+  const parts = splitMessage(bodyText);
+  for (const part of parts.slice(0, -1)) await sendTextMessage(to, part);
+  bodyText = parts.at(-1) ?? 'Escolha uma opção:';
+  try {
+    const response = await postMessage({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'list',
+        header: { type: 'text', text: clip(title, 60) },
+        body: { text: bodyText },
+        footer: { text: 'PROCON Municipal' },
+        action: {
+          button: clip(buttonText, 20),
+          sections: sections.map((sec) => ({
+            title: clip(sec.title, 24),
+            rows: sec.rows.map((row) => ({
+              id: row.id,
+              title: clip(row.title, 24),
+              description: row.description ? clip(row.description, 72) : undefined,
+            })),
+          })),
+        },
+      },
+    });
+    return response;
+  } catch (error: any) {
+    console.error('Falha no envio Meta API (lista).');
     throw error;
   }
 };

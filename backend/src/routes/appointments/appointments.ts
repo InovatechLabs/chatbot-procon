@@ -6,16 +6,18 @@ import {
   getAppointmentHistory,
   updateAppointment,
   cancelAppointment,
+  getAppointmentContact,
 } from '../../controllers/appointments/appointmentsController.js';
 
-const router = Router();
+const appointmentsRouter = Router();
 
 // /availability precisa vir antes de /:id
-router.get('/availability', getAvailability);
-router.get('/', listAppointments);
-router.post('/', createAppointment);
-router.get('/:id/history', getAppointmentHistory);
-router.patch('/:id', updateAppointment);
-router.delete('/:id', cancelAppointment);
+appointmentsRouter.get('/availability', getAvailability);
+appointmentsRouter.get('/', listAppointments);
+appointmentsRouter.post('/', createAppointment);
+appointmentsRouter.get('/:id/history', getAppointmentHistory);
+appointmentsRouter.get('/:id/contact', getAppointmentContact);
+appointmentsRouter.patch('/:id', updateAppointment);
+appointmentsRouter.delete('/:id', cancelAppointment);
 
-export default router;
+export default appointmentsRouter;

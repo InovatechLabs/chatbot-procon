@@ -9,6 +9,8 @@ import {
   idParamSchema,
 } from './appointmentSchemas.js';
 import * as service from '../../services/appointments/appointmentService.js';
+import { appointmentView } from '../../services/privacy/appointmentView.js';
+import { redactIdentifiers } from '../../services/privacy/redact.js';
 
 // Mesmo envelope dos demais controllers: { success, data } / { success: false, message }
 function handleError(res: Response, error: unknown, fallback: string) {
@@ -23,11 +25,14 @@ function handleError(res: Response, error: unknown, fallback: string) {
   if (error instanceof service.AppointmentError) {
     return res.status(error.status).json({ success: false, code: error.code, message: error.message });
   }
-  if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2002' || error.code === 'P2034')) {
+  const adapterCause = error instanceof Error && error.name === 'DriverAdapterError'
+    ? error.cause as { kind?: string; originalCode?: string } | undefined : undefined;
+  if ((error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2002' || error.code === 'P2034'))
+    || (adapterCause?.kind === 'TransactionWriteConflict' && adapterCause.originalCode === '40001')) {
     // P2034: conflito entre transações simultâneas (dois agendamentos disputando o mesmo horário)
     return res.status(409).json({ success: false, code: 'SLOT_TAKEN', message: 'Horário indisponível. Tente novamente.' });
   }
-  console.error(`${fallback}:`, error);
+  console.error(`${fallback}:`, error instanceof Error ? error.name : 'erro');
   return res.status(500).json({ success: false, message: fallback });
 }
 
@@ -44,7 +49,7 @@ export const getAvailability = async (req: Request, res: Response) => {
 export const listAppointments = async (req: Request, res: Response) => {
   try {
     const data = await service.listAppointments(listAppointmentsSchema.parse(req.query));
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: data.map(appointmentView) });
   } catch (error) {
     return handleError(res, error, 'Falha ao listar agendamentos');
   }
@@ -54,7 +59,7 @@ export const createAppointment = async (req: Request, res: Response) => {
   try {
     const input = createAppointmentSchema.parse(req.body);
     const data = await service.createAppointment(input);
-    return res.status(201).json({ success: true, data });
+    return res.status(201).json({ success: true, data: appointmentView(data) });
   } catch (error) {
     return handleError(res, error, 'Falha ao criar agendamento');
   }
@@ -64,7 +69,7 @@ export const getAppointmentHistory = async (req: Request, res: Response) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     const data = await service.getAppointmentHistory(id);
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: { ...data, appointment: appointmentView(data.appointment), mensagens: data.mensagens.map(item => ({ ...item, messageText: redactIdentifiers(item.messageText, [data.appointment.userCpf, data.appointment.phoneNumber]) })) } });
   } catch (error) {
     return handleError(res, error, 'Falha ao buscar histórico do agendamento');
   }
@@ -74,7 +79,7 @@ export const updateAppointment = async (req: Request, res: Response) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     const data = await service.updateAppointment(id, updateAppointmentSchema.parse(req.body));
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: appointmentView(data) });
   } catch (error) {
     return handleError(res, error, 'Falha ao atualizar agendamento');
   }
@@ -84,8 +89,16 @@ export const cancelAppointment = async (req: Request, res: Response) => {
   try {
     const { id } = idParamSchema.parse(req.params);
     const data = await service.cancelAppointment(id);
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: appointmentView(data) });
   } catch (error) {
     return handleError(res, error, 'Falha ao cancelar agendamento');
   }
+};
+
+export const getAppointmentContact = async (req: Request, res: Response) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const contact = await service.getAppointmentContact(id);
+    return res.json({ success: true, data: contact });
+  } catch (error) { return handleError(res, error, 'Falha ao consultar contato'); }
 };

@@ -1,9 +1,9 @@
 /**
- * Script de avaliação do pipeline RAG do PROCON.
+ * Script de avaliação e benchmark do pipeline RAG do PROCON.
  *
  * Roda os casos de teste de test-cases.json diretamente contra as funções
- * do llmService, sem passar pelo WhatsApp. Gera um eval-results.json com
- * o detalhe de cada caso e imprime um resumo no console.
+ * do llmService, sem passar pelo WhatsApp. Gera um eval-results.json completo
+ * com telemetria, captura de Raciocínio (Thinking Mode) e métricas consolidadas.
  *
  * Uso: npx tsx run-eval.ts
  */
@@ -18,7 +18,7 @@ import { classifyReport } from '../../src/services/llm/helpers/classifyReport.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEST_CASES_PATH = path.join(__dirname, 'test-cases.json');
-const RESULTS_PATH = path.join(__dirname, 'eval-results.json');
+const RESULTS_PATH = path.resolve(__dirname, process.env.EVAL_RESULTS_PATH || 'eval-results.json');
 
 // ---------- Tipos do dataset ----------
 
@@ -27,7 +27,7 @@ interface CasoOrientacaoDireta {
   descricao: string;
   mensagem: string;
   categoriaEsperada: string;
-  tipoRespostaEsperada: 'orientacao_final' | 'redirecionamento';
+  tipoRespostaEsperada: 'orientacao_final' | 'redirecionamento' | 'fixa';
   artigoEsperado: string | null;
   observacao?: string;
 }
@@ -42,7 +42,7 @@ interface CasoClarificacao {
   descricao: string;
   mensagemInicial: string;
   categoriaEsperadaInicial: string;
-  tipoRespostaEsperada: 'clarificacao';
+  tipoRespostaEsperada: 'clarificacao' | 'fixa';
   clarificacaoEsperadaSobre: string[];
   conversaCompleta: {
     historico: HistoricoItem[];
@@ -58,15 +58,29 @@ interface Dataset {
   precisa_clarificacao: CasoClarificacao[];
 }
 
-const normalizarArtigo = (texto: string | null) => {
+const normalizarArtigo = (texto: string | null | undefined): string | null => {
   if (!texto) return null;
-  // Aceita "Art. 42", "Artigo 42", "art 42", "artigo 54-G", ignorando maiúsculas/minúsculas
-  const match = texto.match(/art(?:igo)?\.?\s*(\d+[a-z-]*)/i);
-  
-  if (!match || !match[1]) return texto.trim();
-  
-  // Pega só o número capturado no grupo 1 e monta no formato padrão do gabarito
-  return `Art. ${match[1].toUpperCase()}`;
+
+  const limpo = texto.trim();
+  if (!limpo || /^(nenhum|n\/a|null|undefined|-)$/i.test(limpo)) {
+    return null;
+  }
+
+  // Extrai a parte numérica e sufixo do artigo (ex: "42", "54-G", "54G", "18")
+  // Ignora prefixos (Art, Artigo) e sufixos (pontos finais, vírgulas, caput, incisos, "do CDC", etc.)
+  const match = limpo.match(/(?:art(?:igo)?\.?\s*)?(\d+[\s-]*[a-z]?)/i);
+
+  if (!match || !match[1]) {
+    return limpo;
+  }
+
+  // Padroniza o identificador (ex: "54 g" ou "54g" -> "54-G")
+  const numeroIdentificador = match[1]
+    .replace(/\s+/g, '')                  // Remove espaços internos
+    .replace(/([0-9])([a-z])/i, '$1-$2')  // Garante hífen entre número e letra (ex: 54G -> 54-G)
+    .toUpperCase();                       // Transforma em maiúsculas
+
+  return `Art. ${numeroIdentificador}`;
 };
 
 // ---------- Sessão de teste (UserSession real, exigida pela FK de ChatLog) ----------
@@ -74,7 +88,10 @@ const normalizarArtigo = (texto: string | null) => {
 const getOrResetEvalSession = async (caseId: string): Promise<{ id: string; phoneNumber: string }> => {
   const phoneNumber = `eval-${caseId}`;
 
-  const existing = await prisma.userSession.findUnique({ where: { phoneNumber } });
+  const existing = await prisma.userSession.findFirst({
+    where: { phoneNumber, status: 'OPEN' },
+    orderBy: { createdAt: 'desc' },
+  });
   if (existing) {
     await prisma.userSession.delete({ where: { id: existing.id } });
   }
@@ -128,37 +145,59 @@ const runOrientacaoDireta = async (casos: CasoOrientacaoDireta[]) => {
       const tClassify = Date.now() - t0;
 
       const t1 = Date.now();
-      const ragResult = await answerWithRAG(caso.mensagem, sessionId);
+      const ragResult = await answerWithRAG(caso.mensagem, sessionId, {
+        preClassification: classification,
+        includeDiagnostics: true,
+      });
       const tFull = Date.now() - t1;
 
-      const categoriaOk = classification.categoria === caso.categoriaEsperada;
+      // A categoria registrada agora é a mesma usada pelo pipeline.
+      const categoriaUsada = ragResult.diagnostics?.classificacaoUsada.categoria ?? classification.categoria;
+      const categoriaOk = categoriaUsada === caso.categoriaEsperada;
+      const tipoRespostaOk = ragResult.tipoResposta === caso.tipoRespostaEsperada;
 
-      // Validação determinística direta pelo schema
-      const artigoNormalizado = normalizarArtigo(ragResult.artigo);
-      const artigoOk = artigoNormalizado === caso.artigoEsperado;
-      const artigosEncontrados = ragResult.artigo ? [ragResult.artigo] : [];
+      // Validação com normalização de artigo
+      const artigoObtidoNormalizado = normalizarArtigo(ragResult.artigo);
+      const artigoEsperadoNormalizado = normalizarArtigo(caso.artigoEsperado);
+      const artigoOk = artigoObtidoNormalizado === artigoEsperadoNormalizado;
 
-      console.log(`  categoria: ${categoriaOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperada}, obtido: ${classification.categoria})`);
-      console.log(`  artigo:    ${artigoOk ? '✅' : '❌'} (esperado: ${caso.artigoEsperado ?? 'nenhum'}, encontrado: ${ragResult.artigo || 'nenhum'})`);
-      console.log(`  tempo: classificação ${(tClassify / 1000).toFixed(1)}s | pipeline completo ${(tFull / 1000).toFixed(1)}s`);
+      console.log(`  categoria:    ${categoriaOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperada}, obtido: ${categoriaUsada})`);
+      console.log(`  tipoResposta: ${tipoRespostaOk ? '✅' : '❌'} (esperado: ${caso.tipoRespostaEsperada}, obtido: ${ragResult.tipoResposta})`);
+      console.log(`  artigo:       ${artigoOk ? '✅' : '❌'} (esperado: ${caso.artigoEsperado ?? 'nenhum'}, encontrado: ${ragResult.artigo || 'nenhum'})`);
+      if (ragResult.diagnostics?.motivoDescarte) {
+        console.log(`  descarte:     ${ragResult.diagnostics.motivoDescarte}`);
+        console.log(`  referência gerada: ${JSON.stringify(ragResult.diagnostics.referenciaGerada ?? null)} | normalizada: ${ragResult.diagnostics.referenciaNormalizada ?? 'nenhuma'}`);
+      }
+      if (ragResult.diagnostics?.candidatosRecuperados.length) {
+        console.log(`  candidatos:   ${ragResult.diagnostics.candidatosRecuperados.join(', ')}`);
+      }
+      console.log(`  tempo:        classificação ${(tClassify / 1000).toFixed(2)}s | pipeline RAG ${(tFull / 1000).toFixed(2)}s`);
 
       resultados.push({
         id: caso.id,
         descricao: caso.descricao,
         categoriaEsperada: caso.categoriaEsperada,
-        categoriaObtida: classification.categoria,
+        categoriaObtida: categoriaUsada,
         categoriaOk,
+        tipoRespostaEsperada: caso.tipoRespostaEsperada,
+        tipoRespostaObtida: ragResult.tipoResposta,
+        tipoRespostaOk,
         artigoEsperado: caso.artigoEsperado,
-        artigosEncontrados,
+        artigoObtido: ragResult.artigo,
         artigoOk,
-        tipoRespostaObtido: ragResult.tipoResposta,
         tempoClassificacaoMs: tClassify,
         tempoPipelineMs: tFull,
-        resposta: ragResult.texto,
+        respostaTexto: ragResult.texto,
+        diagnostics: ragResult.diagnostics ?? null,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(`  ❌ ERRO ao rodar caso ${caso.id}:`, err);
-      resultados.push({ id: caso.id, erro: String(err) });
+      resultados.push({
+        id: caso.id,
+        descricao: caso.descricao,
+        erro: err?.message || String(err),
+        stack: err?.stack,
+      });
     }
   }
 
@@ -179,17 +218,19 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
 
       const t0 = Date.now();
       const classificationInicial = await classifyReport(caso.mensagemInicial, `Cidadão: ${caso.mensagemInicial}`);
-      const ragResultInicial = await answerWithRAG(caso.mensagemInicial, sessionIdInicial);
+      const ragResultInicial = await answerWithRAG(caso.mensagemInicial, sessionIdInicial, {
+        preClassification: classificationInicial,
+        includeDiagnostics: true,
+      });
       const tInicial = Date.now() - t0;
 
-      const categoriaInicialOk = classificationInicial.categoria === caso.categoriaEsperadaInicial;
-      
-      // Avaliação exata do schema
+      const categoriaInicialUsada = ragResultInicial.diagnostics?.classificacaoUsada.categoria ?? classificationInicial.categoria;
+      const categoriaInicialOk = categoriaInicialUsada === caso.categoriaEsperadaInicial;
       const fezPergunta = ragResultInicial.tipoResposta === 'clarificacao';
 
-      console.log(`  [inicial] categoria: ${categoriaInicialOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperadaInicial}, obtido: ${classificationInicial.categoria})`);
+      console.log(`  [inicial] categoria: ${categoriaInicialOk ? '✅' : '❌'} (esperado: ${caso.categoriaEsperadaInicial}, obtido: ${categoriaInicialUsada})`);
       console.log(`  [inicial] pediu clarificação: ${fezPergunta ? '✅' : '❌'} (tipoResposta: ${ragResultInicial.tipoResposta})`);
-      console.log(`  [inicial] resposta: "${ragResultInicial.texto.slice(0, 150)}${ragResultInicial.texto.length > 150 ? '...' : ''}"`);
+      console.log(`  [inicial] resposta: "${ragResultInicial.texto.slice(0, 120)}..."`);
 
       // --- Etapa 2: conversa completa (histórico + resposta do cidadão), espera orientação final ---
       const { id: sessionIdCompleto, phoneNumber: phoneNumberCompleto } = await getOrResetEvalSession(`${caso.id}-completo`);
@@ -200,46 +241,67 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
         .map(h => `${h.autor}: ${h.mensagem}`)
         .join('\n');
       const classificationFinal = await classifyReport(caso.conversaCompleta.mensagemFinal, historicoTexto);
-      const ragResultFinal = await answerWithRAG(caso.conversaCompleta.mensagemFinal, sessionIdCompleto);
+      const ragResultFinal = await answerWithRAG(caso.conversaCompleta.mensagemFinal, sessionIdCompleto, {
+        preClassification: classificationFinal,
+        includeDiagnostics: true,
+      });
       const tFinal = Date.now() - t1;
 
-      const categoriaFinalOk = classificationFinal.categoria === caso.conversaCompleta.categoriaEsperadaFinal;
-      const artigosEncontrados = ragResultFinal.artigo ? [ragResultFinal.artigo] : [];
+      const categoriaFinalUsada = ragResultFinal.diagnostics?.classificacaoUsada.categoria ?? classificationFinal.categoria;
+      const categoriaFinalOk = categoriaFinalUsada === caso.conversaCompleta.categoriaEsperadaFinal;
+      
+      // Validação normalizada de artigo
+      const artigoFinalObtidoNormalizado = normalizarArtigo(ragResultFinal.artigo);
+      const artigoFinalEsperadoNormalizado = normalizarArtigo(caso.conversaCompleta.artigoEsperadoFinal);
+      const artigoFinalOk = artigoFinalObtidoNormalizado === artigoFinalEsperadoNormalizado;
 
-      // Validação exata do schema
-      const artigoFinalOk = ragResultFinal.artigo === caso.conversaCompleta.artigoEsperadoFinal;
-
-      console.log(`  [final]   categoria: ${categoriaFinalOk ? '✅' : '❌'} (esperado: ${caso.conversaCompleta.categoriaEsperadaFinal}, obtido: ${classificationFinal.categoria})`);
+      console.log(`  [final]   categoria: ${categoriaFinalOk ? '✅' : '❌'} (esperado: ${caso.conversaCompleta.categoriaEsperadaFinal}, obtido: ${categoriaFinalUsada})`);
       console.log(`  [final]   artigo:    ${artigoFinalOk ? '✅' : '❌'} (esperado: ${caso.conversaCompleta.artigoEsperadoFinal ?? 'nenhum'}, encontrado: ${ragResultFinal.artigo || 'nenhum'})`);
-      console.log(`  tempo: etapa inicial ${(tInicial / 1000).toFixed(1)}s | etapa final ${(tFinal / 1000).toFixed(1)}s`);
+      if (ragResultFinal.diagnostics?.motivoDescarte) {
+        console.log(`  [final]   descarte:  ${ragResultFinal.diagnostics.motivoDescarte}`);
+        console.log(`  [final]   referência gerada: ${JSON.stringify(ragResultFinal.diagnostics.referenciaGerada ?? null)} | normalizada: ${ragResultFinal.diagnostics.referenciaNormalizada ?? 'nenhuma'}`);
+      }
+      if (ragResultFinal.diagnostics?.candidatosRecuperados.length) {
+        console.log(`  [final]   candidatos: ${ragResultFinal.diagnostics.candidatosRecuperados.join(', ')}`);
+      }
+      console.log(`  tempo: etapa inicial ${(tInicial / 1000).toFixed(2)}s | etapa final ${(tFinal / 1000).toFixed(2)}s`);
 
       resultados.push({
         id: caso.id,
         descricao: caso.descricao,
         etapaInicial: {
           categoriaEsperada: caso.categoriaEsperadaInicial,
-          categoriaObtida: classificationInicial.categoria,
+          categoriaObtida: categoriaInicialUsada,
           categoriaOk: categoriaInicialOk,
           fezPergunta,
+          tipoRespostaEsperado: caso.tipoRespostaEsperada,
+          tipoRespostaOk: ragResultInicial.tipoResposta === caso.tipoRespostaEsperada,
           tipoRespostaObtido: ragResultInicial.tipoResposta,
           resposta: ragResultInicial.texto,
+          tempoMs: tInicial,
+          diagnostics: ragResultInicial.diagnostics ?? null,
         },
         etapaFinal: {
           categoriaEsperada: caso.conversaCompleta.categoriaEsperadaFinal,
-          categoriaObtida: classificationFinal.categoria,
+          categoriaObtida: categoriaFinalUsada,
           categoriaOk: categoriaFinalOk,
           artigoEsperado: caso.conversaCompleta.artigoEsperadoFinal,
-          artigosEncontrados,
+          artigoObtido: ragResultFinal.artigo,
           artigoOk: artigoFinalOk,
           tipoRespostaObtido: ragResultFinal.tipoResposta,
           resposta: ragResultFinal.texto,
+          tempoMs: tFinal,
+          diagnostics: ragResultFinal.diagnostics ?? null,
         },
-        tempoInicialMs: tInicial,
-        tempoFinalMs: tFinal,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(`  ❌ ERRO ao rodar caso ${caso.id}:`, err);
-      resultados.push({ id: caso.id, erro: String(err) });
+      resultados.push({
+        id: caso.id,
+        descricao: caso.descricao,
+        erro: err?.message || String(err),
+        stack: err?.stack,
+      });
     }
   }
 
@@ -250,46 +312,90 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
 
 const main = async () => {
   const dataset: Dataset = JSON.parse(fs.readFileSync(TEST_CASES_PATH, 'utf-8'));
+  const selectedIds = process.env.EVAL_CASE_IDS?.split(',').map(id => id.trim()).filter(Boolean);
+  if (selectedIds?.length) {
+    const known = [...dataset.orientacao_direta, ...dataset.precisa_clarificacao].map(item => item.id);
+    for (const id of selectedIds) if (!known.includes(id)) throw new Error(`Caso desconhecido: ${id}`);
+    dataset.orientacao_direta = dataset.orientacao_direta.filter(item => selectedIds.includes(item.id));
+    dataset.precisa_clarificacao = dataset.precisa_clarificacao.filter(item => selectedIds.includes(item.id));
+  }
 
   console.log('='.repeat(60));
-  console.log('RODANDO CASOS DE ORIENTAÇÃO DIRETA');
+  console.log(`INICIANDO BENCHMARK RAG PROCON`);
+  console.log(`Modelo LLM: ${process.env.OLLAMA_GENERATE_MODEL_NAME || 'Desconhecido'}`);
+  console.log(`Modelo Embedding: ${process.env.OLLAMA_EMBEDDING_MODEL_NAME || 'Desconhecido'}`);
+  console.log(`Thinking Mode: ${process.env.LLM_ENABLE_THINKING || 'false'}`);
   console.log('='.repeat(60));
+
+  console.log('\n--- CASOS DE ORIENTAÇÃO DIRETA ---');
   const resultadosDiretos = await runOrientacaoDireta(dataset.orientacao_direta);
 
-  console.log('\n' + '='.repeat(60));
-  console.log('RODANDO CASOS DE CLARIFICAÇÃO');
-  console.log('='.repeat(60));
+  console.log('\n--- CASOS DE CLARIFICAÇÃO ---');
   const resultadosClarificacao = await runPrecisaClarificacao(dataset.precisa_clarificacao);
 
-  fs.writeFileSync(
-    RESULTS_PATH,
-    JSON.stringify({ resultadosClarificacao, executadoEm: new Date().toISOString() }, null, 2)
-  );
-
-  // ---------- Resumo ----------
+  // ---------- Resumo e Métricas ----------
  
   const totalDiretos = resultadosDiretos.length;
   const acertosCategoriaDiretos = resultadosDiretos.filter((r: any) => r.categoriaOk).length;
   const acertosArtigoDiretos = resultadosDiretos.filter((r: any) => r.artigoOk).length;
+  const acertosTipoRespostaDiretos = resultadosDiretos.filter((r: any) => r.tipoRespostaOk).length;
 
   const totalClarificacao = resultadosClarificacao.length;
-  const acertosPerguntaInicial = resultadosClarificacao.filter((r: any) => r.etapaInicial?.fezPergunta).length;
+  const casosPerguntaInicial = resultadosClarificacao.filter((r: any) => r.etapaInicial?.tipoRespostaEsperado === 'clarificacao');
+  const acertosPerguntaInicial = casosPerguntaInicial.filter((r: any) => r.etapaInicial?.fezPergunta).length;
+  const acertosTipoInicial = resultadosClarificacao.filter((r: any) => r.etapaInicial?.tipoRespostaOk).length;
   const acertosCategoriaFinal = resultadosClarificacao.filter((r: any) => r.etapaFinal?.categoriaOk).length;
   const acertosArtigoFinal = resultadosClarificacao.filter((r: any) => r.etapaFinal?.artigoOk).length;
 
+  const summary = {
+    modelo: process.env.OLLAMA_GENERATE_MODEL_NAME || 'Desconhecido',
+    thinkingEnabled: process.env.LLM_ENABLE_THINKING === 'true',
+    executadoEm: new Date().toISOString(),
+    metricas: {
+      orientacaoDireta: {
+        totalCasos: totalDiretos,
+        acertosCategoria: `${acertosCategoriaDiretos}/${totalDiretos} (${((acertosCategoriaDiretos / (totalDiretos || 1)) * 100).toFixed(1)}%)`,
+        acertosTipoResposta: `${acertosTipoRespostaDiretos}/${totalDiretos} (${((acertosTipoRespostaDiretos / (totalDiretos || 1)) * 100).toFixed(1)}%)`,
+        acertosArtigo: `${acertosArtigoDiretos}/${totalDiretos} (${((acertosArtigoDiretos / (totalDiretos || 1)) * 100).toFixed(1)}%)`,
+      },
+      clarificacao: {
+        totalCasos: totalClarificacao,
+        acertosTipoPerguntaTurno1: `${acertosPerguntaInicial}/${casosPerguntaInicial.length} (${((acertosPerguntaInicial / (casosPerguntaInicial.length || 1)) * 100).toFixed(1)}%)`,
+        acertosTipoInicial: `${acertosTipoInicial}/${totalClarificacao}`,
+        acertosCategoriaFinal: `${acertosCategoriaFinal}/${totalClarificacao} (${((acertosCategoriaFinal / (totalClarificacao || 1)) * 100).toFixed(1)}%)`,
+        acertosArtigoFinal: `${acertosArtigoFinal}/${totalClarificacao} (${((acertosArtigoFinal / (totalClarificacao || 1)) * 100).toFixed(1)}%)`,
+      },
+    },
+  };
+
+  if (fs.existsSync(RESULTS_PATH)) fs.copyFileSync(RESULTS_PATH, `${RESULTS_PATH}.${Date.now()}.bak`);
+  fs.writeFileSync(
+    RESULTS_PATH,
+    JSON.stringify(
+      {
+        summary,
+        resultadosDiretos,
+        resultadosClarificacao,
+      },
+      null,
+      2
+    )
+  );
+
   console.log('\n' + '='.repeat(60));
-  console.log('RESUMO ESTRUTURADO (JSON SCHEMA)');
+  console.log('RESUMO CONSOLIDADO DA AVALIAÇÃO');
   console.log('='.repeat(60));
-  
-  console.log(`Orientação direta (${totalDiretos} casos):`);
-  console.log(`  Categoria correta: ${acertosCategoriaDiretos}/${totalDiretos}`);
-  console.log(`  Artigo correto:    ${acertosArtigoDiretos}/${totalDiretos}`);
-  
-  console.log(`Clarificação (${totalClarificacao} casos):`);
-  console.log(`  Classificou como 'clarificacao' no 1º turno: ${acertosPerguntaInicial}/${totalClarificacao}`);
-  console.log(`  Categoria correta na etapa final: ${acertosCategoriaFinal}/${totalClarificacao}`);
-  console.log(`  Artigo correto na etapa final:    ${acertosArtigoFinal}/${totalClarificacao}`);
-  console.log('\nResultado detalhado salvo em eval-results.json');
+  console.log(`Modelo: ${summary.modelo} | Thinking: ${summary.thinkingEnabled ? 'ON' : 'OFF'}`);
+  console.log(`Orientação Direta:`);
+  console.log(`  - Categoria:     ${summary.metricas.orientacaoDireta.acertosCategoria}`);
+  console.log(`  - Tipo Resposta: ${summary.metricas.orientacaoDireta.acertosTipoResposta}`);
+  console.log(`  - Artigo CDC:    ${summary.metricas.orientacaoDireta.acertosArtigo}`);
+  console.log(`Clarificação:`);
+  console.log(`  - Pergunta 1º Turno: ${summary.metricas.clarificacao.acertosTipoPerguntaTurno1}`);
+  console.log(`  - Tipo inicial (inclui administrativo): ${summary.metricas.clarificacao.acertosTipoInicial}`);
+  console.log(`  - Categoria Final:   ${summary.metricas.clarificacao.acertosCategoriaFinal}`);
+  console.log(`  - Artigo Final:      ${summary.metricas.clarificacao.acertosArtigoFinal}`);
+  console.log(`\n📄 Relatório detalhado salvo em: ${RESULTS_PATH}`);
 
   await prisma.$disconnect();
 };
