@@ -1,8 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { seedMenu } from '../../prisma/seed/seed.js';
-import { updateMenuUx } from '../../prisma/seed/updateMenuUx.js';
+// Ferramenta de migração pontual removida após a aplicação. Não a recria como seed.
+const updaterPath = new URL('../../prisma/seed/updateMenuUx.ts', import.meta.url);
+const snapshotPath = new URL('../../prisma/seed/menu-before-ux.json', import.meta.url);
+const updateMenuUx = existsSync(updaterPath) && existsSync(snapshotPath)
+  ? (await import(updaterPath.href)).updateMenuUx : null;
 
 test('seed preserva integralmente um menu já cadastrado', async () => {
   let writes = 0;
@@ -41,7 +46,7 @@ function migrationFixture() {
   });
 }
 
-test('atualizador simula e reverte toda a transação por padrão', async () => {
+test('atualizador simula e reverte toda a transação por padrão', { skip: !updateMenuUx }, async () => {
   const f = await migrationFixture();
   const before = structuredClone(f.state());
   const result = await updateMenuUx(false, f.db);
@@ -50,7 +55,7 @@ test('atualizador simula e reverte toda a transação por padrão', async () => 
   assert.deepEqual(f.state(), before);
 });
 
-test('atualizador conserva texto do painel, IDs e respostas ao mover Q22', async () => {
+test('atualizador conserva texto do painel, IDs e respostas ao mover Q22', { skip: !updateMenuUx }, async () => {
   const f = await migrationFixture();
   const before = structuredClone(f.state());
   const result = await updateMenuUx(true, f.db);
@@ -60,5 +65,5 @@ test('atualizador conserva texto do painel, IDs e respostas ao mover Q22', async
   assert.equal(f.state().options.filter(option => option.nextStepId === 'db-faq-22').length, 1);
   assert.ok(f.state().options.some(option => option.stepId === 'db-garantia-conceitos' && option.text === 'Voltar'));
   const second = await updateMenuUx(true, f.db);
-  assert.ok(!second.alteracoes.some(change => /^(TEXTO|RÓTULO|NOVA|LIGAÇÃO)/.test(change)), 'segunda execução não altera novamente');
+  assert.ok(!second.alteracoes.some((change: string) => /^(TEXTO|RÓTULO|NOVA|LIGAÇÃO)/.test(change)), 'segunda execução não altera novamente');
 });

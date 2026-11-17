@@ -1,16 +1,14 @@
 import type { RagResult } from '../llmService.js';
+import { clarificationRounds, decodeSession, initialSnapshot, persistable } from '../../conversation/state.js';
 
 export const MAX_CLARIFICATIONS = 2;
-const STATE_PREFIX = 'AI_CLARIFY:';
 
 export function clarificationCount(state: string | null | undefined): number {
-  if (!state?.startsWith(STATE_PREFIX)) return 0;
-  const count = Number(state.slice(STATE_PREFIX.length));
-  return Number.isInteger(count) && count > 0 ? Math.min(count, MAX_CLARIFICATIONS) : 0;
+  return clarificationRounds(decodeSession({ stepState: state ?? null, isChat: true }).snapshot.state);
 }
 
 export function clarificationState(count: number): string {
-  return `${STATE_PREFIX}${Math.min(count, MAX_CLARIFICATIONS)}`;
+  return persistable({ ...initialSnapshot({ currentStepId: null, isChat: true }), state: { kind: 'FREE_CHAT', clarifications: Math.max(0, Math.min(count, MAX_CLARIFICATIONS)) } }).stepState;
 }
 
 /** Só limita outra pergunta: detalhes suficientes ainda podem produzir orientação. */

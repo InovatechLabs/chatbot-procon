@@ -5,7 +5,9 @@ import * as appointmentService from '../appointments/appointmentService.js';
 export interface AvailableSlot {
   time: string;
   dateTimeIso: string;
+  durationMin: number;
 }
+export const getScheduleDates = () => appointmentService.getCandidateDates(90);
 
 export const getPendingAppointment = async (phoneNumber: string) => {
   const variants = appointmentService.phoneVariants(phoneNumber);
@@ -26,6 +28,7 @@ export const getAvailableSlots = async (targetDateStr: string): Promise<Availabl
     .map((s) => ({
       time: s.time,
       dateTimeIso: s.scheduledAt,
+      durationMin: s.durationMin,
     }));
 };
 

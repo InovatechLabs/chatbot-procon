@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { civilDateSchema } from '../../services/appointments/scheduleSchemas.js';
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use o formato YYYY-MM-DD');
+const isoDate = civilDateSchema;
 // Exige fuso explícito (ex.: 2026-10-20T14:00:00-03:00) para não haver ambiguidade
 const isoDateTime = z.iso.datetime({ offset: true }).transform((s) => new Date(s));
 const status = z.enum(['PENDING', 'COMPLETED', 'CANCELLED']);

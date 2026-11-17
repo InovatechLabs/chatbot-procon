@@ -8,11 +8,132 @@ datasource db {
   extensions = [vector]
 }
 
+// Contas administrativas são independentes das sessões dos consumidores.
+model PanelUser {
+  id           String         @id @default(uuid())
+  username     String         @unique
+  passwordHash String
+  role         String         @default("ATTENDANT")
+  active       Boolean        @default(true)
+  mustChangePassword Boolean   @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  sessions     PanelSession[]
+}
+
+model PanelSession {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  user      PanelUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model PanelLoginAttempt {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 enum AppointmentStatus {
   PENDING   // Agendado / Pendente
   COMPLETED // Atendimento Concluído
   CANCELLED // Cancelado
   NO_SHOW   // Não Compareceu
+}
+
+model MessageReceipt {
+  id String @id @default(uuid())
+  sequence BigInt @unique @default(autoincrement())
+  metaMessageId String @unique
+  phoneNumber String
+  phoneLookup String?
+  payload String?
+  state String @default("PENDING")
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  processedAt DateTime?
+  lastError String?
+  outgoing OutgoingMessage[]
+  @@index([state, availableAt])
+  @@index([phoneLookup, sequence])
+}
+
+model OutgoingMessage {
+  id String @id @default(uuid())
+  sequence BigInt @unique @default(autoincrement())
+  receiptId String?
+  receipt MessageReceipt? @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  phoneNumber String
+  phoneLookup String?
+  payload String?
+  state String @default("PENDING")
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  sentAt DateTime?
+  leaseUntil DateTime?
+  leaseToken String?
+  metaMessageId String? @unique
+  deliveryStatus String?
+  lastError String?
+  @@index([state, availableAt])
+  @@index([phoneLookup, sequence])
+}
+
+model ScheduleSettings {
+  id String @id @default("main")
+  capacity Int @default(1)
+  startMinute Int @default(540)
+  endMinute Int @default(1020)
+  slotMinutes Int @default(30)
+  minLeadMinutes Int @default(60)
+  workDays Int[] @default([1, 2, 3, 4, 5])
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model ConversationEvent {
+  id String @id @default(uuid())
+  dedupKey String @unique
+  kind String
+  sessionId String?
+  stepId String?
+  optionId String?
+  categoryKey String?
+  stage String?
+  answerKind String?
+  rating Int?
+  source String @default("WHATSAPP")
+  occurredAt DateTime @default(now())
+  @@index([occurredAt, kind])
+  @@index([sessionId, occurredAt])
+}
+
+model ScheduleCapacity {
+  id String @id @default(uuid())
+  date String
+  minute Int @default(-1) // -1 = todos os horários do dia; demais = minuto civil
+  capacity Int
+  @@unique([date, minute])
+}
+
+model ScheduleBlock {
+  id String @id @default(uuid())
+  startDate String?
+  endDate String?
+  weekDays Int[] @default([]) // vazio = todos os dias do intervalo
+  startMinute Int? // ambos nulos = dia inteiro
+  endMinute Int?
+  note String?
+  createdAt DateTime @default(now())
 }
 
 // 1. Etapas do Menu Determinístico do Bot
@@ -41,6 +162,8 @@ model Option {
 
 // 3. Sessão do Usuário
 model UserSession {
+  phoneLookup String?
+  cpfLookup String?
   id            String   @id @default(uuid())
   phoneNumber   String   // Permite múltiplas sessões históricas por número (isolamento de RAG)
   userName      String?
@@ -57,10 +180,13 @@ model UserSession {
   chatLogs     ChatLog[]
   appointments Appointment[]
   feedbacks    SessionFeedback[]
+  @@index([phoneLookup, status, createdAt])
+  @@index([cpfLookup])
 }
 
 // 4. Logs de Conversa
 model ChatLog {
+  phoneLookup String?
   id          String   @id @default(uuid())
   sessionId   String
   phoneNumber String
@@ -107,6 +233,8 @@ model Attendant {
 
 // 8. Tabela de Agendamentos Presenciais (Unificada Bot + Painel Admin)
 model Appointment {
+  phoneLookup String?
+  cpfLookup String?
   id              String            @id @default(uuid())
   phoneNumber     String            // Formato DDI (ex: 5512999999999)
   userName        String?           // Nome do cidadão
@@ -134,12 +262,14 @@ model Appointment {
   attendant     Attendant?     @relation(fields: [attendantId], references: [id], onDelete: SetNull)
 
   @@index([scheduledAt])
-  @@index([phoneNumber])
+  @@index([phoneLookup])
+  @@index([cpfLookup])
   @@index([attendantId, scheduledAt])
 }
 
 // 9. Pesquisa de Satisfação
 model SessionFeedback {
+  phoneLookup String?
   id              String   @id @default(uuid())
   sessionId       String
   phoneNumber     String

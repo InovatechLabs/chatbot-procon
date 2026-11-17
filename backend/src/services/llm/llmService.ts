@@ -14,6 +14,7 @@ import { isSafeRewrite } from './helpers/rewriteGuard.js';
 import { hasUnverifiedProductDeadline, hasMismatchedProductReference } from './helpers/ragGuard.js';
 import { charLength, normalizeWhatsappFormatting } from '../whatsapp/messagePolicy.js';
 import { applyClarificationLimit } from './helpers/clarification.js';
+import { redactIdentifiers } from '../privacy/redact.js';
 
 const MAX_VECTOR_DISTANCE = 0.58;
 export const DISCLAIMER = '\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*';
@@ -78,15 +79,20 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
     };
 
     try {
+      const personal = await d.db.userSession?.findUnique({ where: { id: sessionId }, select: { userName: true, userCpf: true, phoneNumber: true } });
+      const scrub = (value: string) => redactIdentifiers(value, [personal?.userName, personal?.userCpf, personal?.phoneNumber]);
+      question = scrub(question);
       // Retém a origem do caso e a conversa recente, sem resumo inventado por IA.
       const [recent, origin, firstReport] = await Promise.all([
         d.db.chatLog.findMany({ where: { sessionId }, orderBy: { timestamp: 'desc' }, take: 12 }),
         d.db.chatLog.findMany({ where: { sessionId }, orderBy: { timestamp: 'asc' }, take: 8 }),
         d.db.chatLog.findMany({ where: { sessionId, direction: 'INBOUND', stepId: null }, orderBy: { timestamp: 'asc' }, take: 1 }),
       ]);
-      const history = [...new Map([...origin, ...[...recent].reverse()].map(log => [log.id, log])).values()];
+      const history = [...new Map([...origin, ...[...recent].reverse()].map(log => [log.id, { ...log, messageText: scrub(log.messageText) }])).values()];
+      for (const log of firstReport) log.messageText = scrub(log.messageText);
       const formattedHistory = `${firstReport[0] ? `Relato inicial do cidadão: ${firstReport[0].messageText}\n` : ''}${history.map(log => `${log.direction === 'INBOUND' ? 'Cidadão' : 'Assistente virtual do PROCON de Jacareí'}: ${log.messageText}`).join('\n')}`;
-      const classification = options?.preClassification ?? await d.classify(question, formattedHistory);
+      const rawClassification = options?.preClassification ?? await d.classify(question, formattedHistory);
+      const classification = { ...rawClassification, motivo: scrub(rawClassification.motivo), ...(rawClassification.consultaBusca ? { consultaBusca: scrub(rawClassification.consultaBusca) } : {}), ...(rawClassification.perguntaEsclarecimento ? { perguntaEsclarecimento: scrub(rawClassification.perguntaEsclarecimento) } : {}) };
       if (classification.categoria === 'AGENDAMENTO') {
         return { ...redirect('Posso ajudar a marcar atendimento presencial no PROCON de Jacareí. Quer agendar?'),
           diagnostics: makeDiag(classification, { motivoDescarte: 'categoria_agendamento' }) };
@@ -140,7 +146,7 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
       if (!['clarificacao', 'orientacao_final', 'redirecionamento'].includes(parsed.tipoResposta) || typeof parsed.texto !== 'string' || !parsed.texto.trim()) {
         return { ...technicalFailure(),
           diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: 'resposta_invalida' }) }; }
-      const text = normalizeWhatsappFormatting(parsed.texto);
+      const text = scrub(normalizeWhatsappFormatting(parsed.texto));
       if (charLength(text) > 900) return { ...redirect('A orientação precisa de uma análise mais detalhada do que consigo oferecer por aqui. Quer agendar atendimento presencial?'),
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: 'texto_excede_900_chars' }) };
       if (parsed.tipoResposta === 'clarificacao') return clarify(text, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds });
@@ -161,7 +167,7 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
       return { tipoResposta: 'orientacao_final', texto: text + `\n\nBase legal: ${article}.` + DISCLAIMER, artigo: article,
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, referenciaGerada: parsed.artigo, referenciaNormalizada: article, referenciasPermitidas: allowedReferences }) };
     } catch (error) {
-      console.error('Falha na consulta de orientação:', error instanceof Error ? error.message : 'erro');
+      console.error('Falha na consulta de orientação:', error instanceof Error ? error.name : 'erro');
       return technicalFailure();
     }
   };

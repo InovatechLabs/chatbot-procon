@@ -2,8 +2,10 @@ import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import dotenv from 'dotenv';
 import { charLength, clip, splitMessage } from './whatsapp/messagePolicy.js';
+import { messageSender } from './whatsapp/outgoingContext.js';
+import type { MetaPayload } from './whatsapp/outgoingContext.js';
 
-dotenv.config();
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
 let metaApiInstance: AxiosInstance | null = null;
 
@@ -22,10 +24,19 @@ const getMetaApi = (): AxiosInstance => {
         Authorization: `Bearer ${META_WA_TOKEN}`,
         'Content-Type': 'application/json',
       },
+      timeout: 15_000,
     });
   }
   return metaApiInstance;
 };
+
+export async function deliverMetaPayload(payload: MetaPayload): Promise<any> {
+  return (await getMetaApi().post('/messages', payload)).data;
+}
+async function postMessage(payload: MetaPayload): Promise<any> {
+  const queue = messageSender();
+  return queue ? queue(payload) : deliverMetaPayload(payload);
+}
 
 export const sendTextMessage = async (to: string, text: string) => {
   if (charLength(text) > 4096) {
@@ -33,17 +44,16 @@ export const sendTextMessage = async (to: string, text: string) => {
     return;
   }
   try {
-    const api = getMetaApi();
-    const response = await api.post('/messages', {
+    const response = await postMessage({
       messaging_product: "whatsapp",
       recipient_type: "individual",
       to,
       type: "text",
       text: { body: text },
     });
-    return response.data;
+    return response;
   } catch (error: any) {
-    console.error("Erro ao enviar mensagem de texto via Meta API:", error.response?.data || error.message);
+    console.error('Falha no envio Meta API (texto).');
     throw error;
   }
 };
@@ -97,17 +107,16 @@ export const sendInteractiveMessage = async (to: string, text: string, options: 
       };
     }
 
-    const api = getMetaApi();
-    const response = await api.post('/messages', {
+    const response = await postMessage({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to,
       type: 'interactive',
       interactive: interactiveConfig,
     });
-    return response.data;
+    return response;
   } catch (error: any) {
-    console.error(`❌ Erro ao enviar interação para ${to}:`, error.response?.data || error.message);
+    console.error('Falha no envio Meta API (interação).');
     throw error;
   }
 };
@@ -131,8 +140,7 @@ export const sendListMessage = async (
   for (const part of parts.slice(0, -1)) await sendTextMessage(to, part);
   bodyText = parts.at(-1) ?? 'Escolha uma opção:';
   try {
-    const api = getMetaApi();
-    const response = await api.post('/messages', {
+    const response = await postMessage({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to,
@@ -155,9 +163,9 @@ export const sendListMessage = async (
         },
       },
     });
-    return response.data;
+    return response;
   } catch (error: any) {
-    console.error(`❌ Erro ao enviar lista interativa para ${to}:`, error.response?.data || error.message);
+    console.error('Falha no envio Meta API (lista).');
     throw error;
   }
 };

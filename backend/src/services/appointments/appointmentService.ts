@@ -1,6 +1,9 @@
 import { Prisma, AppointmentStatus } from '@prisma/client';
 import { prisma } from '../../database/index.js';
-import { SCHEDULE, HISTORY_LIMIT } from './scheduleConfig.js';
+import { HISTORY_LIMIT } from './scheduleConfig.js';
+import { TZ, localParts, slotsForDate, loadPolicy, busyBetween, availabilityForDate, scheduleTransaction, civilTime, overlap } from './schedulePolicy.js';
+import { decodeSession, persistable, transition } from '../conversation/state.js';
+import { recordEvent } from '../analytics/events.js';
 
 export class AppointmentError extends Error {
   status: number;
@@ -74,84 +77,40 @@ export function phoneVariants(raw: string): string[] {
   return [...variants];
 }
 
-function localParts(d: Date) {
-  const iso = new Date(d.getTime() + SCHEDULE.tzOffsetMinutes * MINUTE).toISOString();
-  return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
-}
-
 function dayStart(date: string) {
-  return new Date(`${date}T00:00:00${SCHEDULE.tzOffset}`);
+  return new Date(`${date}T00:00:00${TZ}`);
 }
 
 function addDays(date: string, days: number) {
   return localParts(new Date(dayStart(date).getTime() + days * 24 * 60 * MINUTE)).date;
 }
 
-function slotsForDate(date: string): { time: string; at: Date }[] {
-  const weekday = new Date(`${date}T12:00:00${SCHEDULE.tzOffset}`).getUTCDay();
-  if (!SCHEDULE.workDays.includes(weekday)) return [];
-  const slots: { time: string; at: Date }[] = [];
-  for (let m = SCHEDULE.startHour * 60; m < SCHEDULE.endHour * 60; m += SCHEDULE.slotMinutes) {
-    const time = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-    slots.push({ time, at: new Date(`${date}T${time}:00${SCHEDULE.tzOffset}`) });
-  }
-  return slots;
-}
-
 export function formatSlotLabel(at: Date): string {
-  const local = new Date(at.getTime() + SCHEDULE.tzOffsetMinutes * MINUTE);
+  const local = new Date(at.getTime() + -180 * MINUTE);
   const dd = String(local.getUTCDate()).padStart(2, '0');
   const mm = String(local.getUTCMonth() + 1).padStart(2, '0');
   return `${WEEKDAYS[local.getUTCDay()] ?? ''} ${dd}/${mm} ${localParts(at).time}`;
 }
 
-function assertValidFutureSlot(at: Date) {
-  if (at.getTime() <= Date.now()) {
-    throw new AppointmentError(422, 'O horário deve ser no futuro.', 'PAST_DATE');
-  }
-  const { date } = localParts(at);
-  if (!slotsForDate(date).some((s) => s.at.getTime() === at.getTime())) {
-    throw new AppointmentError(422, 'Horário fora da grade de atendimento.', 'INVALID_SLOT');
-  }
-}
-
-async function assertAvailable(
-  tx: Prisma.TransactionClient,
-  scheduledAt: Date,
-  attendantId?: string | null,
-  excludeId?: string
-) {
-  const base: Prisma.AppointmentWhereInput = {
-    scheduledAt,
-    status: { not: AppointmentStatus.CANCELLED },
-    ...(excludeId ? { id: { not: excludeId } } : {}),
-  };
-
-  if (attendantId) {
-    const attendant = await tx.attendant.findFirst({ where: { id: attendantId, active: true } });
-    if (!attendant) throw new AppointmentError(404, 'Atendente não encontrado.', 'ATTENDANT_NOT_FOUND');
-    if (await tx.appointment.count({ where: { ...base, attendantId } })) {
-      throw new AppointmentError(409, 'Atendente já possui atendimento neste horário.', 'SLOT_TAKEN');
-    }
-  }
-
-  const [taken, activeAttendants] = await Promise.all([
-    tx.appointment.count({ where: base }),
-    tx.attendant.count({ where: { active: true } }),
-  ]);
-  if (taken >= Math.max(1, activeAttendants)) {
-    throw new AppointmentError(409, 'Horário indisponível.', 'SLOT_TAKEN');
-  }
+async function assertAvailable(tx: Prisma.TransactionClient, scheduledAt: Date, attendantId?: string | null, excludeId?: string) {
+  if (!Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) throw new AppointmentError(422, 'O horário deve ser válido e estar no futuro.', 'PAST_DATE');
+  const policy = await loadPolicy(tx);
+  const { date } = localParts(scheduledAt);
+  const appointments = await busyBetween(tx, civilTime(date, 0), civilTime(date, 1440), excludeId);
+  if (attendantId && !await tx.attendant.findFirst({ where: { id: attendantId, active: true } })) throw new AppointmentError(404, 'Atendente não encontrado.', 'ATTENDANT_NOT_FOUND');
+  const slot = availabilityForDate(date, policy, appointments, attendantId ?? undefined).find(slot => slot.scheduledAt === scheduledAt.toISOString());
+  if (!slot) throw new AppointmentError(422, 'Horário fora da grade de atendimento.', 'INVALID_SLOT');
+  if (!slot.available) throw new AppointmentError(409, 'Horário indisponível. Consulte novas vagas.', 'SLOT_TAKEN');
+  return policy.settings.slotMinutes;
 }
 
 // --- CASOS DE USO ---
 
 export async function createAppointment(input: CreateAppointmentInput) {
-  assertValidFutureSlot(input.scheduledAt);
   const variants = phoneVariants(input.phoneNumber);
 
-  return prisma.$transaction(async (tx) => {
-    await assertAvailable(tx, input.scheduledAt, input.attendantId);
+  return scheduleTransaction(prisma, async (tx) => {
+    const durationMin = await assertAvailable(tx, input.scheduledAt, input.attendantId);
 
     const already = await tx.appointment.findFirst({
       where: {
@@ -184,7 +143,7 @@ export async function createAppointment(input: CreateAppointmentInput) {
 
     const citizenName = input.citizenName ?? input.userName ?? session?.userName ?? 'Cidadão';
 
-    return tx.appointment.create({
+    const appointment = await tx.appointment.create({
       data: {
         phoneNumber: session?.phoneNumber ?? normalizePhone(input.phoneNumber),
         userName: citizenName,
@@ -193,7 +152,7 @@ export async function createAppointment(input: CreateAppointmentInput) {
         subject: categoryName,
         categoryName,
         scheduledAt: input.scheduledAt,
-        durationMin: SCHEDULE.slotMinutes,
+        durationMin,
         source: input.source ?? 'PANEL',
         sessionId: session?.id ?? null,
         documentGuideId: docGuideId,
@@ -205,7 +164,14 @@ export async function createAppointment(input: CreateAppointmentInput) {
       },
       include: { attendant: true, documentGuide: true },
     });
-  }, SERIALIZABLE);
+    if (input.source === 'WHATSAPP' && session) {
+      const decoded = decodeSession(session);
+      if (decoded.invalid || decoded.snapshot.state.kind !== 'SCHEDULE_SLOT') throw new AppointmentError(409, 'Retome a escolha do horário antes de confirmar.', 'STALE_SESSION');
+      await tx.userSession.update({ where: { id: session.id, stepState: session.stepState }, data: persistable(transition(decoded.snapshot, { kind: 'READY' }, { currentStepId: null, isChat: false })) });
+    }
+    await recordEvent(tx, { kind: 'APPOINTMENT_CREATED', sessionId: appointment.sessionId, source: input.source ?? 'PANEL' }, `appointment:${appointment.id}`);
+    return appointment;
+  });
 }
 
 export async function listAppointments(q: ListAppointmentsInput) {
@@ -251,40 +217,33 @@ export async function listAppointments(q: ListAppointmentsInput) {
 }
 
 export async function getAvailability(date: string, attendantId?: string) {
-  const slots = slotsForDate(date);
-  const first = slots[0];
-  const last = slots[slots.length - 1];
-  if (!first || !last) return [];
-
-  const end = new Date(last.at.getTime() + SCHEDULE.slotMinutes * MINUTE);
-  const [appointments, activeAttendants] = await Promise.all([
-    prisma.appointment.findMany({
-      where: { scheduledAt: { gte: first.at, lt: end }, status: { not: AppointmentStatus.CANCELLED } },
-      select: { scheduledAt: true, attendantId: true },
-    }),
-    prisma.attendant.count({ where: { active: true } }),
-  ]);
-
-  const capacity = Math.max(1, activeAttendants);
-  const earliest = Date.now() + SCHEDULE.minLeadMinutes * MINUTE;
-
-  return slots.map(({ time, at }) => {
-    const inSlot = appointments.filter((a) => a.scheduledAt.getTime() === at.getTime());
-    const attendantBusy = attendantId ? inSlot.some((a) => a.attendantId === attendantId) : false;
-    return {
-      time,
-      scheduledAt: at.toISOString(),
-      available: at.getTime() >= earliest && inSlot.length < capacity && !attendantBusy,
-    };
-  });
+  return prisma.$transaction(async tx => {
+    const policy = await loadPolicy(tx);
+    const appointments = await busyBetween(tx, civilTime(date, 0), civilTime(date, 1440));
+    return availabilityForDate(date, policy, appointments, attendantId).filter(slot => !slot.blocked);
+  }, { isolationLevel: 'RepeatableRead' });
 }
 
-export async function getUpcomingSlots(limit = 8, daysAhead = 14) {
-  const out: { scheduledAt: string; label: string }[] = [];
-  const today = localParts(new Date()).date;
+export async function getCandidateDates(daysAhead = 90) {
+  return prisma.$transaction(async tx => {
+    const policy = await loadPolicy(tx);
+    const today = localParts(new Date()).date;
+    const days = [];
+    for (let i = 0; i < daysAhead; i++) {
+      const dateStr = addDays(today, i);
+      // Elimina dias fechados antes de consultar ocupação; não faz 90 consultas
+      // repetidas durante férias prolongadas. A vaga continua revalidada ao reservar.
+      if (availabilityForDate(dateStr, policy, []).some(slot => slot.available)) days.push({ dateStr, label: formatSlotLabel(civilTime(dateStr, 720)).split(' ').slice(0, 2).join(' ') });
+    }
+    return days;
+  }, { isolationLevel: 'RepeatableRead' });
+}
 
-  for (let i = 0; i < daysAhead && out.length < limit; i++) {
-    const slots = await getAvailability(addDays(today, i));
+export async function getUpcomingSlots(limit = 8, daysAhead = 90) {
+  const out: { scheduledAt: string; label: string }[] = [];
+  for (const day of await getCandidateDates(daysAhead)) {
+    if (out.length >= limit) break;
+    const slots = await getAvailability(day.dateStr);
     for (const s of slots) {
       if (!s.available) continue;
       out.push({ scheduledAt: s.scheduledAt, label: formatSlotLabel(new Date(s.scheduledAt)) });
@@ -295,7 +254,7 @@ export async function getUpcomingSlots(limit = 8, daysAhead = 14) {
 }
 
 export async function updateAppointment(id: string, input: UpdateAppointmentInput) {
-  return prisma.$transaction(async (tx) => {
+  return scheduleTransaction(prisma, async (tx) => {
     const current = await tx.appointment.findUnique({ where: { id } });
     if (!current) throw new AppointmentError(404, 'Agendamento não encontrado.', 'NOT_FOUND');
 
@@ -308,10 +267,17 @@ export async function updateAppointment(id: string, input: UpdateAppointmentInpu
     }
 
     const nextStatus = input.status ?? current.status;
-    if (nextStatus === AppointmentStatus.PENDING && (slotChanged || attendantChanged)) {
-      if (slotChanged && input.scheduledAt) assertValidFutureSlot(input.scheduledAt);
-      const nextAttendant = input.attendantId === undefined ? current.attendantId : input.attendantId;
-      await assertAvailable(tx, input.scheduledAt ?? current.scheduledAt, nextAttendant, id);
+    let durationMin = current.durationMin;
+    const reactivated = current.status !== AppointmentStatus.PENDING && nextStatus === AppointmentStatus.PENDING;
+    if (nextStatus === AppointmentStatus.PENDING && (slotChanged || reactivated)) {
+      durationMin = await assertAvailable(tx, input.scheduledAt ?? current.scheduledAt, input.attendantId === undefined ? current.attendantId : input.attendantId, id);
+      const already = await tx.appointment.findFirst({ where: { id: { not: id }, phoneNumber: { in: phoneVariants(current.phoneNumber) }, status: 'PENDING', scheduledAt: { gte: new Date() } } });
+      if (already) throw new AppointmentError(409, 'Este número já possui atendimento pendente.', 'ALREADY_SCHEDULED');
+    } else if (nextStatus === AppointmentStatus.PENDING && attendantChanged && input.attendantId) {
+      if (!await tx.attendant.findFirst({ where: { id: input.attendantId, active: true } })) throw new AppointmentError(404, 'Atendente não encontrado.', 'ATTENDANT_NOT_FOUND');
+      const end = new Date(current.scheduledAt.getTime() + current.durationMin * MINUTE);
+      const busy = await busyBetween(tx, current.scheduledAt, end, id);
+      if (busy.some(app => app.attendantId === input.attendantId && overlap(current.scheduledAt.getTime(), end.getTime(), app.scheduledAt.getTime(), app.scheduledAt.getTime() + app.durationMin * MINUTE))) throw new AppointmentError(409, 'Atendente ocupado neste intervalo.', 'SLOT_TAKEN');
     }
 
     // 🟢 Utiliza defined(...) para limpar propriedades com valor undefined antes de enviar ao Prisma
@@ -321,6 +287,7 @@ export async function updateAppointment(id: string, input: UpdateAppointmentInpu
         ...defined({
           scheduledAt: slotChanged ? input.scheduledAt : undefined,
           status: input.status,
+          durationMin,
           citizenName: input.citizenName ?? input.userName,
           userName: input.userName ?? input.citizenName,
           subject: input.subject,
@@ -340,11 +307,17 @@ export async function updateAppointment(id: string, input: UpdateAppointmentInpu
       telefone: updated.phoneNumber,
       status: updated.status.toLowerCase(),
     };
-  }, SERIALIZABLE);
+  });
 }
 
 export const cancelAppointment = (id: string) =>
   updateAppointment(id, { status: AppointmentStatus.CANCELLED });
+
+export async function getAppointmentContact(id: string) {
+  const appointment = await prisma.appointment.findUnique({ where: { id }, select: { phoneNumber: true } });
+  if (!appointment) throw new AppointmentError(404, 'Agendamento não encontrado.', 'NOT_FOUND');
+  return appointment;
+}
 
 export async function getAppointmentHistory(id: string) {
   const appointment = await prisma.appointment.findUnique({

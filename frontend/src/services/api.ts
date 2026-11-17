@@ -1,9 +1,34 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: '/api',
+  withCredentials: true,
   timeout: 10000,
 });
+
+api.interceptors.response.use(response => response, error => {
+  if (error.response?.status === 401 && error.config?.url !== '/auth/login') {
+    window.dispatchEvent(new Event('panel-session-expired'));
+  }
+  return Promise.reject(error);
+});
+
+export interface PanelUser { id: string; username: string; role: 'ADMIN' | 'ATTENDANT'; mustChangePassword: boolean }
+export interface ManagedPanelUser extends PanelUser { active: boolean; createdAt: string; updatedAt: string }
+export const panelUsersService = {
+  list: async (): Promise<ManagedPanelUser[]> => (await api.get('/users')).data.users,
+  create: async (input: { username: string; role: PanelUser['role']; password: string }) => (await api.post('/users', input)).data.user as ManagedPanelUser,
+  update: async (id: string, input: { username: string; role: PanelUser['role']; active: boolean }) => (await api.patch(`/users/${id}`, input)).data.user as ManagedPanelUser,
+  resetPassword: async (id: string, password: string) => { await api.post(`/users/${id}/password`, { password }); },
+  revokeSessions: async (id: string) => { await api.post(`/users/${id}/revoke-sessions`); },
+  remove: async (id: string) => { await api.delete(`/users/${id}`); },
+};
+export const authService = {
+  me: async (): Promise<PanelUser> => (await api.get('/auth/me')).data.user,
+  login: async (username: string, password: string): Promise<PanelUser> => (await api.post('/auth/login', { username, password })).data.user,
+  logout: async () => { await api.post('/auth/logout'); },
+  changePassword: async (currentPassword: string, newPassword: string) => { await api.post('/auth/password', { currentPassword, newPassword }); },
+};
 
 // ============================================
 // TIPOS — AGENDA (contrato da tela)
@@ -13,6 +38,7 @@ export type StatusAgendamento = 'pendente' | 'concluido' | 'cancelado';
 
 export interface Agendamento {
   id: string;
+  duracaoMin: number;
   data: string;        // YYYY-MM-DD (horário de Brasília)
   horario: string;     // HH:mm
   nomeCliente: string; // vazio quando o agendamento veio do WhatsApp e ninguém preencheu
@@ -54,9 +80,9 @@ export interface HistoricoAtendimento {
 }
 
 export const adminService = {
-  getAnalytics: async () => {
+  getAnalytics: async (days: 7 | 30 | 90 = 30) => {
     try {
-      const response = await api.get('/analytics');
+      const response = await api.get('/analytics', { params: { days } });
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar analytics:', error);
@@ -125,6 +151,7 @@ const TZ_OFFSET_MIN = -180;
 
 interface AppointmentApi {
   id: string;
+  durationMin: number;
   phoneNumber: string;
   citizenName: string | null;
   subject: string | null;
@@ -149,6 +176,7 @@ const paraAgendamento = (a: AppointmentApi): Agendamento => {
   const local = new Date(new Date(a.scheduledAt).getTime() + TZ_OFFSET_MIN * 60_000).toISOString();
   return {
     id: a.id,
+    duracaoMin: a.durationMin ?? 30,
     data: local.slice(0, 10),
     horario: local.slice(11, 16),
     nomeCliente: a.citizenName ?? '',
@@ -162,6 +190,7 @@ const paraAgendamento = (a: AppointmentApi): Agendamento => {
 const paraScheduledAt = (data: string, horario: string) => `${data}T${horario}:00${TZ_OFFSET}`;
 
 export const agendaService = {
+  getContato: async (id: string): Promise<string> => (await api.get(`/appointments/${id}/contact`)).data.data.phoneNumber,
   // mes no formato 'YYYY-MM'
   getAgendamentos: async (params: { mes: string }): Promise<{ data: Agendamento[] }> => {
     try {
@@ -238,7 +267,7 @@ export const agendaService = {
               etapaAtual: rawSession.etapaAtual ?? rawSession.currentStep?.title ?? null,
             }
           : null,
-        mensagens: rawMessages.map((m: any) => ({
+        mensagens: rawMessages.map((m: MensagemHistorico & { step?: { title?: string } }) => ({
           id: m.id,
           direction: m.direction,
           messageText: m.messageText,

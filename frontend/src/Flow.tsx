@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { cx, ui } from './ui/styles';
+import React, { useCallback, useEffect, useState } from 'react';
 import { adminService } from './services/api';
-import './App.css';
 
 interface Alternativa {
   id: string;
@@ -43,31 +43,26 @@ const IconTree = () => (
   </svg>
 );
 
+const nodeTones = { pergunta: 'bg-brand-light text-brand-dark', informativo: 'bg-slate-100 text-slate-600', final: 'bg-success-light text-success' };
+
 export default function Flow() {
   const [nos, setNos] = useState<NoFluxo[]>([]);
   const [noSelecionado, setNoSelecionado] = useState<NoFluxo | null>(null);
   const [nosColapsados, setNosColapsados] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    carregarFluxo();
-  }, []);
-
-  const carregarFluxo = async () => {
-    setLoading(true);
-    try {
-      const resArvore = await adminService.getArvoreCompleta();
+  const carregarFluxo = useCallback(() => {
+    return adminService.getArvoreCompleta().then(resArvore => {
       const listaNos: NoFluxo[] = Array.isArray(resArvore?.data) ? resArvore.data : [];
       setNos(listaNos);
-      if (listaNos.length > 0 && !noSelecionado) {
-        setNoSelecionado(listaNos[0]);
-      }
-    } catch (err) {
+      setNoSelecionado(current => current ?? listaNos[0] ?? null);
+    }).catch(err => {
       console.error('Erro ao carregar árvore de decisão:', err);
-    } finally {
+    }).finally(() => {
       setLoading(false);
-    }
-  };
+    });
+  }, []);
+  useEffect(() => { void carregarFluxo(); }, [carregarFluxo]);
 
   const toggleColapso = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -89,7 +84,7 @@ export default function Flow() {
     }
   };
 
-  const handleCriarNoFilho = async (_noPai: NoFluxo) => {
+  const handleCriarNoFilho = async () => {
     const titulo = prompt('Título do Novo Nó Filho:');
     if (!titulo) return;
     try {
@@ -135,7 +130,7 @@ export default function Flow() {
     if (nosFilhos.length === 0) return null;
 
     return (
-      <ul className="tree-list">
+      <ul data-ui="tree-list" className={cx(ui.treeList)}>
         {nosFilhos.map(no => {
           if (!no) return null;
           const isSelected = noSelecionado?.id === no.id;
@@ -143,24 +138,24 @@ export default function Flow() {
           const temFilhos = (nos || []).some(n => n && n.noPaiId === no.id);
 
           return (
-            <li key={no.id} className="tree-node">
+            <li key={no.id} data-ui="tree-node" className={cx(ui.treeNode)}>
               <div
-                className={`node-row ${isSelected ? 'selected' : ''}`}
+                data-selected={isSelected} data-ui="node-row" className={cx(ui.nodeRow)}
                 onClick={() => setNoSelecionado(no)}
               >
                 {temFilhos ? (
-                  <span className="node-toggle" onClick={(e) => toggleColapso(no.id, e)}>
+                  <button type="button" data-ui="node-toggle" className={cx(ui.nodeToggle)} aria-expanded={!isCollapsed} aria-label={`${isCollapsed ? 'Expandir' : 'Recolher'} ${no.titulo}`} onClick={(e) => toggleColapso(no.id, e)}>
                     {isCollapsed ? '▸' : '▾'}
-                  </span>
+                  </button>
                 ) : (
-                  <span className="node-toggle-spacer"></span>
+                  <span data-ui="node-toggle-spacer" className={cx(ui.nodeToggleSpacer)}></span>
                 )}
-                <span className={`node-badge badge-${no.tipo}`}>{no.tipo || 'pergunta'}</span>
-                <span className="node-title">{no.titulo}</span>
+                <span className={cx(ui.nodeBadge, nodeTones[no.tipo])}>{no.tipo || 'pergunta'}</span>
+                <button type="button" data-ui="node-title" className={cx(ui.nodeTitle)} aria-pressed={isSelected} onClick={() => setNoSelecionado(no)}>{no.titulo}</button>
                 <button
-                  className="node-add"
-                  title="Criar Nó Filho"
-                  onClick={(e) => { e.stopPropagation(); handleCriarNoFilho(no); }}
+                  data-ui="node-add" className={cx(ui.nodeAdd)}
+                  type="button" title="Adicionar item" aria-label={`Adicionar item a ${no.titulo}`}
+                  onClick={(e) => { e.stopPropagation(); void handleCriarNoFilho(); }}
                 >
                   <IconPlus />
                 </button>
@@ -174,44 +169,45 @@ export default function Flow() {
   };
 
   if (loading) {
-    return <div className="loading-screen">Carregando Fluxo de Decisão...</div>;
+    return <div data-ui="loading-screen" className={cx(ui.loadingScreen)}>Carregando Fluxo de Decisão...</div>;
   }
 
   return (
-    <main className="tab-content fluxo-view">
-      <div className="editor-layout">
-        <div className="tree-panel">
-          <div className="panel-header">
+    <main data-ui="tab-content fluxo-view" className={cx(ui.tabContent, ui.fluxoView)}>
+      <div data-ui="editor-layout" className={cx(ui.editorLayout)}>
+        <div data-ui="tree-panel" className={cx(ui.treePanel)}>
+          <div data-ui="panel-header" className={cx(ui.panelHeader)}>
             <div>
-              <h3>Árvore de decisão</h3>
-              <p className="help-text">Clique num nó para editá-lo ou adicione filhos.</p>
+              <h3>Estrutura do menu</h3>
+              <p data-ui="help-text" className={cx(ui.helpText)}>Selecione um item para editar as opções e a orientação.</p>
             </div>
           </div>
-          <div className="tree-container">
+          <div data-ui="tree-container" className={cx(ui.treeContainer)}>
             {renderTree(null)}
           </div>
         </div>
 
-        <div className="details-panel">
+        <div data-ui="details-panel" className={cx(ui.detailsPanel)}>
           {noSelecionado ? (
-            <form onSubmit={handleSalvarNo} className="form-editor">
-              <div className="panel-header-actions">
+            <form onSubmit={handleSalvarNo} data-ui="form-editor" className={cx(ui.formEditor)}>
+              <div data-ui="panel-header-actions" className={cx(ui.panelHeaderActions)}>
                 <div>
-                  <h3>Editar nó</h3>
-                  <p className="node-path">{noSelecionado.titulo}</p>
+                  <h3>Editar item</h3>
+                  <p data-ui="node-path" className={cx(ui.nodePath)}>{noSelecionado.titulo}</p>
                 </div>
                 <button
                   type="button"
-                  className="btn-danger"
+                  data-ui="btn-danger" className={cx(ui.btnDanger)}
                   onClick={() => handleDeletarNo(noSelecionado.id)}
                 >
                   <IconTrash /> Excluir
                 </button>
               </div>
 
-              <div className="form-group">
-                <label>Título do nó</label>
+              <div data-ui="form-group" className={cx(ui.formGroup)}>
+                <label htmlFor="flow-title">Título do item</label>
                 <input
+                  id="flow-title"
                   type="text"
                   value={noSelecionado.titulo}
                   onChange={e => setNoSelecionado({ ...noSelecionado, titulo: e.target.value })}
@@ -219,23 +215,25 @@ export default function Flow() {
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Tipo de nó</label>
+              <div data-ui="form-row" className={cx(ui.formRow)}>
+                <div data-ui="form-group" className={cx(ui.formGroup)}>
+                  <label htmlFor="flow-type">Tipo de item</label>
                   <select
+                    id="flow-type"
                     value={noSelecionado.tipo || 'pergunta'}
-                    onChange={e => setNoSelecionado({ ...noSelecionado, tipo: e.target.value as any })}
+                    onChange={e => setNoSelecionado({ ...noSelecionado, tipo: e.target.value as NoFluxo['tipo'] })}
                   >
-                    <option value="pergunta">Pergunta / Menu</option>
+                    <option value="pergunta">Menu com opções</option>
                     <option value="informativo">Informativo</option>
-                    <option value="final">Final (Gera Resumo LLM)</option>
+                    <option value="final">Resposta ao consumidor</option>
                   </select>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Texto da mensagem (WhatsApp)</label>
+              <div data-ui="form-group" className={cx(ui.formGroup)}>
+                <label htmlFor="flow-message">Mensagem no WhatsApp</label>
                 <textarea
+                  id="flow-message"
                   rows={5}
                   value={noSelecionado.textoMensagem}
                   onChange={e => setNoSelecionado({ ...noSelecionado, textoMensagem: e.target.value })}
@@ -243,27 +241,28 @@ export default function Flow() {
                 />
               </div>
 
-              <button type="submit" className="btn-primary btn-full">
+              <button type="submit" data-ui="btn-primary btn-full" className={cx(ui.btnPrimary, ui.btnFull)}>
                 <IconSave /> Salvar alterações
               </button>
 
-              <div className="alt-header">
+              <div data-ui="alt-header" className={cx(ui.altHeader)}>
                 <div>
                   <h4>Opções de resposta</h4>
-                  <p className="help-text">Botões exibidos neste nó</p>
+                  <p data-ui="help-text" className={cx(ui.helpText)}>Botões apresentados ao consumidor</p>
                 </div>
-                <button type="button" className="btn-ghost" onClick={handleAdicionarAlternativa}>
+                <button type="button" data-ui="btn-ghost" className={cx(ui.btnGhost)} onClick={handleAdicionarAlternativa}>
                   <IconPlus /> Adicionar
                 </button>
               </div>
 
-              <div className="alternatives-list">
+              <div data-ui="alternatives-list" className={cx(ui.alternativesList)}>
                 {(noSelecionado.alternativas || []).map(alt => (
-                  <div key={alt.id} className="alt-item">
+                  <div key={alt.id} data-ui="alt-item" className={cx(ui.altItem)}>
                     <input
                       type="text"
                       defaultValue={alt.texto}
                       placeholder="Rótulo da opção"
+                      aria-label="Texto do botão"
                       onBlur={async (e) => {
                         if (e.target.value !== alt.texto) {
                           await adminService.atualizarAlternativa(alt.id, { text: e.target.value });
@@ -272,6 +271,7 @@ export default function Flow() {
                       }}
                     />
                     <select
+                      aria-label={`Destino da opção ${alt.texto}`}
                       defaultValue={alt.proximoNoId}
                       onChange={async (e) => {
                         await adminService.atualizarAlternativa(alt.id, { nextStepId: e.target.value });
@@ -284,7 +284,8 @@ export default function Flow() {
                     </select>
                     <button
                       type="button"
-                      className="btn-icon"
+                      data-ui="btn-icon" className={cx(ui.btnIcon)}
+                      aria-label={`Remover opção ${alt.texto}`}
                       onClick={async () => {
                         await adminService.deletarAlternativa(alt.id);
                         carregarFluxo();
@@ -295,9 +296,9 @@ export default function Flow() {
                   </div>
                 ))}
                 {(!noSelecionado.alternativas || noSelecionado.alternativas.length === 0) && (
-                  <div className="alt-empty">
+                  <div data-ui="alt-empty" className={cx(ui.altEmpty)}>
                     <p>Nenhuma alternativa cadastrada.</p>
-                    <button type="button" className="btn-ghost" onClick={handleAdicionarAlternativa}>
+                    <button type="button" data-ui="btn-ghost" className={cx(ui.btnGhost)} onClick={handleAdicionarAlternativa}>
                       <IconPlus /> Adicionar primeira opção
                     </button>
                   </div>
@@ -305,8 +306,8 @@ export default function Flow() {
               </div>
             </form>
           ) : (
-            <div className="empty-state">
-              <div className="empty-icon"><IconTree /></div>
+            <div data-ui="empty-state" className={cx(ui.emptyState)}>
+              <div data-ui="empty-icon" className={cx(ui.emptyIcon)}><IconTree /></div>
               <h4>Selecione um nó</h4>
               <p>Clique em um nó da árvore à esquerda para editar seus detalhes.</p>
             </div>

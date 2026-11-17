@@ -1,12 +1,13 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import path from 'path';
+import { redactIdentifiers } from '../privacy/redact.js';
 
 
-const envPath = path.resolve(import.meta.dirname, '../../../.env');
+const envPath = process.env.DOTENV_CONFIG_PATH || path.resolve(import.meta.dirname, '../../../.env');
 const envResult = dotenv.config({ path: envPath });
 
-if (envResult.error) {
+if (envResult.error && !process.env.DOTENV_CONFIG_PATH) {
   console.warn(`⚠️ Aviso: Arquivo .env não encontrado no caminho: ${envPath}`);
 }
 
@@ -21,7 +22,7 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
 
   const response = await axios.post(embedUrl, {
     model: embedModel,
-    prompt: text
+    prompt: redactIdentifiers(text)
   }, { timeout: 30_000 });
   return response.data.embedding;
 };
@@ -41,7 +42,7 @@ export const generateText = async (
 
   const response = await axios.post(generateUrl, {
     model: generateModel,
-    prompt: prompt,
+    prompt: redactIdentifiers(prompt),
     stream: false,
     ...(schema ? { format: schema } : {}),
     ...(options ? { options } : {}),

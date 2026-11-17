@@ -6,6 +6,7 @@ import {
   getAppointmentHistory,
   updateAppointment,
   cancelAppointment,
+  getAppointmentContact,
 } from '../../controllers/appointments/appointmentsController.js';
 
 const appointmentsRouter = Router();
@@ -15,6 +16,7 @@ appointmentsRouter.get('/availability', getAvailability);
 appointmentsRouter.get('/', listAppointments);
 appointmentsRouter.post('/', createAppointment);
 appointmentsRouter.get('/:id/history', getAppointmentHistory);
+appointmentsRouter.get('/:id/contact', getAppointmentContact);
 appointmentsRouter.patch('/:id', updateAppointment);
 appointmentsRouter.delete('/:id', cancelAppointment);
 

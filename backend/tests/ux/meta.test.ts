@@ -4,6 +4,7 @@ import axios from 'axios';
 import { sendInteractiveMessage, sendListMessage } from '../../src/services/metaAPI.js';
 import { charLength } from '../../src/services/whatsapp/messagePolicy.js';
 
+
 test('payloads da Meta respeitam limites sem perder texto ou opções', async () => {
   const previousAdapter = axios.defaults.adapter;
   const previousToken = process.env.META_WA_TOKEN;

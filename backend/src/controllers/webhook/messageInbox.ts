@@ -1,7 +1,7 @@
 import type { IncomingMessage } from './conversation.js';
 import { normalize, MENU_CMDS, EXIT_CMDS, YES, NO, isGreeting, isThanks, isCrisis, isHumanRequest, isLogistics, isScheduleChange } from '../../utils/intents/intents.js';
 
-const canDebounce = (message: IncomingMessage) => {
+export const canDebounce = (message: IncomingMessage) => {
   if (message.type !== 'text') return false;
   const raw = message.text?.body ?? '';
   const n = normalize(raw);
@@ -10,8 +10,8 @@ const canDebounce = (message: IncomingMessage) => {
     && !isHumanRequest(n) && !isLogistics(n) && !isScheduleChange(n);
 };
 
-/** Fila por telefone; deduplicação por 10 minutos. Em múltiplas réplicas,
- * substituir por fila/lock compartilhado (o estado deste módulo é local).
+/** @deprecated Utilitário legado para fixtures. O webhook de produção usa DurableInbox
+ * e locks PostgreSQL; esta classe não oferece durabilidade entre processos.
  */
 export class MessageInbox {
   private queues = new Map<string, { message: IncomingMessage; resolve: () => void }[]>();
@@ -53,7 +53,7 @@ export class MessageInbox {
         });
       } catch (error) {
         try { await this.onError(first.message, error); }
-        catch (sendError) { console.error('Falha ao informar indisponibilidade:', sendError instanceof Error ? sendError.message : 'erro'); }
+        catch (sendError) { console.error('Falha ao informar indisponibilidade:', sendError instanceof Error ? sendError.name : 'erro'); }
       } finally {
         queue.splice(0, count).forEach(item => item.resolve());
       }

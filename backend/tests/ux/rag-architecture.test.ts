@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { articleReferences, normalizeReference } from '../../src/services/llm/helpers/articleReference.js';
 import { createRagService } from '../../src/services/llm/llmService.js';
-import { parseClassification, classifyExplicitIntent, validateScopeEvidence } from '../../src/services/llm/helpers/classifyReport.js';
+import { parseClassification, classifyExplicitIntent, validateScopeEvidence, CLASSIFICATION_SCHEMA, classificationPrompt } from '../../src/services/llm/helpers/classifyReport.js';
 
 test('suspeita de golpe não inventa identidade falsa a partir de falha de uma loja', () => {
  const result = { categoria: 'GOLPE_TERCEIRO' as const, motivo: 'Suspeita' };
@@ -20,7 +20,19 @@ test('triagem material e intencoes explicitas ficam separadas', () => {
  assert.equal(parseClassification({ ...parsed, perguntaEsclarecimento: null }).informacaoSuficiente, true);
  assert.throws(() => parseClassification({ ...parsed, categoria: 'inventado' }));
  assert.equal(classifyExplicitIntent('quero morrer por causa dessas dividas'), 'RISCO_PESSOAL');
- assert.equal(classifyExplicitIntent('quero marcar atendimento presencial'), 'AGENDAMENTO');
+ assert.ok(CLASSIFICATION_SCHEMA.properties.categoria.enum.includes('AGENDAMENTO'));
+ assert.ok(classificationPrompt('eu gostaria de agendar um atendimento', '').includes('AGENDAMENTO:'));
+ const schedule = parseClassification({ categoria: 'AGENDAMENTO', motivo: 'Deseja atendimento presencial', consultaBusca: 'não usar', perguntaEsclarecimento: 'não usar' });
+ assert.equal(schedule.categoria, 'AGENDAMENTO');
+ assert.equal(schedule.informacaoSuficiente, true);
+ assert.equal(schedule.consultaBusca, undefined);
+ assert.equal(schedule.perguntaEsclarecimento, undefined);
+ for (const phrase of ['quero agendar um atendimento', 'eu gostaria de agendar um atendimento', 'Eu queria marcar uma consulta, por favor!', 'Por favor, eu preciso agendar um atendimento no PROCON de Jacareí.']) {
+   assert.equal(classifyExplicitIntent(phrase), null, 'pedido deve passar pelo classificador: ' + phrase);
+ }
+ for (const phrase of ['eu não gostaria de agendar um atendimento', 'não quero agendar um atendimento', 'eu gostaria de agendar um atendimento mas a loja não entregou meu produto', 'quero agendar um atendimento na oficina porque meu carro quebrou']) {
+   assert.equal(classifyExplicitIntent(phrase), null, phrase);
+ }
  assert.equal(classifyExplicitIntent('onde fica o Procon?'), 'INFO_ATENDIMENTO');
  assert.equal(classifyExplicitIntent('a loja me roubou, chegou produto diferente'), null);
  assert.equal(classifyExplicitIntent('o contrato exclui responsabilidade por danos'), null);

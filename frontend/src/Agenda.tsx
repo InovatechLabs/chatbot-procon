@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { cx, ui } from './ui/styles';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { isAxiosError } from 'axios';
 import {
   agendaService,
@@ -6,7 +7,6 @@ import {
   type HistoricoAtendimento,
   type StatusAgendamento,
 } from './services/api';
-import './App.css';
 
 const IconChevronLeft = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -32,6 +32,8 @@ const MESES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+const appointmentTones: Record<StatusAgendamento, string> = { pendente: 'bg-warning-light text-[#80510b]', concluido: 'bg-success-light text-[#216745]', cancelado: 'bg-danger-light text-[#9b3030]' };
 
 const ROTULO_STATUS: Record<StatusAgendamento, string> = {
   pendente: 'Pendente',
@@ -104,44 +106,37 @@ export default function Agenda() {
   const [historico, setHistorico] = useState<HistoricoAtendimento | null>(null);
   const [historicoLoading, setHistoricoLoading] = useState(false);
   const [historicoErro, setHistoricoErro] = useState('');
+  const [contato, setContato] = useState<{ id: string; phone: string } | null>(null);
+  const [contatoErro, setContatoErro] = useState('');
+  const [contatoBusy, setContatoBusy] = useState(false);
 
-  useEffect(() => {
-    carregarAgendamentos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesAtual]);
-
-  useEffect(() => {
-    if (modalAberto) {
-      carregarHorariosDisponiveis(diaSelecionado);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modalAberto, diaSelecionado]);
-
-  const carregarAgendamentos = async () => {
-    setLoading(true);
-    try {
-      const mesRef = `${mesAtual.getFullYear()}-${String(mesAtual.getMonth() + 1).padStart(2, '0')}`;
-      const res = await agendaService.getAgendamentos({ mes: mesRef });
+  const carregarAgendamentos = useCallback(() => {
+    const mesRef = `${mesAtual.getFullYear()}-${String(mesAtual.getMonth() + 1).padStart(2, '0')}`;
+    return agendaService.getAgendamentos({ mes: mesRef }).then(res => {
       const lista: Agendamento[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
       setAgendamentos(lista);
-    } catch (err) {
+    }).catch(err => {
       console.error('❌ [carregarAgendamentos] Erro ao carregar agendamentos:', err);
       setAgendamentos([]);
-    } finally {
+    }).finally(() => {
       setLoading(false);
-    }
-  };
+    });
+  }, [mesAtual]);
 
-  const carregarHorariosDisponiveis = async (data: string) => {
-    try {
-      const res = await agendaService.getHorariosDisponiveis(data);
+  const carregarHorariosDisponiveis = useCallback((data: string) => {
+    return agendaService.getHorariosDisponiveis(data).then(res => {
       const horarios: string[] = Array.isArray(res?.data) ? res.data : [];
       setHorariosDisponiveis(horarios);
-    } catch (err) {
+    }).catch(err => {
       console.error('❌ Erro ao carregar horários disponíveis:', err);
       setHorariosDisponiveis([]);
-    }
-  };
+    });
+  }, []);
+
+  useEffect(() => { void carregarAgendamentos(); }, [carregarAgendamentos]);
+  useEffect(() => {
+    if (modalAberto) void carregarHorariosDisponiveis(diaSelecionado);
+  }, [modalAberto, diaSelecionado, carregarHorariosDisponiveis]);
 
   const agendamentosDoDia = useMemo(
     () => agendamentos
@@ -280,33 +275,33 @@ const abrirHistorico = async (agendamento: Agendamento) => {
   };
 
   if (loading) {
-    return <div className="loading-screen">Carregando agenda...</div>;
+    return <div data-ui="loading-screen" className={cx(ui.loadingScreen)}>Carregando agenda...</div>;
   }
 
   return (
-    <main className="tab-content agenda-view">
-      <div className="editor-layout agenda-layout">
+    <main data-ui="tab-content agenda-view" className={cx(ui.tabContent, ui.agendaView)}>
+      <div data-ui="editor-layout agenda-layout" className={cx(ui.editorLayout, ui.agendaLayout)}>
 
         {/* CALENDÁRIO */}
-        <div className="tree-panel calendar-panel">
-          <div className="panel-header calendar-panel-header">
+        <div data-ui="tree-panel calendar-panel" className={cx(ui.treePanel, ui.calendarPanel)}>
+          <div data-ui="panel-header calendar-panel-header" className={cx(ui.panelHeader, ui.calendarPanelHeader)}>
             <div>
               <h3>{MESES[mesAtual.getMonth()]} {mesAtual.getFullYear()}</h3>
-              <p className="help-text">Selecione um dia para ver ou criar agendamentos.</p>
+              <p data-ui="help-text" className={cx(ui.helpText)}>Selecione um dia para ver ou criar agendamentos.</p>
             </div>
-            <div className="calendar-nav">
-              <button type="button" className="btn-icon" onClick={irParaMesAnterior}><IconChevronLeft /></button>
-              <button type="button" className="btn-icon" onClick={irParaProximoMes}><IconChevronRight /></button>
+            <div data-ui="calendar-nav" className={cx(ui.calendarNav)}>
+              <button type="button" data-ui="btn-icon" className={cx(ui.btnIcon)} aria-label="Mês anterior" onClick={irParaMesAnterior}><IconChevronLeft /></button>
+              <button type="button" data-ui="btn-icon" className={cx(ui.btnIcon)} aria-label="Próximo mês" onClick={irParaProximoMes}><IconChevronRight /></button>
             </div>
           </div>
 
-          <div className="calendar-weekdays">
+          <div data-ui="calendar-weekdays" className={cx(ui.calendarWeekdays)}>
             {DIAS_SEMANA.map(dia => (
               <span key={dia}>{dia}</span>
             ))}
           </div>
 
-          <div className="calendar-grid">
+          <div data-ui="calendar-grid" className={cx(ui.calendarGrid)}>
             {diasDoGrid.map(({ data, noMes }, i) => {
               const iso = toISODate(data);
               const isSelecionado = iso === diaSelecionado;
@@ -316,11 +311,13 @@ const abrirHistorico = async (agendamento: Agendamento) => {
                 <button
                   type="button"
                   key={i}
-                  className={`calendar-day ${!noMes ? 'outside' : ''} ${isSelecionado ? 'selected' : ''} ${isHoje ? 'today' : ''}`}
+                  aria-pressed={isSelecionado}
+                  aria-label={`${data.toLocaleDateString('pt-BR', { dateStyle: 'full' })}${qtd ? `, ${qtd} agendamentos` : ''}`}
+                  data-outside={!noMes} data-today={isHoje} data-ui="calendar-day" className={cx(ui.calendarDay)}
                   onClick={() => setDiaSelecionado(iso)}
                 >
-                  <span className="calendar-day-number">{data.getDate()}</span>
-                  {qtd > 0 && <span className="calendar-day-dot">{qtd}</span>}
+                  <span data-ui="calendar-day-number" className={cx(ui.calendarDayNumber)}>{data.getDate()}</span>
+                  {qtd > 0 && <span data-ui="calendar-day-dot" className={cx(ui.calendarDayDot)}>{qtd}</span>}
                 </button>
               );
             })}
@@ -328,47 +325,55 @@ const abrirHistorico = async (agendamento: Agendamento) => {
         </div>
 
         {/* DETALHES DO DIA */}
-        <div className="details-panel agenda-details-panel">
-          <div className="panel-header-actions">
+        <div data-ui="details-panel agenda-details-panel" className={cx(ui.detailsPanel, ui.agendaDetailsPanel)}>
+          <div data-ui="panel-header-actions" className={cx(ui.panelHeaderActions)}>
             <div>
-              <h3 style={{ textTransform: 'capitalize' }}>{formatDataLonga(diaSelecionado)}</h3>
-              <p className="node-path">{agendamentosDoDia.length} agendamento(s) neste dia</p>
+              <h3 className={cx("capitalize")}>{formatDataLonga(diaSelecionado)}</h3>
+              <p data-ui="node-path" className={cx(ui.nodePath)}>{agendamentosDoDia.length} agendamento(s) neste dia</p>
             </div>
-            <button type="button" className="btn-primary" onClick={abrirModalNovo}>
+            <button type="button" data-ui="btn-primary" className={cx(ui.btnPrimary)} onClick={abrirModalNovo}>
               <IconPlus /> Novo agendamento
             </button>
           </div>
 
           {agendamentosDoDia.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><IconCalendar /></div>
+            <div data-ui="empty-state" className={cx(ui.emptyState)}>
+              <div data-ui="empty-icon" className={cx(ui.emptyIcon)}><IconCalendar /></div>
               <h4>Nenhum agendamento</h4>
               <p>Não há horários marcados para este dia ainda.</p>
             </div>
           ) : (
-            <div className="agenda-list">
+            <div data-ui="agenda-list" className={cx(ui.agendaList)}>
               {agendamentosDoDia.map(a => (
-                <div key={a.id} className="agenda-item">
-                  <div className="agenda-item-time">{a.horario}</div>
-                  <div className="agenda-item-info">
-                    <span className="table-strong">{a.nomeCliente || 'Nome não informado'}</span>
-                    <span className="table-muted">{formatarTelefone(a.telefone)}{a.assunto ? ` · ${a.assunto}` : ''}</span>
+                <div key={a.id} data-ui="agenda-item" className={cx(ui.agendaItem)}>
+                  <div data-ui="agenda-item-time" className={cx(ui.agendaItemTime)}>{a.horario}<small className={cx("block")}>{a.duracaoMin} min</small></div>
+                  <div data-ui="agenda-item-info" className={cx(ui.agendaItemInfo)}>
+                    <span data-ui="table-strong" className={cx(ui.tableStrong)}>{a.nomeCliente || 'Nome não informado'}</span>
+                    <span data-ui="table-muted" className={cx(ui.tableMuted)}>{formatarTelefone(contato?.id === a.id ? contato.phone : a.telefone)}{a.assunto ? ` · ${a.assunto}` : ''}</span>
+                    <button data-ui="btn-ghost" className={cx(ui.btnGhost)} disabled={contatoBusy} onClick={async () => {
+                      if (contato?.id === a.id) { setContato(null); return; }
+                      setContato(null); setContatoErro(''); setContatoBusy(true);
+                      try { setContato({ id: a.id, phone: await agendaService.getContato(a.id) }); }
+                      catch { setContatoErro('Não foi possível consultar o telefone.'); }
+                      finally { setContatoBusy(false); }
+                    }}>{contato?.id === a.id ? 'Ocultar telefone' : 'Ver telefone'}</button>
+                    {contatoErro && <span role="alert">{contatoErro}</span>}
                   </div>
-                  {a.origem === 'WHATSAPP' && <span className="tag badge-agenda-whatsapp">WhatsApp</span>}
-                  <span className={`tag badge-agenda-${a.status}`}>{ROTULO_STATUS[a.status]}</span>
-                  <div className="agenda-item-actions">
+                  {a.origem === 'WHATSAPP' && <span data-ui="tag badge-agenda-whatsapp" className={cx(ui.tag, ui.badgeAgendaWhatsapp)}>WhatsApp</span>}
+                  <span className={cx(ui.tag, appointmentTones[a.status])}>{ROTULO_STATUS[a.status]}</span>
+                  <div data-ui="agenda-item-actions" className={cx(ui.agendaItemActions)}>
                     <button
                       type="button"
-                      className="btn-ghost"
+                      data-ui="btn-ghost" className={cx(ui.btnGhost)}
                       onClick={() => {
                         abrirHistorico(a);
                       }}
                     >
                       Conversa
                     </button>
-                    <button type="button" className="btn-ghost" onClick={() => abrirModalEdicao(a)}>Editar</button>
+                    <button type="button" data-ui="btn-ghost" className={cx(ui.btnGhost)} onClick={() => abrirModalEdicao(a)}>Editar</button>
                     {a.status === 'pendente' && (
-                      <button type="button" className="btn-icon" title="Cancelar agendamento" onClick={() => handleCancelar(a.id)}><IconTrash /></button>
+                      <button type="button" data-ui="btn-icon" className={cx(ui.btnIcon)} title="Cancelar agendamento" onClick={() => handleCancelar(a.id)}><IconTrash /></button>
                     )}
                   </div>
                 </div>
@@ -380,17 +385,17 @@ const abrirHistorico = async (agendamento: Agendamento) => {
 
       {/* MODAL DE AGENDAMENTO */}
       {modalAberto && (
-        <div className="modal-overlay" onClick={fecharModal}>
-          <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <div className="panel-header-actions">
+        <div data-ui="modal-overlay" className={cx(ui.modalOverlay)} onClick={fecharModal}>
+          <div data-ui="modal-card" className={cx(ui.modalCard)} onClick={e => e.stopPropagation()}>
+            <div data-ui="panel-header-actions" className={cx(ui.panelHeaderActions)}>
               <h3>{form.id ? 'Editar agendamento' : 'Novo agendamento'}</h3>
-              <button type="button" className="btn-icon" onClick={fecharModal}><IconX /></button>
+              <button type="button" data-ui="btn-icon" className={cx(ui.btnIcon)} aria-label="Fechar formulário" onClick={fecharModal}><IconX /></button>
             </div>
 
-            {erro && <div className="login-error">{erro}</div>}
+            {erro && <div data-ui="login-error" className={cx(ui.loginError)}>{erro}</div>}
 
-            <form onSubmit={handleSalvar} className="form-editor">
-              <div className="form-group">
+            <form onSubmit={handleSalvar} data-ui="form-editor" className={cx(ui.formEditor)}>
+              <div data-ui="form-group" className={cx(ui.formGroup)}>
                 <label>Nome do cliente</label>
                 <input
                   type="text"
@@ -401,8 +406,8 @@ const abrirHistorico = async (agendamento: Agendamento) => {
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
+              <div data-ui="form-row" className={cx(ui.formRow)}>
+                <div data-ui="form-group" className={cx(ui.formGroup)}>
                   <label>Telefone</label>
                   <input
                     type="text"
@@ -413,7 +418,7 @@ const abrirHistorico = async (agendamento: Agendamento) => {
                     required
                   />
                 </div>
-                <div className="form-group">
+                <div data-ui="form-group" className={cx(ui.formGroup)}>
                   <label>Horário</label>
                   <select
                     value={form.horario}
@@ -431,7 +436,7 @@ const abrirHistorico = async (agendamento: Agendamento) => {
                 </div>
               </div>
 
-              <div className="form-group">
+              <div data-ui="form-group" className={cx(ui.formGroup)}>
                 <label>Assunto</label>
                 <input
                   type="text"
@@ -442,7 +447,7 @@ const abrirHistorico = async (agendamento: Agendamento) => {
               </div>
 
               {form.id && (
-                <div className="form-group">
+                <div data-ui="form-group" className={cx(ui.formGroup)}>
                   <label>Status</label>
                   <select
                     value={form.status}
@@ -455,7 +460,7 @@ const abrirHistorico = async (agendamento: Agendamento) => {
                 </div>
               )}
 
-              <button type="submit" className="btn-primary btn-full" disabled={salvando}>
+              <button type="submit" data-ui="btn-primary btn-full" className={cx(ui.btnPrimary, ui.btnFull)} disabled={salvando}>
                 {salvando ? 'Salvando...' : 'Salvar agendamento'}
               </button>
             </form>
@@ -465,44 +470,44 @@ const abrirHistorico = async (agendamento: Agendamento) => {
 
       {/* HISTÓRICO DA CONVERSA DO WHATSAPP */}
       {historicoAlvo && (
-        <div className="modal-overlay" onClick={fecharHistorico}>
-          <div className="modal-card modal-card-wide" onClick={e => e.stopPropagation()}>
-            <div className="panel-header-actions">
+        <div data-ui="modal-overlay" className={cx(ui.modalOverlay)} onClick={fecharHistorico}>
+          <div data-ui="modal-card modal-card-wide" className={cx(ui.modalCard, ui.modalCardWide)} onClick={e => e.stopPropagation()}>
+            <div data-ui="panel-header-actions" className={cx(ui.panelHeaderActions)}>
               <div>
                 <h3>Conversa do WhatsApp</h3>
-                <p className="node-path">
+                <p data-ui="node-path" className={cx(ui.nodePath)}>
                   {historicoAlvo.nomeCliente || 'Nome não informado'} · {formatarTelefone(historicoAlvo.telefone)}
                 </p>
               </div>
-              <button type="button" className="btn-icon" onClick={fecharHistorico}><IconX /></button>
+              <button type="button" data-ui="btn-icon" className={cx(ui.btnIcon)} aria-label="Fechar conversa" onClick={fecharHistorico}><IconX /></button>
             </div>
 
-            {historicoLoading && <p className="help-text">Carregando conversa...</p>}
-            {historicoErro && <div className="login-error">{historicoErro}</div>}
+            {historicoLoading && <p data-ui="help-text" className={cx(ui.helpText)}>Carregando conversa...</p>}
+            {historicoErro && <div data-ui="login-error" className={cx(ui.loginError)}>{historicoErro}</div>}
 
             {historico && (
               <>
                 {historico.sessao && (
-                  <p className="help-text">
+                  <p data-ui="help-text" className={cx(ui.helpText)}>
                     Etapa atual no bot: {historico.sessao.etapaAtual || '—'} · Status: {historico.sessao.status}
                     {historico.sessao.nota !== null ? ` · Nota: ${historico.sessao.nota}` : ''}
                   </p>
                 )}
 
                 {!historico.mensagens || historico.mensagens.length === 0 ? (
-                  <div className="empty-state">
-                    <div className="empty-icon"><IconCalendar /></div>
+                  <div data-ui="empty-state" className={cx(ui.emptyState)}>
+                    <div data-ui="empty-icon" className={cx(ui.emptyIcon)}><IconCalendar /></div>
                     <h4>Sem conversa registrada</h4>
                     <p>Nenhuma mensagem do WhatsApp foi encontrada para este número.</p>
                   </div>
                 ) : (
-                  <div className="chat-history">
+                  <div data-ui="chat-history" className={cx(ui.chatHistory)}>
                     {historico.truncado && (
-                      <p className="help-text">Exibindo apenas as mensagens mais recentes.</p>
+                      <p data-ui="help-text" className={cx(ui.helpText)}>Exibindo apenas as mensagens mais recentes.</p>
                     )}
                     {historico.mensagens.map(m => (
-                      <div key={m.id} className={`chat-bubble ${m.direction === 'INBOUND' ? 'inbound' : 'outbound'}`}>
-                        <span className="chat-bubble-meta">
+                      <div key={m.id} data-direction={m.direction} data-ui="chat-bubble" className={cx(ui.chatBubble)}>
+                        <span data-ui="chat-bubble-meta" className={cx(ui.chatBubbleMeta)}>
                           {m.direction === 'INBOUND' ? 'Cidadão' : 'Assistente Virtual'} · {formatarDataHora(m.timestamp)}
                           {m.etapa ? ` · ${m.etapa}` : ''}
                         </span>
