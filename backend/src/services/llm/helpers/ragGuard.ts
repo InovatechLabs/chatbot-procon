@@ -1,6 +1,7 @@
 /** Barreiras conservadoras para confusões observadas em teste integrado.
  * Não constituem validação jurídica completa do texto gerado.
  */
+import { unsafeRepairExtension } from '../legalKnowledge/safety.js';
 export function inspectProductDeadline(
   text: string,
   article: string | null,
@@ -10,10 +11,10 @@ export function inspectProductDeadline(
     return { complaintDeadline: false, extendedWithoutAgreement: false };
   }
   // Art. 18: os trinta dias são para sanar o vício, não para o cidadão reclamá-lo.
-  const complaintDeadline = /\b(?:30|trinta)\s*dias\b[^.!?\n]{0,100}\b(?:reclamar|informar|avisar|comunicar|notificar)\b/.test(normalized);
+  const complaintDeadline = [...normalized.matchAll(/\b(?:30|trinta)\s*dias\b[^.!?\n]{0,100}\b(?:reclamar|informar|avisar|comunicar|notificar)\b/g)]
+    .some(match => !/\b(?:nao|nem)\b/.test(match[0]));
   // A ampliação do prazo não é automática: depende de convenção das partes.
-  const extendedWithoutAgreement = /\b(?:180|cento e oitenta)\s*dias\b/.test(normalized)
-    && !/\b(?:acordo|convencion\w*|partes|contrat[oa])\b/.test(normalized);
+  const extendedWithoutAgreement = unsafeRepairExtension(text);
   return { complaintDeadline, extendedWithoutAgreement };
 }
 

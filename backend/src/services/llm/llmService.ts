@@ -2,7 +2,6 @@ import { prisma } from '../../database/index.js';
 import { classifyReport } from './helpers/classifyReport.js';
 import { processThinkingOutput } from './helpers/processThinkingOutput.js';
 import { buildBM25Index } from '../../utils/functions/bm25.js';
-import { reciprocalRankFusion } from '../../utils/functions/hybridSearch.js';
 import { getEmbedding, generateText } from '../ollama/ollamaClient.js';
 import { getVectorResults, getAllArticles } from '../../database/repositories/knowledgeRepository.js';
 import { ragPrompt, orientationPrompt } from './prompts/index.js';
@@ -11,12 +10,19 @@ import { RAG_RESPONSE_SCHEMA } from './prompts/schemas/index.js';
 import { getRespostaFixa } from './helpers/fixedResponses.js';
 import type { Acao } from './helpers/fixedResponses.js';
 import { isSafeRewrite } from './helpers/rewriteGuard.js';
-import { hasUnverifiedProductDeadline, hasMismatchedProductReference } from './helpers/ragGuard.js';
 import { charLength, normalizeWhatsappFormatting } from '../whatsapp/messagePolicy.js';
 import { applyClarificationLimit } from './helpers/clarification.js';
 import { redactIdentifiers } from '../privacy/redact.js';
+import { ExternalWorkRequired } from '../whatsapp/externalWork.js';
+import { loadLegalRuleCatalog, prepareLegalContext } from './legalKnowledge/context.js';
+import type { LegalRulesMode, LegalContextDiagnostics } from './legalKnowledge/context.js';
+import { inspectLegalSafety, containsLegalDeadline, legalReferencesIn } from './legalKnowledge/safety.js';
+import type { CitizenEvidence } from './legalKnowledge/safety.js';
+import { evaluateGeneratedSafety } from './legalKnowledge/responseSafety.js';
+import { rankHybridCandidates, expandRetrievalContext, renderRetrievedArticles } from './helpers/retrievalSelection.js';
+import type { RetrievalSelectionDiagnostics } from './helpers/retrievalSelection.js';
 
-const MAX_VECTOR_DISTANCE = 0.58;
+export const MAX_VECTOR_DISTANCE = 0.58;
 export const DISCLAIMER = '\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*';
 
 export interface RagDiagnostics {
@@ -28,6 +34,9 @@ export interface RagDiagnostics {
   referenciaNormalizada?: string | null;
   referenciasPermitidas?: string[];
   temperatura?: number;
+  regrasAuxiliares?: LegalContextDiagnostics;
+  segurancaJuridica?: { reasons: string[]; evidence: CitizenEvidence };
+  selecaoRecuperacao?: RetrievalSelectionDiagnostics;
   parametrosModelo: { modelo: string; thinking: boolean };
 }
 
@@ -46,13 +55,17 @@ const technicalFailure = (): RagResult => ({ tipoResposta: 'fixa', artigo: null,
   texto: 'Minha consulta está temporariamente indisponível. Tente novamente em alguns instantes ou fale com o PROCON pelo (12) 3955-9130. Você também pode usar as opções do menu.' });
 
 const dependencies = { db: prisma, classify: classifyReport, embed: getEmbedding, generate: generateText,
-  vectors: getVectorResults, articles: getAllArticles };
+  vectors: getVectorResults, articles: getAllArticles, legalCatalog: loadLegalRuleCatalog };
 
 export interface RagOptions {
   preClassification?: import('./helpers/classifyReport.js').ClassificationResult;
   includeDiagnostics?: boolean;
   /** Perguntas efetivamente enviadas, persistidas pela conversa na sessão. */
   clarificationCount?: number;
+  /** Prévia é opt-in para avaliação com diagnósticos, sem aprovar rascunhos. */
+  legalRulesMode?: LegalRulesMode;
+  /** Somente avaliação com relatos fictícios; nunca integra diagnósticos de produção. */
+  onGeneratedForEvaluation?: (value: { tipoResposta: string; texto: string; artigo: string | null }) => void;
 }
 
 export function createRagService(overrides: Partial<typeof dependencies> = {}) {
@@ -61,6 +74,12 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
     const collectDiag = options?.includeDiagnostics ?? false;
     const modelName = process.env.OLLAMA_GENERATE_MODEL_NAME || 'desconhecido';
     const thinkingEnabled = process.env.LLM_ENABLE_THINKING === 'true';
+    const legalRulesMode = options?.legalRulesMode ?? 'approved';
+    if (legalRulesMode === 'preview' && !collectDiag) throw new Error('Prévia jurídica exige diagnósticos explícitos.');
+    if (options?.onGeneratedForEvaluation && !collectDiag) throw new Error('Captura de avaliação exige diagnósticos explícitos.');
+    let legalDiagnostics: LegalContextDiagnostics | undefined;
+    let safetyDiagnostics: RagDiagnostics['segurancaJuridica'];
+    let selectionDiagnostics: RetrievalSelectionDiagnostics | undefined;
 
     const makeDiag = (
       classification: { categoria: string; motivo: string; consultaBusca?: string },
@@ -73,6 +92,9 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
         candidatosRecuperados: extra.candidatosRecuperados ?? [],
         motivoDescarte: extra.motivoDescarte ?? null,
         ...extra,
+        ...(legalDiagnostics ? { regrasAuxiliares: legalDiagnostics } : {}),
+        ...(safetyDiagnostics ? { segurancaJuridica: safetyDiagnostics } : {}),
+        ...(selectionDiagnostics ? { selecaoRecuperacao: selectionDiagnostics } : {}),
         temperatura: 0,
         parametrosModelo: { modelo: modelName, thinking: thinkingEnabled },
       };
@@ -91,6 +113,7 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
       const history = [...new Map([...origin, ...[...recent].reverse()].map(log => [log.id, { ...log, messageText: scrub(log.messageText) }])).values()];
       for (const log of firstReport) log.messageText = scrub(log.messageText);
       const formattedHistory = `${firstReport[0] ? `Relato inicial do cidadão: ${firstReport[0].messageText}\n` : ''}${history.map(log => `${log.direction === 'INBOUND' ? 'Cidadão' : 'Assistente virtual do PROCON de Jacareí'}: ${log.messageText}`).join('\n')}`;
+      const citizenMessages = [...history.filter(log => log.direction === 'INBOUND' && !log.stepId).map(log => log.messageText), question];
       const rawClassification = options?.preClassification ?? await d.classify(question, formattedHistory);
       const classification = { ...rawClassification, motivo: scrub(rawClassification.motivo), ...(rawClassification.consultaBusca ? { consultaBusca: scrub(rawClassification.consultaBusca) } : {}), ...(rawClassification.perguntaEsclarecimento ? { perguntaEsclarecimento: scrub(rawClassification.perguntaEsclarecimento) } : {}) };
       if (classification.categoria === 'AGENDAMENTO') {
@@ -104,9 +127,15 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
         return { tipoResposta: 'fixa', artigo: null, ...fixed, texto: repeated ? `Entendo que isso seja frustrante. ${fixed.texto}` : fixed.texto,
           diagnostics: makeDiag(classification, { motivoDescarte: 'resposta_fixa' }) };
       }
-      const clarify = (text = 'O que aconteceu e foi com uma loja, um site, um banco ou uma pessoa?', diagExtra: Partial<Omit<RagDiagnostics, 'classificacaoUsada' | 'parametrosModelo'>> = {}): RagResult =>
-        applyClarificationLimit({ tipoResposta: 'clarificacao', texto: text.trim(), artigo: null,
-          diagnostics: makeDiag(classification, { ...diagExtra, motivoDescarte: 'clarificacao' }) }, options?.clarificationCount ?? 0);
+      const clarify = (text = 'O que aconteceu e foi com uma loja, um site, um banco ou uma pessoa?', diagExtra: Partial<Omit<RagDiagnostics, 'classificacaoUsada' | 'parametrosModelo'>> = {}): RagResult => {
+        const check = inspectLegalSafety({ text, article: null, kind: 'clarificacao', citizenMessages, sources: [] });
+        if (!check.passed) {
+          safetyDiagnostics = { reasons: check.reasons, evidence: check.evidence };
+          text = 'O que aconteceu e foi com uma loja, um site, um banco ou uma pessoa?';
+        }
+        return applyClarificationLimit({ tipoResposta: 'clarificacao', texto: text.trim(), artigo: null,
+          diagnostics: makeDiag(classification, { ...diagExtra, motivoDescarte: diagExtra.motivoDescarte ?? 'clarificacao' }) }, options?.clarificationCount ?? 0);
+      };
       if (classification.categoria === 'AMBIGUO' || (classification.categoria === 'CONSUMO' && classification.informacaoSuficiente === false)) return clarify(classification.perguntaEsclarecimento || undefined);
 
       const statements = history.filter(log => log.direction === 'INBOUND' && !log.stepId).map(log => log.messageText);
@@ -128,17 +157,31 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, motivoDescarte: 'sem_candidatos_vetor' }) };
       const articles = await d.articles();
       const lexical = buildBM25Index(articles);
-      const lexicalIds = reciprocalRankFusion([lexical.search(originalQuery, 10), lexical.search(ragQuery, 10)], 10);
-      const ids = reciprocalRankFusion([valid, lexicalIds.map(id => ({ id }))], 4);
+      const ranking = rankHybridCandidates(valid, lexical.search(originalQuery, 10), lexical.search(ragQuery, 10));
+      const ids = ranking.baseIds;
       const selected = ids.map(id => articles.find(article => article.id === id)).filter(article => article !== undefined);
       if (!selected.length) return { ...redirect('Não encontrei informações suficientes na base para orientar sobre esse assunto. Quer agendar uma análise presencial?'),
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: ids, motivoDescarte: 'sem_artigos_apos_fusao' }) };
-      const candidateIds = selected.map(a => a.id);
-      const laws = selected.map(article => `[LEI: ${article.title}]\n${article.content.replace(/\(PALAVRAS-CHAVE PARA BUSCA:.*?\)/gi, '').trim()}${article.distincao ? `\nDISTINÇÃO: ${article.distincao}` : ''}`).join('\n\n');
-      const allowedReferences = [...new Set(selected.flatMap(item => articleReferences(item.title)))];
+      const auxiliary = prepareLegalContext({ catalog: legalRulesMode === 'off' ? null : d.legalCatalog(), mode: legalRulesMode,
+        citizenQuery: originalQuery, candidates: selected, articles });
+      legalDiagnostics = auxiliary.diagnostics;
+      // O contexto auxiliar mantém prioridade. A prévia off reaplica somente a
+      // quarentena de anotações antigas, sem ativar novas regras por um resgate.
+      const cleanRescues = prepareLegalContext({ catalog: null, mode: 'off', citizenQuery: originalQuery,
+        candidates: ranking.strongIds.map(id => articles.find(article => article.id === id)).filter(article => article !== undefined), articles });
+      const expanded = expandRetrievalContext({ ranking, current: auxiliary.articles, candidates: cleanRescues.articles,
+        auxiliaryCharacters: auxiliary.instructions.length, displacedReferences: auxiliary.diagnostics.displacedArticles });
+      auxiliary.articles = expanded.articles;
+      selectionDiagnostics = expanded.diagnostics;
+      for (const ref of cleanRescues.diagnostics.quarantinedDistinctions) {
+        if (expanded.diagnostics.addedIds.some(id => articleReferences(id).includes(ref)) && !legalDiagnostics.quarantinedDistinctions.includes(ref)) legalDiagnostics.quarantinedDistinctions.push(ref);
+      }
+      const candidateIds = [...selected.map(a => a.id), ...expanded.diagnostics.addedIds];
+      const laws = renderRetrievedArticles(auxiliary.articles);
+      const allowedReferences = [...new Set(auxiliary.articles.flatMap(item => articleReferences(item.title)))];
       const responseSchema = { ...RAG_RESPONSE_SCHEMA, properties: { ...RAG_RESPONSE_SCHEMA.properties,
         artigo: { type: ['string', 'null'], enum: [...allowedReferences, null] } } };
-      const raw = await d.generate(ragPrompt(`${formattedHistory}\nÚltima mensagem: ${question}`, laws + `\nREFERENCIAS_PERMITIDAS_JSON: ${JSON.stringify(allowedReferences)}`), responseSchema, { temperature: 0 });
+      const raw = await d.generate(ragPrompt(`${formattedHistory}\nÚltima mensagem: ${question}`, laws + `\nREFERENCIAS_PERMITIDAS_JSON: ${JSON.stringify(allowedReferences)}`, auxiliary.instructions), responseSchema, { temperature: 0 });
       let parsed: { tipoResposta: string; texto: string; artigo?: unknown };
       try { parsed = JSON.parse(processThinkingOutput(raw).cleanText); }
       catch { return { ...technicalFailure(),
@@ -147,26 +190,31 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
         return { ...technicalFailure(),
           diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: 'resposta_invalida' }) }; }
       const text = scrub(normalizeWhatsappFormatting(parsed.texto));
+      options?.onGeneratedForEvaluation?.({ tipoResposta: parsed.tipoResposta, texto: text, artigo: sanitizeArtigoField(parsed.artigo) });
       if (charLength(text) > 900) return { ...redirect('A orientação precisa de uma análise mais detalhada do que consigo oferecer por aqui. Quer agendar atendimento presencial?'),
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: 'texto_excede_900_chars' }) };
+      const article = sanitizeArtigoField(parsed.artigo);
+      const safety = evaluateGeneratedSafety({ text, article, kind: parsed.tipoResposta as 'clarificacao' | 'orientacao_final' | 'redirecionamento', citizenMessages,
+        sources: auxiliary.articles.flatMap(item => articleReferences(item.title).map(reference => ({ reference, content: item.content }))) });
+      safetyDiagnostics = { reasons: safety.reasons, evidence: safety.evidence };
+      if (!safety.passed) {
+        const diag = { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: safety.reasons[0] ?? 'orientacao_nao_verificada', referenciaGerada: parsed.artigo, referenciaNormalizada: article, referenciasPermitidas: allowedReferences };
+        if (safety.scopeVeto === 'private' || safety.scopeVeto === 'tax') {
+          const response = getRespostaFixa(safety.scopeVeto === 'private' ? 'FORA_ESCOPO_PARTICULAR' : 'FORA_ESCOPO_TRIBUTO')!;
+          return { tipoResposta: 'fixa', artigo: null, ...response, diagnostics: makeDiag(classification, diag) };
+        }
+        if (safety.scopeVeto === 'lease') return { tipoResposta: 'fixa', artigo: null, acoes: ['menu'],
+          texto: 'Para essa questão de locação de imóvel, é necessário verificar a natureza da relação e quem é o responsável. Não consegui confirmar uma base segura para orientar por aqui. Procure análise da equipe ou orientação jurídica.', diagnostics: makeDiag(classification, diag) };
+        if (safety.question) return clarify(safety.question, diag);
+        return { ...redirect('Não consegui confirmar essa orientação com segurança. Para evitar informar um direito ou prazo incorreto, recomendo a análise da equipe. Quer agendar atendimento presencial?'), diagnostics: makeDiag(classification, diag) };
+      }
       if (parsed.tipoResposta === 'clarificacao') return clarify(text, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds });
       if (parsed.tipoResposta === 'redirecionamento') return { ...redirect(text + DISCLAIMER),
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: 'modelo_redirecionou' }) };
-      const article = sanitizeArtigoField(parsed.artigo);
-      // A base pode conter normas além do CDC. Só exibe a referência exata validada.
-      // Separa a descrição; evita interpretar o V de "Vício" como sufixo do artigo.
-      const knownArticle = article && allowedReferences.includes(article);
-      if (!knownArticle || hasUnverifiedProductDeadline(text, article) || hasMismatchedProductReference(`${question}\n${ragQuery}`, article)) {
-        const reason = !article ? 'referencia_formato_invalido' : !knownArticle ? 'referencia_fora_candidatos'
-          : hasUnverifiedProductDeadline(text, article) ? 'prazo_produto_nao_verificado'
-          : 'produto_referencia_incompativel';
-        console.warn(`Orientação descartada: ${reason}.`);
-        return { ...redirect('Não consegui confirmar essa orientação com segurança. Para evitar informar um direito ou prazo incorreto, recomendo a análise da equipe. Quer agendar atendimento presencial?'),
-          diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, motivoDescarte: reason, referenciaGerada: parsed.artigo, referenciaNormalizada: article, referenciasPermitidas: allowedReferences }) };
-      }
       return { tipoResposta: 'orientacao_final', texto: text + `\n\nBase legal: ${article}.` + DISCLAIMER, artigo: article,
         diagnostics: makeDiag(classification, { consultaBuscaUsada: ragQuery, candidatosRecuperados: candidateIds, referenciaGerada: parsed.artigo, referenciaNormalizada: article, referenciasPermitidas: allowedReferences }) };
     } catch (error) {
+      if (error instanceof ExternalWorkRequired) throw error;
       console.error('Falha na consulta de orientação:', error instanceof Error ? error.name : 'erro');
       return technicalFailure();
     }
@@ -176,12 +224,19 @@ export function createRagService(overrides: Partial<typeof dependencies> = {}) {
 export const answerWithRAG = createRagService();
 
 export const createOrientationService = (generate = generateText) => async (path: string, officialText: string): Promise<string> => {
+  // Texto oficial com prazo não passa por reescrita livre: conserva marco e exceções.
+  if (containsLegalDeadline(officialText)) return officialText;
   try {
     const output = await generate(orientationPrompt(path, officialText));
     const rewritten = normalizeWhatsappFormatting(processThinkingOutput(output).cleanText.trim());
-    if (isSafeRewrite(officialText, rewritten)) return rewritten + DISCLAIMER;
+    const references = legalReferencesIn(officialText);
+    // A fonte é referência de conservação, nunca prova de fatos do consumidor.
+    const safety = inspectLegalSafety({ text: rewritten, article: references[0] ?? null, kind: 'orientacao_final', citizenMessages: [],
+      sources: references.map(reference => ({ reference, content: officialText })) });
+    if (isSafeRewrite(officialText, rewritten) && safety.passed) return rewritten + DISCLAIMER;
     console.warn('Reescrita descartada: fatos, ressalvas, formato ou tamanho divergentes.');
-  } catch {
+  } catch (error) {
+    if (error instanceof ExternalWorkRequired) throw error;
     console.warn('Reescrita indisponível; enviando orientação oficial.');
   }
   // O fallback é a fonte oficial, portanto não recebe aviso de conteúdo gerado por IA.

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { charLength, clip, splitMessage } from './whatsapp/messagePolicy.js';
 import { messageSender } from './whatsapp/outgoingContext.js';
 import type { MetaPayload } from './whatsapp/outgoingContext.js';
+import { isInDatabaseTransaction } from '../database/index.js';
 
 dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
@@ -31,6 +32,7 @@ const getMetaApi = (): AxiosInstance => {
 };
 
 export async function deliverMetaPayload(payload: MetaPayload): Promise<any> {
+  if (isInDatabaseTransaction()) throw new Error('MetaDeliveryInsideTransaction');
   return (await getMetaApi().post('/messages', payload)).data;
 }
 async function postMessage(payload: MetaPayload): Promise<any> {

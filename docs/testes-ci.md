@@ -83,3 +83,17 @@ A etapa de [mensagens duráveis](mensagens-duraveis.md) acrescenta uma quarta ba
 Integração local dessa etapa: 11 aprovações incluindo subtestes, schema sem divergências nas quatro bases e smoke compilado aprovado.
 
 A etapa de [eventos e analytics](eventos-analytics.md) acrescenta uma quinta base descartável e `tests/analytics/*postgres.test.ts`: eventos de jornadas, fórmulas/denominadores, datas de Brasília, privacidade, permissões e expiração. Resultado atual: 85 aprovações locais, dois skips históricos e 16 aprovações PostgreSQL incluindo subtestes; lint/build do frontend, tipos/build, comparação de schema e smoke compilado aprovados.
+
+A correção do inbox acrescenta testes de leases em banco real e HTTP local simulando Ollama: exclusividade, paralelismo entre telefones, espera sem transação, heartbeat, recuperação, fencing, CAS, falha no commit e ausência de duplicação. Classificação, embedding, geração, reescrita e fallback são exercitados sem Kaggle. O runner continua reconstruindo as cinco bases descartáveis e verificando o schema.
+
+Resultado da etapa de leases: 85 testes locais aprovados e dois skips históricos; 24 aprovações PostgreSQL incluindo subtestes, cinco bases sem divergência e smoke compilado aprovado. No Windows, o runner local apresentou uv_os_get_passwd/ENOMEM ao carregar tsx no ambiente restrito; a suíte completa passou no container.
+
+A [auditoria jurídica — etapa 1](auditoria-seguranca-juridica.md) acrescenta vinte cenários sem modelo real: cinco controles passam e quinze reproduzem lacunas conhecidas, marcadas como TODO executável. Resultado: tipos/build aprovados, 90 testes aprovados, dois skips históricos e quinze TODOs. Esses TODOs não quebram o CI e não comprovam proteção; devem ser resolvidos e convertidos em asserções obrigatórias nas próximas etapas. A baseline do Gemma permanece inalterada.
+
+A [base auxiliar — etapa 2](base-auxiliar-juridica.md) acrescenta sete testes de schema, fontes, revisão, fatos, prazos e abstenção. Resultado no container: tipos/build aprovados, 97 testes aprovados, dois skips históricos e quinze TODOs. Os rascunhos não participam do RAG; os TODOs da auditoria não foram promovidos a proteções implementadas.
+
+A [integração seletiva — etapa 3](integracao-regras-juridicas.md) acrescenta sete testes de contexto e empacotamento do catálogo no build. Resultado local: 104 aprovações, dois skips históricos e quinze TODOs. A prévia é opt-in e não aprova rascunhos nem altera a baseline do benchmark. O teste HTTP/PostgreSQL do inbox também exerce geração com regras auxiliares.
+
+Verificação PostgreSQL da etapa 3: 24 aprovações incluindo subtestes, cinco bases descartáveis sem divergência e smoke compilado aprovado. A [comparação real com o Gemma](validacao-regras-juridicas-2026-11-17.md) foi executada após confirmação do Kaggle: integração exercitada, melhora no marco de vício oculto e falha de aplicabilidade persistente no PIX. Não substitui benchmark amplo nem resolve os quinze TODOs.
+
+A [etapa 4](barreiras-juridicas.md) transforma os vinte contratos da auditoria em verificações obrigatórias e adiciona variações/controles. Resultado final local: 142 aprovações, dois skips históricos, zero TODOs, tipos/build aprovados. Integração: 24 aprovações PostgreSQL incluindo subtestes e smoke compilado aprovado. A [rodada real ampliada](validacao-ampliada-etapa4.md) cobriu 39 entradas; o replay posterior preserva gerações e baseline, sem apresentar bloqueios como novos acertos do modelo.

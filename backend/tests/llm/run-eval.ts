@@ -14,11 +14,26 @@ import { fileURLToPath } from 'url';
 import { prisma } from '../../src/database/index.js';
 import { answerWithRAG } from '../../src/services/llm/llmService.js';
 import { classifyReport } from '../../src/services/llm/helpers/classifyReport.js';
+import type { LegalRulesMode } from '../../src/services/llm/legalKnowledge/context.js';
+import type { RagOptions } from '../../src/services/llm/llmService.js';
+
+// Dataset fictício: conserva a geração anterior ao descarte apenas neste relatório.
+async function evaluateForBenchmark(question: string, sessionId: string, options: RagOptions) {
+  let generatedBeforeGuard: { tipoResposta: string; texto: string; artigo: string | null } | null = null;
+  const result = await answerWithRAG(question, sessionId, { ...options,
+    onGeneratedForEvaluation: value => { generatedBeforeGuard = value; } });
+  return { ...result, generatedBeforeGuard };
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEST_CASES_PATH = path.join(__dirname, 'test-cases.json');
-const RESULTS_PATH = path.resolve(__dirname, process.env.EVAL_RESULTS_PATH || 'eval-results.json');
+const RESULTS_PATH = path.resolve(__dirname, process.env.EVAL_RESULTS_PATH || 'eval-preview-results.json');
+const legalRulesMode = process.env.EVAL_LEGAL_RULES_MODE || 'preview';
+if (!['off', 'approved', 'preview'].includes(legalRulesMode)) throw new Error('EVAL_LEGAL_RULES_MODE inválido.');
+if (legalRulesMode === 'preview' && path.basename(RESULTS_PATH) === 'eval-results.json') {
+  throw new Error('Prévia exige EVAL_RESULTS_PATH separado da baseline eval-results.json.');
+}
 
 // ---------- Tipos do dataset ----------
 
@@ -145,9 +160,10 @@ const runOrientacaoDireta = async (casos: CasoOrientacaoDireta[]) => {
       const tClassify = Date.now() - t0;
 
       const t1 = Date.now();
-      const ragResult = await answerWithRAG(caso.mensagem, sessionId, {
+      const ragResult = await evaluateForBenchmark(caso.mensagem, sessionId, {
         preClassification: classification,
         includeDiagnostics: true,
+        legalRulesMode: legalRulesMode as LegalRulesMode,
       });
       const tFull = Date.now() - t1;
 
@@ -189,6 +205,7 @@ const runOrientacaoDireta = async (casos: CasoOrientacaoDireta[]) => {
         tempoPipelineMs: tFull,
         respostaTexto: ragResult.texto,
         diagnostics: ragResult.diagnostics ?? null,
+        generatedBeforeGuard: ragResult.generatedBeforeGuard,
       });
     } catch (err: any) {
       console.error(`  ❌ ERRO ao rodar caso ${caso.id}:`, err);
@@ -218,9 +235,10 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
 
       const t0 = Date.now();
       const classificationInicial = await classifyReport(caso.mensagemInicial, `Cidadão: ${caso.mensagemInicial}`);
-      const ragResultInicial = await answerWithRAG(caso.mensagemInicial, sessionIdInicial, {
+      const ragResultInicial = await evaluateForBenchmark(caso.mensagemInicial, sessionIdInicial, {
         preClassification: classificationInicial,
         includeDiagnostics: true,
+        legalRulesMode: legalRulesMode as LegalRulesMode,
       });
       const tInicial = Date.now() - t0;
 
@@ -241,9 +259,10 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
         .map(h => `${h.autor}: ${h.mensagem}`)
         .join('\n');
       const classificationFinal = await classifyReport(caso.conversaCompleta.mensagemFinal, historicoTexto);
-      const ragResultFinal = await answerWithRAG(caso.conversaCompleta.mensagemFinal, sessionIdCompleto, {
+      const ragResultFinal = await evaluateForBenchmark(caso.conversaCompleta.mensagemFinal, sessionIdCompleto, {
         preClassification: classificationFinal,
         includeDiagnostics: true,
+        legalRulesMode: legalRulesMode as LegalRulesMode,
       });
       const tFinal = Date.now() - t1;
 
@@ -280,6 +299,7 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
           resposta: ragResultInicial.texto,
           tempoMs: tInicial,
           diagnostics: ragResultInicial.diagnostics ?? null,
+          generatedBeforeGuard: ragResultInicial.generatedBeforeGuard,
         },
         etapaFinal: {
           categoriaEsperada: caso.conversaCompleta.categoriaEsperadaFinal,
@@ -292,6 +312,7 @@ const runPrecisaClarificacao = async (casos: CasoClarificacao[]) => {
           resposta: ragResultFinal.texto,
           tempoMs: tFinal,
           diagnostics: ragResultFinal.diagnostics ?? null,
+          generatedBeforeGuard: ragResultFinal.generatedBeforeGuard,
         },
       });
     } catch (err: any) {
@@ -348,6 +369,7 @@ const main = async () => {
   const acertosArtigoFinal = resultadosClarificacao.filter((r: any) => r.etapaFinal?.artigoOk).length;
 
   const summary = {
+    legalRulesMode,
     modelo: process.env.OLLAMA_GENERATE_MODEL_NAME || 'Desconhecido',
     thinkingEnabled: process.env.LLM_ENABLE_THINKING === 'true',
     executadoEm: new Date().toISOString(),

@@ -60,9 +60,13 @@ model MessageReceipt {
   availableAt DateTime @default(now())
   createdAt DateTime @default(now())
   processedAt DateTime?
+  leaseToken String?
+  leaseUntil DateTime?
   lastError String?
   outgoing OutgoingMessage[]
   @@index([state, availableAt])
+  @@index([state, leaseUntil])
+  @@index([leaseToken])
   @@index([phoneLookup, sequence])
 }
 

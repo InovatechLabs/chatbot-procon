@@ -27,7 +27,9 @@ test('falha ou reescrita com fatos alterados envia a fonte integral, sem aviso d
   for (const generate of [async () => source.replace('30', '90'), async () => { throw new Error('offline'); }]) {
     assert.equal(await createOrientationService(generate)('Prazo', source), source);
   }
-  assert.ok((await createOrientationService(async () => source)('Prazo', source)).endsWith(DISCLAIMER));
+  assert.equal(await createOrientationService(async () => source)('Prazo', source), source);
+  const simple = 'Guarde os comprovantes e procure a empresa.';
+  assert.ok((await createOrientationService(async () => simple)('Orientação', simple)).endsWith(DISCLAIMER));
 });
 
 test('categorias fixas não consultam a base; fora de escopo nunca oferece agendar', async () => {
@@ -85,7 +87,7 @@ test('formatação da IA usa destaque do WhatsApp no texto enviado e registrado'
 test('referência de artigo com título acentuado é confirmada sem inventar sufixo', async () => {
   const f = fixture();
   const result = await createRagService({ ...f.d,
-    articles: async () => [{ id: 'law', title: 'Art. 18 - Vício do Produto', content: 'Responsabilidade por vícios do produto.', keywords: ['defeito'], distincao: null }],
+    articles: async () => [{ id: 'law', title: 'Art. 18 - Vício do Produto', content: 'Não sendo o vício sanado no prazo máximo de trinta dias.', keywords: ['defeito'], distincao: null }],
     generate: async () => JSON.stringify({ tipoResposta: 'orientacao_final', texto: 'A empresa tem até 30 dias para consertar o produto.', artigo: 'Art. 18' }),
   })('celular não liga', 'session');
   assert.equal(result.artigo, 'Art. 18');

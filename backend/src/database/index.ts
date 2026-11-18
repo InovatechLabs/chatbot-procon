@@ -30,7 +30,9 @@ export const prisma = new Proxy(rootPrisma, {
     return typeof value === 'function' ? value.bind(client) : value;
   },
 });
-export function inDatabaseTransaction<T>(work: () => Promise<T>, timeout = 300_000): Promise<T> {
+export const isInDatabaseTransaction = () => transaction.getStore() !== undefined;
+
+export function inDatabaseTransaction<T>(work: () => Promise<T>, timeout = 15_000): Promise<T> {
   if (transaction.getStore()) throw new Error('Unidade de trabalho já iniciada.');
   return rootPrisma.$transaction(tx => transaction.run(tx, work), { isolationLevel: 'ReadCommitted', timeout, maxWait: 10_000 });
 }

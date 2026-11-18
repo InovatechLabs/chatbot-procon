@@ -18,6 +18,7 @@ import { decodeSession, initialSnapshot, isScheduling, clarificationRounds, tran
 import type { ConversationState } from '../../services/conversation/state.js';
 import { recordEvent } from '../../services/analytics/events.js';
 import type { EventInput } from '../../services/analytics/events.js';
+import { ExternalWorkRequired } from '../../services/whatsapp/externalWork.js';
 
 const defaults = { db: prisma, text: sendTextMessage, interactive: sendInteractiveMessage, list: sendListMessage,
   answer: answerWithRAG, rewrite: generateOrientativeResponse, pending: getPendingAppointment,
@@ -177,6 +178,7 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
         if (!await hasNewerText()) await render(result);
       }
       catch (err) {
+        if (err instanceof ExternalWorkRequired) throw err;
         console.error('Erro ao gerar resposta com RAG:', err);
         await say('Não consegui gerar uma resposta. Tente novamente ou digite *menu* para voltar às opções.', [MENU_OPTION]);
       }

@@ -107,7 +107,7 @@
       "categoriaEsperada": "CONSUMO",
       "tipoRespostaEsperada": "redirecionamento",
       "artigoEsperado": null,
-      "observacao": "Caso bancário/regulado pelo Banco Central, não coberto diretamente por artigos genéricos do CDC na base. Deve reconhecer que não há artigo adequado e sugerir agendamento presencial, não forçar um artigo 'menos errado' (ver seção 12 da doc de arquitetura)."
+      "observacao": "Expectativa operacional conservadora mantida para comparação histórica: não forçar artigo inadequado quando a recuperação e os fatos forem insuficientes. Ser um caso bancário não exclui o CDC (art. 3º, § 2º). O relato não comprova cobrança indevida nem define sozinho a responsabilidade; não generalizar o art. 42 para todo PIX incorreto. Revisar o gabarito antes de aceitar orientação fundamentada no art. 14 ou esclarecimento direcionado; ver docs/auditoria-seguranca-juridica.md."
     },
     {
       "id": "OD-13",

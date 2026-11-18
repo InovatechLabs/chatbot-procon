@@ -12,8 +12,10 @@ export function redactIdentifiers(text: string, known: (string | null | undefine
     .replace(/(?<!\d)(?:\+?55[\s.-]*)?\(?\d{2}\)?[\s.-]*\d{4,5}[\s.-]*\d{4}(?!\d)/g, '[TELEFONE]')
     .replace(/(?<!\d)(?:\d[ .-]?){14,19}(?!\d)/g, '[IDENTIFICADOR]')
     .replace(/\b(?:RG|chave\s+pix|conta\s+bancária|agência)\s*[:=]\s*[^\s,;]+/gi, '[IDENTIFICADOR INFORMADO]')
-    .replace(/\b(?:meu nome (?:é|e)|me chamo|nome completo\s*:)\s*[^\n,;.?!]+/gi, '[NOME INFORMADO]')
-    .replace(/\b(?:meu endereço (?:é|e)|moro (?:na|no|em)|endereço\s*:)\s*[^\n;.?!]+/gi, '[ENDEREÇO INFORMADO]');
+    // O introdutor precisa terminar: "e" não pode consumir "em/está/errado".
+    // Lookahead explícito também funciona depois de "é", fora do \w do JavaScript.
+    .replace(/\b(?:(?:meu nome (?:é|e)|me chamo)(?=\s|[:=]|$)|nome completo\s*:)\s*[^\n,;.?!]+/gi, '[NOME INFORMADO]')
+    .replace(/\b(?:(?:meu endereço (?:é|e)|moro (?:na|no|em))(?=\s|[:=]|$)|endereço\s*:)\s*[^\n;.?!]+/gi, '[ENDEREÇO INFORMADO]');
 }
 export function maskPhone(value: string) {
   const digits = value.replace(/\D/g, '');
