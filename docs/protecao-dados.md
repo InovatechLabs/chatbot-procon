@@ -59,9 +59,36 @@ No RAG, pergunta, histórico, consulta de busca e prompts são filtrados antes d
 
 ## Retenção
 
-Decisão do usuário: **não há prazos aprovados pelo PROCON; limpeza automática permanece desativada**. Não foi instalado agendamento de limpeza nem aplicada exclusão na base local.
+**A política começa desativada e sem prazos.** O administrador do PROCON define e ativa a política pelo painel; o backend executa exclusões reais automaticamente. Não há simulação no painel ou endpoint de preview.
 
-`npm run privacy:retention` apenas simula. Sem prazos, não seleciona registros. Depois de aprovação institucional, configurar separadamente `RETENTION_SESSION_DAYS`, `RETENTION_APPOINTMENT_DAYS` e `RETENTION_APPROVED=true`; somente `npm run privacy:retention -- --apply` remove. Sessões antigas só são removidas se não houver agendamento vinculado ainda preservado; mensagens e avaliações são removidas em cascata. Agendamentos PENDING são sempre preservados, inclusive atrasados. Na simulação, sessões com agendamento elegível que ainda não foi removido não entram na contagem; avaliar novamente depois da remoção de agendamentos. Testes de exclusão usam apenas banco isolado fictício.
+O ADMIN configura a política em **Retenção de dados** (`/retention`). Cada prazo pode ficar vazio para preservar a categoria. Para aplicar, marque **Ativar exclusão automática** e salve. Alterar um prazo no formulário desmarca a ativação; reative antes de salvar para continuar a limpeza. Desativar e salvar impede novas execuções; uma execução já em andamento termina antes de confirmar a desativação, pelo mesmo lock transacional.
+
+O worker inicia junto ao backend, verifica a política a cada minuto e executa uma limpeza por hora quando ativa. Ativação ou edição permite nova execução na próxima verificação. Datas vencidas podem aguardar a próxima rodada: não há exclusão no segundo exato do vencimento. Se o backend estiver desligado, retoma quando iniciar. Horário, versão e totais da última execução ficam no PostgreSQL e no painel, sem dados pessoais. Reinícios e múltiplas instâncias respeitam essa cadência persistida e o lock global. Recarregue a tela para atualizar os totais.
+
+`npm run privacy:retention` informa que a retenção é automática; não simula nem exclui. `npm run privacy:retention -- --apply` é uma antecipação manual real, ainda sujeita à política ativa. Nenhum comando adicional é necessário na operação normal.
+
+| Campo opcional no painel | Registros elegíveis |
+| --- | --- |
+| Conversas e histórico (`sessionsDays`) | Sessões antigas, sem agendamento preservado e sem receipt/saída pendente ou não resolvido para o telefone |
+| Agendamentos encerrados (`appointmentsDays`) | Agendamentos antigos `COMPLETED`, `CANCELLED` ou `NO_SHOW` |
+| Registros de mensagens recebidas (`receiptsDays`) | `DONE`/`SKIPPED`, contados de `processedAt`, sem lease e sem saída vinculada ainda retida |
+| Registros de mensagens enviadas (`outgoingDays`) | Somente `SENT`, contadas de `sentAt`, sem lease |
+
+Campo vazio preserva toda a categoria; não há TTL padrão. Aceita somente dias inteiros entre 1 e 36500. A migração `20261118000100_retention_settings` cria uma política sem prazos e desautorizada. A migração `20261118000200_automatic_retention` acrescenta os resultados da execução e desativa autorizações que eram somente manuais, preservando os prazos: o admin deve ativar explicitamente o novo comportamento. Não importa valores do ambiente. As antigas `RETENTION_SESSION_DAYS`, `RETENTION_APPOINTMENT_DAYS`, `RETENTION_RECEIPT_DAYS`, `RETENTION_OUTGOING_DAYS` e `RETENTION_APPROVED` são ignoradas, podendo ser removidas do ambiente.
+
+API exclusiva de ADMIN: GET/PUT `/api/retention`. PUT exige `{version, value}` com os quatro prazos (número ou null) e `approved` (ativação). Retorna 409 em versão desatualizada. As respostas não usam cache. O servidor valida perfil, conta ativa, senha temporária, origem da mutação e valores. A política registra versão, data e ID do último administrador que a alterou. Edição e execução compartilham lock transacional; o lock de linha impede usar snapshot de autorização revogada. Não é um histórico completo de auditoria das edições.
+
+O painel mostra somente a última limpeza concluída. Falhas registram o nome técnico do erro no log do backend, sem texto SQL ou conteúdo pessoal, e são retentadas na próxima verificação. Limpeza e atualização de seus totais são atômicas: falha no commit não deixa resultado parcial ou marcação de sucesso.
+
+Instalação local em 18/11/2026: backup criptografado criado, migração de automação aplicada e backend reiniciado. Confirmado `approved=false` e `lastRunAt=null`: não foi ativada política nem executada limpeza real na base local. Exclusões reais de teste ocorreram apenas no PostgreSQL descartável. Validação funcional por HTTP/banco e lint/build; a revisão visual da tela fica com o usuário.
+
+`PENDING`, `PROCESSING`, `SENDING`, `DEAD`, `UNKNOWN` e estados desconhecidos das filas não são removidos. Uma saída `SKIPPED` também permanece: atualmente não há data própria de resolução para aplicar TTL com segurança. Registros sem data terminal ou com lease são preservados. Uma saída ainda retida, inclusive `SENT`, protege seu receipt. Agendamentos `PENDING` são sempre preservados, inclusive atrasados.
+
+Sessões sem índice HMAC são preservadas por não ser possível verificar os vínculos. A seleção trava as linhas elegíveis e respeita o lock por telefone do inbox. A transação é serializável e limitada a 15 segundos; falha/conflito aborta a operação inteira. O worker retenta na próxima verificação. Mensagens de histórico e avaliações são removidas em cascata somente quando a sessão é elegível. Vínculos protegidos podem manter dados além do prazo até resolução.
+
+A ordem é agendamentos, saídas enviadas, receipts e sessões, permitindo remover dependências elegíveis no mesmo commit. Os resultados contêm somente contagens agregadas, sem telefone, hash ou conteúdo de mensagens. As contagens de sessões não representam a quantidade de mensagens/avaliações removidas em cascata.
+
+**Deduplicação:** remover um receipt também remove a memória do `metaMessageId` recebido; um webhook antigo reenviado depois disso pode ser processado novamente. O prazo institucional precisa cobrir a janela de reentregas/retries, recuperação operacional e auditoria exigidas. O TTL da outbox também deve contemplar atualizações de entrega e a análise dos envios. Não é seguro escolher um número apenas para liberar espaço. Testes de exclusão usam banco isolado fictício.
 
 ## Exposição de serviços
 

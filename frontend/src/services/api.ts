@@ -34,7 +34,7 @@ export const authService = {
 // TIPOS — AGENDA (contrato da tela)
 // ============================================
 
-export type StatusAgendamento = 'pendente' | 'concluido' | 'cancelado';
+export type StatusAgendamento = 'pendente' | 'concluido' | 'cancelado' | 'nao_compareceu';
 
 export interface Agendamento {
   id: string;
@@ -156,7 +156,7 @@ interface AppointmentApi {
   citizenName: string | null;
   subject: string | null;
   scheduledAt: string;
-  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
   source: string;
 }
 
@@ -164,12 +164,14 @@ const STATUS_API_PARA_UI = {
   PENDING: 'pendente',
   COMPLETED: 'concluido',
   CANCELLED: 'cancelado',
+  NO_SHOW: 'nao_compareceu',
 } as const;
 
 const STATUS_UI_PARA_API = {
   pendente: 'PENDING',
   concluido: 'COMPLETED',
   cancelado: 'CANCELLED',
+  nao_compareceu: 'NO_SHOW',
 } as const;
 
 const paraAgendamento = (a: AppointmentApi): Agendamento => {

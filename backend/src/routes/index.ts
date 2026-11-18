@@ -11,6 +11,7 @@ import { createPanelUserService } from '../services/auth/panelUserService.js';
 import type { PanelUserService } from '../services/auth/panelUserService.js';
 import { createScheduleAdminRouter } from './appointments/scheduleAdmin.js';
 import analyticsRouter from './analytics/analytics.js';
+import { createRetentionRouter } from './privacy/retention.js';
 
 export function createApiRouter(service: AuthService = createAuthService(), config: AuthConfig = authConfig(), users: PanelUserService = createPanelUserService()) {
 const ApiRouter = Router();
@@ -26,6 +27,7 @@ ApiRouter.use('/appointments', roles('ADMIN', 'ATTENDANT'), appointmentsRouter);
 ApiRouter.use(roles('ADMIN'));
 ApiRouter.use('/analytics', analyticsRouter);
 ApiRouter.use('/schedule', createScheduleAdminRouter());
+ApiRouter.use('/retention', createRetentionRouter());
 ApiRouter.use('/users', createPanelUsersRouter(users));
 ApiRouter.use('/flow', flowRouter);
 ApiRouter.use('/nodes', nodesRouter);

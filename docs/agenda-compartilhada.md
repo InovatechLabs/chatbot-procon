@@ -49,3 +49,13 @@ Na instalação local, foi criado backup criptografado em `.private-backups` e a
 Tipos/build do backend, lint/build do frontend e 79 testes locais passaram; dois testes históricos de artefatos removidos continuam pulados. Os cinco testes de integração PostgreSQL passaram. A integração usa bancos descartáveis e testa capacidade independente de funcionários, concorrência, exceções, bloqueios, recorrência, férias atravessando o ano, conservação de reservas/durações, redução de capacidade, permissões e recusa de botão antigo pelo handler do bot. Também verifica reconstrução por migrações, ausência de divergência de schema e inicialização compilada.
 
 Não foi feita validação visual manual do painel nem envio real pelo WhatsApp nesta etapa. O fluxo do bot foi exercitado com dependências de transporte simuladas e PostgreSQL real.
+
+## Revisão de contratos — 18/11/2026
+
+O status `NO_SHOW`, já existente no banco e no serviço, passa a ser aceito no PATCH e no filtro HTTP. Na edição do agendamento, o painel oferece “Não compareceu”, com rótulo, indicador e conversores de ida/volta próprios. Ausência não ocupa capacidade; voltar a PENDING continua sujeito à validação existente de horário futuro, vaga e duplicidade. Não houve mudança de schema ou migração.
+
+A consulta por `mes` rejeita meses 00/13 com HTTP 400, evitando transformar valores inválidos em falha interna. O teste HTTP verifica registro e filtro de ausência, liberação da vaga, reativação e rejeição de status/mês inválidos.
+
+Esse teste identificou que `busyBetween` ainda contava ausências como ocupação. A consulta compartilhada foi corrigida para desconsiderar CANCELLED e NO_SHOW, preservando o histórico e os atendimentos concluídos. Validação: lint/build do frontend, tipos/build do backend, 181 testes sem banco aprovados (dois skips históricos) e 25 aprovações PostgreSQL, com reconstrução das cinco bases, comparação de schema e smoke compilado aprovados. Não houve teste visual manual ou uso do Kaggle.
+
+`categoryKey` e CPF não foram adicionados ao formulário ou ao schema HTTP de criação: o painel atual solicita nome, telefone e assunto. A integração WhatsApp usa o serviço interno, que recebe categoria/CPF e aproveita a sessão vinculada. Expor esses campos no painel depende de um fluxo de coleta/edição definido; a diferença entre DTO administrativo e entrada interna do serviço é intencional.

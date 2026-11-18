@@ -92,6 +92,21 @@ model OutgoingMessage {
   @@index([phoneLookup, sequence])
 }
 
+model RetentionSettings {
+  id String @id @default("main")
+  sessionsDays Int?
+  appointmentsDays Int?
+  receiptsDays Int?
+  outgoingDays Int?
+  approved Boolean @default(false)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  lastRunAt DateTime?
+  lastRunVersion Int?
+  lastRunCounts Json?
+}
+
 model ScheduleSettings {
   id String @id @default("main")
   capacity Int @default(1)

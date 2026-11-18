@@ -13,7 +13,7 @@ export interface BusyAppointment { scheduledAt: Date; durationMin: number; atten
 export async function busyBetween(tx: Prisma.TransactionClient, start: Date, end: Date, excludeId = '') {
   // Apenas metadados de ocupação, sem campos pessoais/criptografados.
   return tx.$queryRaw<BusyAppointment[]>`SELECT "scheduledAt", "durationMin", "attendantId" FROM "Appointment"
-    WHERE "status" <> 'CANCELLED' AND "id" <> ${excludeId} AND "scheduledAt" < ${end}
+    WHERE "status" NOT IN ('CANCELLED','NO_SHOW') AND "id" <> ${excludeId} AND "scheduledAt" < ${end}
     AND "scheduledAt" + "durationMin" * INTERVAL '1 minute' > ${start}`;
 }
 export const overlap = (a: number, b: number, x: number, y: number) => a < y && x < b;

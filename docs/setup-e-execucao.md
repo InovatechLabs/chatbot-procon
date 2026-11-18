@@ -324,6 +324,20 @@ O benchmark LLM e `npm run test:states:live` são opt-in: precisam dos serviços
 
 ## 12. Problemas comuns
 
+### Configurar retenção pelo painel
+
+Depois das migrações e da geração do Prisma, entre como ADMIN e abra **Retenção de dados**. Defina os quatro prazos em dias, ou deixe cada campo vazio para preservar a categoria. Instalações novas começam sem prazos e desativadas. Marque **Ativar exclusão automática** e salve: isso autoriza exclusões reais, incluindo registros antigos já vencidos. Para interromper, desmarque e salve.
+
+A rotina inicia junto ao backend, verifica a ativação a cada minuto e aplica a política uma vez por hora. Após ativar ou editar, a primeira execução pode ocorrer na próxima verificação. Enquanto o backend estiver desligado não há limpeza; ao iniciar, retoma a política salva. O painel exibe a última execução e seus totais. As antigas variáveis `RETENTION_*` não são usadas. Não há simulação ou comando obrigatório na operação normal.
+
+Opcionalmente, para antecipar uma execução real da política ativa, a partir de `backend`:
+
+```powershell
+npm run privacy:retention -- --apply
+```
+
+O comando aplica a política salva mais recente; se estiver desativada, recusa a exclusão. Sem `--apply`, apenas informa o funcionamento automático. Configuração e execução são serializadas por lock no banco. A migração de automação desativa eventuais autorizações antigas que eram apenas manuais; reativar pelo painel. Manter backup conforme a operação da instituição. Detalhes e proteções em [Proteção dos dados — retenção](protecao-dados.md#retenção).
+
 | Sintoma | Conferir |
 | --- | --- |
 | PrismaClient não inicializado/modelos ausentes | Geração Prisma no mesmo ambiente/volume que executa o backend; usar o override da seção 8 |

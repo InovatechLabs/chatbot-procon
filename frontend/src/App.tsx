@@ -10,6 +10,7 @@ import { useAuth } from './auth/context';
 import Account from './auth/Account';
 import Users from './auth/Users';
 import ScheduleSettingsPage from './ScheduleSettings';
+import RetentionSettingsPage from './RetentionSettings';
 import Brand from './Brand';
 
 const IconChart = () => (
@@ -62,8 +63,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const isAccount = location.pathname === '/account';
   const isUsers = location.pathname === '/users';
   const isSchedule = location.pathname === '/schedule';
-  const pageTitle = isSchedule ? 'Disponibilidade' : isUsers ? 'Usuários e acessos' : isAccount ? 'Minha conta' : isAnalytics ? 'Indicadores' : isAgenda ? 'Agenda de atendimentos' : 'Menu do chatbot';
-  const description = isSchedule ? 'Defina os dias, os horários e as vagas de atendimento.' : isUsers ? 'Gerencie as contas e as permissões da equipe.' : isAccount ? 'Mantenha sua senha de acesso atualizada.' : isAnalytics ? 'Acompanhe o uso do assistente e os atendimentos.' : isAgenda ? 'Consulte a agenda e organize os atendimentos presenciais.' : 'Organize as opções e as orientações do assistente virtual.';
+  const isRetention = location.pathname === '/retention';
+  const pageTitle = isRetention ? 'Retenção de dados' : isSchedule ? 'Disponibilidade' : isUsers ? 'Usuários e acessos' : isAccount ? 'Minha conta' : isAnalytics ? 'Indicadores' : isAgenda ? 'Agenda de atendimentos' : 'Menu do chatbot';
+  const description = isRetention ? 'Defina os prazos e controle a exclusão automática dos registros vencidos.' : isSchedule ? 'Defina os dias, os horários e as vagas de atendimento.' : isUsers ? 'Gerencie as contas e as permissões da equipe.' : isAccount ? 'Mantenha sua senha de acesso atualizada.' : isAnalytics ? 'Acompanhe o uso do assistente e os atendimentos.' : isAgenda ? 'Consulte a agenda e organize os atendimentos presenciais.' : 'Organize as opções e as orientações do assistente virtual.';
 
   return (
     <div data-ui="admin-layout" className={cx(ui.adminLayout)} onKeyDown={event => { if (event.key === 'Escape' && navOpen) { setNavOpen(false); menuButton.current?.focus(); } }}>
@@ -99,6 +101,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             <span>Menu do chatbot</span>
           </button>}
           {auth.user?.role === 'ADMIN' && <button data-ui="nav-item" className={cx(ui.navItem)} aria-current={isSchedule ? 'page' : undefined} onClick={() => go('/schedule')}><IconCalendar /><span>Disponibilidade</span></button>}
+          {auth.user?.role === 'ADMIN' && <button className={cx(ui.navItem)} aria-current={isRetention ? 'page' : undefined} onClick={() => go('/retention')}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7z"/><path d="m8 12 3 3 5-6"/></svg><span>Retenção de dados</span></button>}
           {auth.user?.role === 'ADMIN' && <button data-ui="nav-item" className={cx(ui.navItem)} aria-current={isUsers ? 'page' : undefined} onClick={() => go('/users')}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v3"/></svg><span>Usuários e acessos</span></button>}
         </nav>}
         <div data-ui="sidebar-footer" className={cx(ui.sidebarFooter)}>
@@ -170,6 +173,7 @@ export default function App() {
         <Route path="/account" element={<ProtectedRoute passwordChange><MainLayout><Account /></MainLayout></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute admin><MainLayout><Users /></MainLayout></ProtectedRoute>} />
         <Route path="/schedule" element={<ProtectedRoute admin><MainLayout><ScheduleSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/retention" element={<ProtectedRoute admin><MainLayout><RetentionSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

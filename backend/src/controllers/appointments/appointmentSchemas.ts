@@ -4,7 +4,7 @@ import { civilDateSchema } from '../../services/appointments/scheduleSchemas.js'
 const isoDate = civilDateSchema;
 // Exige fuso explícito (ex.: 2026-10-20T14:00:00-03:00) para não haver ambiguidade
 const isoDateTime = z.iso.datetime({ offset: true }).transform((s) => new Date(s));
-const status = z.enum(['PENDING', 'COMPLETED', 'CANCELLED']);
+const status = z.enum(['PENDING', 'COMPLETED', 'CANCELLED', 'NO_SHOW']);
 
 export const createAppointmentSchema = z.object({
   phoneNumber: z.string().min(10).max(20),
@@ -29,7 +29,7 @@ export const updateAppointmentSchema = z
 export const listAppointmentsSchema = z.object({
   from: isoDate.optional(),
   to: isoDate.optional(),
-  mes: z.string().regex(/^\d{4}-\d{2}$/, 'Use o formato YYYY-MM').optional(),
+  mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use o formato YYYY-MM com mês entre 01 e 12').optional(),
   status: status.optional(),
   attendantId: z.string().uuid().optional(),
   phoneNumber: z.string().min(10).max(20).optional(),

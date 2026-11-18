@@ -33,12 +33,13 @@ const MESES = [
 ];
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-const appointmentTones: Record<StatusAgendamento, string> = { pendente: 'bg-warning-light text-[#80510b]', concluido: 'bg-success-light text-[#216745]', cancelado: 'bg-danger-light text-[#9b3030]' };
+const appointmentTones: Record<StatusAgendamento, string> = { pendente: 'bg-warning-light text-[#80510b]', concluido: 'bg-success-light text-[#216745]', cancelado: 'bg-danger-light text-[#9b3030]', nao_compareceu: 'bg-slate-100 text-slate-700' };
 
 const ROTULO_STATUS: Record<StatusAgendamento, string> = {
   pendente: 'Pendente',
   concluido: 'Concluído',
   cancelado: 'Cancelado',
+  nao_compareceu: 'Não compareceu',
 };
 
 const formatarTelefone = (digitos: string) => {
@@ -456,6 +457,7 @@ const abrirHistorico = async (agendamento: Agendamento) => {
                     <option value="pendente">Pendente</option>
                     <option value="concluido">Concluído</option>
                     <option value="cancelado">Cancelado</option>
+                    <option value="nao_compareceu">Não compareceu</option>
                   </select>
                 </div>
               )}

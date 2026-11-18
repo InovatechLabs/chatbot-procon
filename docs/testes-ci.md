@@ -2,7 +2,7 @@
 
 ## O que executa
 
-O workflow `.github/workflows/ci.yml` substitui a antiga checagem de containers ligados. Em push/PR para main e dev, ou execução manual, roda dois jobs com Node 24:
+O workflow `.github/workflows/ci.yml` substitui a antiga checagem de containers ligados. Em push para `main`, `dev` e `feat/**`, PR para `main`/`dev`, ou execução manual, roda dois jobs com Node 24. Commits somente locais não disparam a CI; um push com vários commits dispara uma execução para o evento.
 
 - Frontend: npm ci, ESLint e build com checagem TypeScript.
 - Backend: npm ci, geração Prisma, tipos, build e suíte sem serviços externos; PostgreSQL com pgvector para integrações reais; reconstrução completa por migrate deploy e comparação com schema; preservação de fixture ao reaplicar compatibilidade; inicialização do JavaScript compilado, conferindo health 200 e API sem sessão 401.
@@ -46,7 +46,15 @@ O runner não lê backend/.env: gera chaves criptográficas efêmeras, substitui
 
 Os comandos especializados antigos (test:ux, test:auth, test:privacy e test:webhook) continuam disponíveis para depuração; o isolamento de ambiente consolidado é aplicado por npm test / test:integration. O benchmark tests/llm/run-eval.ts permanece manual e fora do CI.
 
+O runner descobre automaticamente os arquivos `.test.ts` nas pastas configuradas: `ux`, `auth`, `privacy` e `webhook` no modo sem banco; arquivos com `postgres` no nome em `auth`, `privacy`, `appointments`, `messaging` e `analytics` nas integrações. Um arquivo colocado em outra pasta precisa ser incluído no runner. Avaliações reais, replays e testes de recuperação em `tests/llm` não são acionados pelo workflow. O número de casos pode crescer: acompanhar duração, estabilidade e utilidade das verificações, sem remover regressões importantes apenas para reduzir a contagem.
+
 ## Cobertura relevante
+
+A retenção automática substitui a simulação operacional por exclusão real periódica. Resultado: 184 aprovações sem banco, dois skips históricos e 26 aprovações PostgreSQL; tipos/build do backend e lint/build do frontend aprovados. O teste em banco exclui conversa com 31 dias e histórico sob política de 30 dias, preserva conversa com 29 dias e sessão antiga com receipt pendente, verifica cadência horária persistida, duas instâncias, edição de prazo e revogação concorrente. Testes do worker cobrem falha/retry sem conteúdo pessoal no log, ausência de sobreposição e shutdown aguardando a operação atual. As cinco bases foram reconstruídas sem divergência e o smoke compilado passou. Não houve uso de Kaggle/Meta ou exclusão de dados reais nos testes.
+
+A configuração de retenção pelo painel acrescenta testes de valores/autorização e HTTP/PostgreSQL para ADMIN, atendente, senha temporária, origem, persistência, CAS, simulação, execução pelo comando e revogação enquanto uma execução aguarda o lock. Resultado: 182 aprovações sem banco, dois skips históricos e 26 aprovações PostgreSQL; tipos/build do backend e lint/build do frontend aprovados. A migração reconstruiu as cinco bases de teste sem divergência de schema e o smoke compilado passou. Não usa Kaggle ou WhatsApp.
+
+A etapa de retenção de inbox/outbox acrescenta `tests/privacy/retention-postgres.test.ts`, descoberto automaticamente pelo runner de integração. Verifica TTL explícito, simulação sem exclusão, idempotência, vínculos de saída, pendências, estados para revisão, ausência de data terminal e lock do inbox. Resultado da etapa: 181 aprovações sem banco e dois skips históricos; 25 aprovações PostgreSQL, reconstrução de cinco bases sem divergência e smoke compilado aprovado. Tipos e build passaram. A suíte sem banco foi executada no container devido à falha conhecida `uv_os_get_passwd/ENOMEM` do tsx no Windows restrito. A limpeza real continua desativada; detalhes em [proteção dos dados e retenção](protecao-dados.md#retenção).
 
 - Fluxo do bot, coleta/saída, menu, clarificação, agrupamento de mensagens, ordenação e proteção contra resposta de IA obsoleta.
 - RAG com dependências simuladas, referência/prazo, reescrita fiel e minimização de identificadores.
