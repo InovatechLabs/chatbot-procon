@@ -4,3 +4,11 @@ dist/
 build/
 .private-backups/
 backend/.ci-generated/
+backend/src/**/*.js
+backend/src/**/*.js.map
+backend/src/**/*.d.ts
+backend/src/**/*.d.ts.map
+backend/prisma/seed/*.js
+backend/prisma/seed/*.d.ts*
+backend/prisma.config.js*
+backend/prisma.config.d.ts*

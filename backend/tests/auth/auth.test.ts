@@ -112,6 +112,7 @@ test('HTTP protege APIs, ignora flag antiga, valida origem, restringe perfis e n
   if (!address || typeof address === 'string') throw new Error('Porta ausente');
   const request = (path: string, options?: RequestInit) => fetch(`http://127.0.0.1:${address.port}${path}`, options);
   assert.equal((await request('/health')).status, 200);
+    assert.equal((await request('/ready')).status, 503); // nos testes unitários o banco é propositalmente inacessível
   for (const path of ['/api/nodes', '/api/flow/steps', '/api/appointments', '/api/analytics', '/api/users', '/api/schedule']) {
     assert.equal((await request(path, { headers: { Cookie: 'authenticated=true' } })).status, 401, path);
   }

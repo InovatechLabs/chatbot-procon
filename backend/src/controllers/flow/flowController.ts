@@ -1,83 +1,72 @@
 import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../../database/index.js';
-import dotenv from 'dotenv';
 
-dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
+const title = z.string().trim().min(1).max(120);
+const message = z.string().trim().min(1).max(4000);
+const createBody = z.object({
+  id: z.string().trim().min(1).max(100).optional(),
+  title, message,
+  isStart: z.boolean().optional(),
+});
+const updateBody = z.object({ title: title.optional(), message: message.optional(), isStart: z.boolean().optional() });
+
+function fail(res: Response, error: unknown, action: string) {
+  const code = (error as { code?: string } | null)?.code;
+  if (code === 'P2025') return res.status(404).json({ error: 'Etapa não encontrada.' });
+  if (code === 'P2003') return res.status(409).json({ error: 'Remova antes as alternativas ou vínculos desta etapa.' });
+  console.error(`Erro ao ${action}:`, error instanceof Error ? error.name : 'erro');
+  return res.status(500).json({ error: `Erro interno ao ${action}.` });
+}
 
 export const FlowController = {
-  // Adiciona uma nova etapa/menu
   async create(req: Request, res: Response) {
+    const body = createBody.safeParse(req.body ?? {});
+    if (!body.success) return res.status(400).json({ error: 'Dados da etapa inválidos.' });
+    const { id, isStart } = body.data;
     try {
-      const data = req.body;
       const newStep = await prisma.step.create({
-        data,
+        data: {
+          title: body.data.title,
+          message: body.data.message,
+          ...(id !== undefined && { id }),
+          ...(isStart !== undefined && { isStart }),
+        },
       });
       return res.status(201).json(newStep);
-    } catch (error) {
-      console.error("Erro ao criar etapa:", error instanceof Error ? error.name : 'erro');
-      return res.status(500).json({ error: "Erro interno ao criar etapa." });
-    }
+    } catch (error) { return fail(res, error, 'criar etapa'); }
   },
 
-  // Lista todas as etapas do fluxo
-  async list(req: Request, res: Response) {
+  async list(_req: Request, res: Response) {
     try {
-      const steps = await prisma.step.findMany({
-        include: { options: true }
-      });
-      return res.status(200).json(steps);
-    } catch (error) {
-      console.error("Erro ao listar etapas:", error instanceof Error ? error.name : 'erro');
-      return res.status(500).json({ error: "Erro interno ao listar etapas." });
-    }
+      return res.status(200).json(await prisma.step.findMany({ include: { options: true } }));
+    } catch (error) { return fail(res, error, 'listar etapas'); }
   },
 
-  // Busca apenas uma etapa específica pelo ID
   async getById(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const step = await prisma.step.findUnique({
-        where: { id: String(id) }, 
-      });
-      
-      if (!step) {
-        return res.status(404).json({ error: "Etapa não encontrada." });
-      }
+      const step = await prisma.step.findUnique({ where: { id: String(req.params.id) } });
+      if (!step) return res.status(404).json({ error: 'Etapa não encontrada.' });
       return res.status(200).json(step);
-    } catch (error) {
-      console.error("Erro ao buscar etapa:", error instanceof Error ? error.name : 'erro');
-      return res.status(500).json({ error: "Erro interno ao buscar etapa." });
-    }
+    } catch (error) { return fail(res, error, 'buscar etapa'); }
   },
 
-  // Atualiza uma etapa existente 
   async update(req: Request, res: Response) {
+    const body = updateBody.safeParse(req.body ?? {});
+    if (!body.success) return res.status(400).json({ error: 'Dados da etapa inválidos.' });
+    const data: { title?: string; message?: string; isStart?: boolean } = {};
+    if (body.data.title !== undefined) data.title = body.data.title;
+    if (body.data.message !== undefined) data.message = body.data.message;
+    if (body.data.isStart !== undefined) data.isStart = body.data.isStart;
     try {
-      const { id } = req.params;
-      const data = req.body;
-      
-      const updatedStep = await prisma.step.update({
-        where: { id: String(id) },
-        data,
-      });
-      return res.status(200).json(updatedStep);
-    } catch (error) {
-      console.error("Erro ao atualizar etapa:", error instanceof Error ? error.name : 'erro');
-      return res.status(500).json({ error: "Erro interno ao atualizar etapa." });
-    }
+      return res.status(200).json(await prisma.step.update({ where: { id: String(req.params.id) }, data }));
+    } catch (error) { return fail(res, error, 'atualizar etapa'); }
   },
 
-  // DELETE: Exclui uma etapa do fluxo
   async delete(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      await prisma.step.delete({
-        where: { id: String(id) },
-      });
+      await prisma.step.delete({ where: { id: String(req.params.id) } });
       return res.status(204).send();
-    } catch (error) {
-      console.error("Erro ao excluir etapa:", error instanceof Error ? error.name : 'erro');
-      return res.status(500).json({ error: "Erro ao excluir etapa. Verifique se existem dependências." });
-    }
-  }
+    } catch (error) { return fail(res, error, 'excluir etapa'); }
+  },
 };

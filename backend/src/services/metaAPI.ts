@@ -18,8 +18,10 @@ const getMetaApi = (): AxiosInstance => {
       throw new Error("Variáveis META_WA_TOKEN e META_PHONE_NUMBER_ID são obrigatórias.");
     }
 
+    const version = process.env.META_GRAPH_VERSION;
+    const graphVersion = version && /^v\d+\.\d+$/.test(version) ? version : 'v25.0';
     metaApiInstance = axios.create({
-      baseURL: `https://graph.facebook.com/v19.0/${META_PHONE_NUMBER_ID}`,
+      baseURL: `https://graph.facebook.com/${graphVersion}/${META_PHONE_NUMBER_ID}`,
       headers: {
         Authorization: `Bearer ${META_WA_TOKEN}`,
         'Content-Type': 'application/json',
