@@ -6,6 +6,7 @@ import type { IncomingMessage } from '../../controllers/webhook/conversation.js'
 import { DurableInbox, DurableOutbox, queueOutgoing } from './durableMessages.js';
 import { configureMessageQueue } from './outgoingContext.js';
 import { expireInactiveSessions } from '../analytics/inactivity.js';
+import { queueDueReminders } from '../appointments/reminders.js';
 
 export async function canGroupIncoming(message: IncomingMessage) {
   const session = await prisma.userSession.findFirst({ where: { phoneNumber: message.from, status: 'OPEN' }, orderBy: { createdAt: 'desc' } });
@@ -36,6 +37,11 @@ export function startMessageWorkers() {
     if (Date.now() - sweptAt >= 60_000) { sweptAt = Date.now(); await expireInactiveSessions(); }
     return false;
   };
-  const running = [loop(() => inbox.runOne()), loop(() => inbox.runOne()), loop(() => outbox.runOne()), loop(() => outbox.runOne()), loop(sweep)];
+  let remindedAt = 0;
+  const remind = async () => {
+    if (Date.now() - remindedAt >= 60_000) { remindedAt = Date.now(); await queueDueReminders(); }
+    return false;
+  };
+  const running = [loop(() => inbox.runOne()), loop(() => inbox.runOne()), loop(() => outbox.runOne()), loop(() => outbox.runOne()), loop(sweep), loop(remind)];
   return async () => { stopping = true; await Promise.allSettled(running); };
 }

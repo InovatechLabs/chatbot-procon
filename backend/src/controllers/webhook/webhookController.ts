@@ -18,6 +18,7 @@ export const verifyWebhook = async (req: Request, res: Response): Promise<any> =
 // Guarda apenas os campos consumidos pelo bot, sem perfis, URLs ou bytes de mídia.
 const incomingSchema = z.object({ id: z.string().min(1).max(512), from: z.string().regex(/^\d{7,20}$/), type: z.string().min(1).max(40),
   text: z.object({ body: z.string().max(10000) }).optional(),
+  button: z.object({ payload: z.string().max(512).optional() }).optional(),
   interactive: z.object({ type: z.string(), button_reply: z.object({ id: z.string().max(512) }).optional(), list_reply: z.object({ id: z.string().max(512) }).optional() }).optional(),
 }).superRefine((value, ctx) => {
   if (value.type === 'text' && !value.text) ctx.addIssue({ code: 'custom', message: 'Texto ausente.' });
@@ -38,6 +39,7 @@ export const createWebhookEventHandler = (persist = persistIncoming) => async (r
         if (!parsed.success) return res.status(400).json({ error: 'Mensagem inválida.' });
         pending.push({ id: parsed.data.id, from: parsed.data.from, type: parsed.data.type,
           ...(parsed.data.text ? { text: parsed.data.text } : {}),
+          ...(parsed.data.button?.payload ? { button: { payload: parsed.data.button.payload } } : {}),
           ...(parsed.data.interactive ? { interactive: { type: parsed.data.interactive.type,
             ...(parsed.data.interactive.button_reply ? { button_reply: parsed.data.interactive.button_reply } : {}),
             ...(parsed.data.interactive.list_reply ? { list_reply: parsed.data.interactive.list_reply } : {}),

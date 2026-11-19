@@ -294,6 +294,8 @@ export async function updateAppointment(id: string, input: UpdateAppointmentInpu
           notes: input.notes,
         }),
         ...(attendantChanged ? { attendantId: input.attendantId ?? null } : {}),
+        // Novo horário ou reativação: o lembrete e a confirmação valem para o horário anterior.
+        ...(slotChanged || reactivated ? { reminderQueuedAt: null, confirmedAt: null } : {}),
       },
       include: { attendant: true },
     });

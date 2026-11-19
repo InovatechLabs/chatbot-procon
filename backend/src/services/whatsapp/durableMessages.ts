@@ -128,7 +128,10 @@ export class DurableOutbox {
       await rootPrisma.outgoingMessage.updateMany({ where: { id: item.id, leaseToken: item.leaseToken }, data: { state: 'SENT', metaMessageId: metaId, payload: null, sentAt: new Date(), leaseToken: null, leaseUntil: null, lastError: null } });
     } catch (error) {
       const failure = outgoingFailure(error, item.attempts);
-      await rootPrisma.outgoingMessage.updateMany({ where: { id: item.id, leaseToken: item.leaseToken, state: 'SENDING' }, data: { state: failure.state, lastError: failure.reason, availableAt: new Date(Date.now() + retryDelay(item.attempts)), leaseToken: null, leaseUntil: null } });
+      // Lembrete (template) nunca trava a conversa do cidadão: falha definitiva vira SKIPPED, com o motivo em lastError.
+      const isTemplate = (() => { try { return JSON.parse(item.payload ?? '{}').type === 'template'; } catch { return false; } })();
+      const finalState = isTemplate && failure.state !== 'PENDING' ? 'SKIPPED' : failure.state;
+      await rootPrisma.outgoingMessage.updateMany({ where: { id: item.id, leaseToken: item.leaseToken, state: 'SENDING' }, data: { state: finalState, lastError: failure.reason, availableAt: new Date(Date.now() + retryDelay(item.attempts)), leaseToken: null, leaseUntil: null, ...(finalState === 'SKIPPED' ? { payload: null } : {}) } });
       console.error('Falha na outbox persistente:', item.id, failure.reason);
     }
     return true;

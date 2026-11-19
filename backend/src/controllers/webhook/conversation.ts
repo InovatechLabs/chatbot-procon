@@ -18,15 +18,17 @@ import { decodeSession, initialSnapshot, isScheduling, clarificationRounds, tran
 import type { ConversationState } from '../../services/conversation/state.js';
 import { recordEvent } from '../../services/analytics/events.js';
 import type { EventInput } from '../../services/analytics/events.js';
+import { handleReminderReply } from '../../services/appointments/reminders.js';
 
 const defaults = { db: prisma, text: sendTextMessage, interactive: sendInteractiveMessage, list: sendListMessage,
   answer: answerWithRAG, rewrite: generateOrientativeResponse, pending: getPendingAppointment,
-  slots: getAvailableSlots, dates: getScheduleDates, book: createAppointment, documents: sendDocumentCategoryList, document: handleDocumentCategorySelection };
+  slots: getAvailableSlots, dates: getScheduleDates, book: createAppointment, documents: sendDocumentCategoryList, document: handleDocumentCategorySelection, reminderReply: handleReminderReply };
 export type ConversationDependencies = typeof defaults;
 
 export interface IncomingMessage {
   id: string; from: string; type: string;
   text?: { body: string };
+  button?: { payload: string };
   interactive?: { type: string; button_reply?: { id: string }; list_reply?: { id: string } };
 }
 
@@ -46,6 +48,8 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
   return async function handleMessage(message: IncomingMessage, hasNewerText: () => Promise<boolean> = async () => false) {
     if (message.type === 'reaction') return;
     const phone = message.from;
+    // Botões do lembrete de agendamento (template): confirmar ou cancelar, sem abrir sessão de conversa.
+    if (message.type === 'button' && message.button?.payload && await d.reminderReply(phone, message.button.payload)) return;
     let session = await d.db.userSession.findFirst({ where: { phoneNumber: phone, status: 'OPEN' }, orderBy: { createdAt: 'desc' } });
     const age = session ? (Date.now() - session.updatedAt.getTime()) / 60_000 : 0;
     const scheduling = !!session && isScheduling(decodeSession(session).snapshot.state);
