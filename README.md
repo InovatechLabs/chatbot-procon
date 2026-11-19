@@ -1,5 +1,7 @@
 # Chatbot PROCON
 
+> **Guia operacional atualizado:** [Instalação, configuração e execução](docs/setup-e-execucao.md). Para os comandos, serviços e variáveis atuais, siga esse guia; as seções abaixo ainda incluem descrições históricas da arquitetura.
+
 Chatbot de atendimento via WhatsApp para o PROCON, com motor de navegação por árvore de decisão, painel administrativo para gestão dos fluxos e geração de respostas orientativas com apoio de um LLM local (Ollama). Solução conteinerizada, pronta para implantação via Docker Compose na infraestrutura do cliente.
 
 Projeto acadêmico (ABP — 6º semestre, DSM).

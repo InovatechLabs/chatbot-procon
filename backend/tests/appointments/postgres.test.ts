@@ -1,0 +1,87 @@
+import 'dotenv/config';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+
+test('agenda real: concorrência, duplicidade, cancelamento e nova reserva pelo HTTP', { skip: !process.env.APPOINTMENTS_TEST_DB_NAME }, async () => {
+  const name = process.env.APPOINTMENTS_TEST_DB_NAME!;
+  assert.match(name, /^procon_appointments_test_[a-z0-9_]+$/);
+  const url = new URL(process.env.DATABASE_URL!); url.pathname = `/${name}`;
+  process.env.DATABASE_URL = url.toString();
+  const { prisma } = await import('../../src/database/index.js');
+  const { createApp } = await import('../../src/app.js');
+  const { getUpcomingSlots, createAppointment } = await import('../../src/services/appointments/appointmentService.js');
+  const { initialSnapshot, persistable, decodeSession } = await import('../../src/services/conversation/state.js');
+  const { hashPassword } = await import('../../src/services/auth/password.js');
+  const { createAuthService } = await import('../../src/services/auth/authService.js');
+  const user = await prisma.panelUser.create({ data: { username: 'operador-agenda-ci', role: 'ATTENDANT', passwordHash: await hashPassword('Senha-ficticia-ci-123') } });
+  const auth = createAuthService(prisma);
+  const session = await auth.login(user.username, 'Senha-ficticia-ci-123', 'fixture');
+  const server = createApp(auth, { origins: ['http://localhost:5173'], secure: false }).listen(0, '127.0.0.1');
+  await once(server, 'listening'); const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Porta ausente');
+  const request = (path: string, method: string, body?: unknown) => fetch(`http://127.0.0.1:${address.port}/api/appointments${path}`, {
+    method, headers: { Cookie: `procon_session=${session.token}`, Origin: 'http://localhost:5173', 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  try {
+    const slots = await getUpcomingSlots(2); assert.equal(slots.length, 2);
+    const input = { phoneNumber: '5511999990001', citizenName: 'Consumidor Fictício', scheduledAt: slots[0]!.scheduledAt };
+    const attempts = await Promise.all([request('', 'POST', input), request('', 'POST', { ...input, phoneNumber: '5511999990002' })]);
+    assert.deepEqual(attempts.map(response => response.status).sort(), [201, 409]);
+    assert.equal(await prisma.appointment.count({ where: { status: 'PENDING' } }), 1);
+    const booked = await prisma.appointment.findFirstOrThrow({ where: { status: 'PENDING' } });
+    const absent = await request(`/${booked.id}`, 'PATCH', { status: 'NO_SHOW' });
+    assert.equal(absent.status, 200);
+    assert.equal((await absent.json()).data.status, 'NO_SHOW');
+    const filtered = await request('?status=NO_SHOW', 'GET');
+    assert.equal(filtered.status, 200);
+    assert.deepEqual((await filtered.json()).data.map((item: { id: string }) => item.id), [booked.id]);
+    const localDate = new Date(booked.scheduledAt.getTime() - 180 * 60_000).toISOString().slice(0, 10);
+    const availability = await request(`/availability?date=${localDate}`, 'GET');
+    const freed = (await availability.json()).data.find((slot: { scheduledAt: string }) => slot.scheduledAt === booked.scheduledAt.toISOString());
+    assert.equal(freed?.available, true, 'ausência libera a capacidade do horário');
+    assert.equal((await request(`/${booked.id}`, 'PATCH', { status: 'PENDING' })).status, 200);
+    assert.equal((await request(`/${booked.id}`, 'PATCH', { status: 'INVALID' })).status, 400);
+    for (const mes of ['2026-00', '2026-13']) assert.equal((await request(`?mes=${mes}`, 'GET')).status, 400);
+    const winner = await prisma.appointment.findFirstOrThrow({ where: { status: 'PENDING' } });
+    const duplicate = await request('', 'POST', { ...input, phoneNumber: winner.phoneNumber, scheduledAt: slots[1]!.scheduledAt });
+    assert.equal(duplicate.status, 409);
+    assert.equal((await duplicate.json()).code, 'ALREADY_SCHEDULED');
+    assert.equal((await request(`/${winner.id}`, 'DELETE')).status, 200);
+    assert.equal((await request('', 'POST', { ...input, phoneNumber: winner.phoneNumber })).status, 201);
+    assert.equal(await prisma.appointment.count({ where: { status: 'PENDING' } }), 1);
+    const free = (await getUpcomingSlots(1))[0]!;
+    const flow = { ...initialSnapshot(), state: { kind: 'SCHEDULE_SLOT' as const, category: 'GERAL' as const, date: free.scheduledAt.slice(0, 10), page: 0 } };
+    const citizen = await prisma.userSession.create({ data: { phoneNumber: '5511999990003', userName: 'Pessoa Fictícia', userCpf: '52998224725', ...persistable(flow) } });
+    await createAppointment({ phoneNumber: citizen.phoneNumber, scheduledAt: new Date(free.scheduledAt), source: 'WHATSAPP', sessionId: citizen.id });
+    const finishedBooking = await prisma.userSession.findUniqueOrThrow({ where: { id: citizen.id } });
+    assert.equal(decodeSession(finishedBooking).snapshot.state.kind, 'READY', 'reserva e transição confirmadas na mesma transação');
+    const before = await prisma.appointment.count();
+    const another = (await getUpcomingSlots(1))[0]!;
+    const invalidSession = await prisma.userSession.create({ data: { phoneNumber: '5511999990005', ...persistable(initialSnapshot()) } });
+    await assert.rejects(createAppointment({ phoneNumber: invalidSession.phoneNumber, scheduledAt: new Date(another.scheduledAt), source: 'WHATSAPP', sessionId: invalidSession.id }), { code: 'STALE_SESSION' });
+    assert.equal(await prisma.appointment.count(), before, 'sessão fora da etapa não cria reserva');
+    const { createConversationHandler } = await import('../../src/controllers/webhook/conversation.js');
+    const ratingSession = await prisma.userSession.create({ data: { phoneNumber: '5511999990004', ...persistable({ ...initialSnapshot(), state: { kind: 'RATING' } }) } });
+    const overrides = { db: prisma, text: async () => {}, interactive: async () => {}, list: async () => {} };
+    const event = { id: 'rating-ci', from: ratingSession.phoneNumber, type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'btn_rate_5' } } };
+    await createConversationHandler(overrides)(event);
+    await createConversationHandler(overrides)(event);
+    assert.equal(await prisma.sessionFeedback.count({ where: { sessionId: ratingSession.id } }), 1);
+    assert.equal(decodeSession(await prisma.userSession.findUniqueOrThrow({ where: { id: ratingSession.id } })).snapshot.state.kind, 'READY');
+    const nextFree = (await getUpcomingSlots(1))[0]!;
+    const bookingFlow = { ...initialSnapshot(), state: { kind: 'SCHEDULE_SLOT' as const, category: 'GERAL' as const, date: nextFree.scheduledAt.slice(0, 10), page: 0 } };
+    const bookingSession = await prisma.userSession.create({ data: { phoneNumber: '5511999990006', userName: 'Pessoa Fictícia', userCpf: '52998224725', ...persistable(bookingFlow) } });
+    const confirmations: string[] = [];
+    const handler = createConversationHandler({ db: prisma, text: async (_phone, text) => { confirmations.push(text); }, interactive: async (_phone, text) => { confirmations.push(text); }, list: async () => {} });
+    await handler({ id: 'book-ci', from: bookingSession.phoneNumber, type: 'interactive', interactive: { type: 'list_reply', list_reply: { id: `btn_sch_slot_${nextFree.scheduledAt}` } } });
+    assert.ok(confirmations.some(text => text.includes('Agendamento confirmado!')), 'handler confirma a reserva após reler estado atualizado pela transação');
+    assert.equal(await prisma.appointment.count({ where: { phoneNumber: bookingSession.phoneNumber } }), 1);
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    await prisma.appointment.deleteMany();
+    await prisma.userSession.deleteMany();
+    await prisma.panelUser.delete({ where: { id: user.id } });
+    await prisma.$disconnect();
+  }
+});

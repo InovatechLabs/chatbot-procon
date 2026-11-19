@@ -1,0 +1,3045 @@
+{
+  "summary": {
+    "modelo": "gemma3:12b",
+    "thinkingEnabled": false,
+    "executadoEm": "2026-11-16T01:05:25.814Z",
+    "metricas": {
+      "orientacaoDireta": {
+        "totalCasos": 60,
+        "acertosCategoria": "57/60 (95.0%)",
+        "acertosTipoResposta": "56/60 (93.3%)",
+        "acertosArtigo": "45/60 (75.0%)"
+      },
+      "clarificacao": {
+        "totalCasos": 6,
+        "acertosTipoPerguntaTurno1": "5/5 (100.0%)",
+        "acertosTipoInicial": "6/6",
+        "acertosCategoriaFinal": "5/6 (83.3%)",
+        "acertosArtigoFinal": "3/6 (50.0%)"
+      }
+    }
+  },
+  "resultadosDiretos": [
+    {
+      "id": "OD-01",
+      "descricao": "Cobrança indevida após cancelamento confirmado, sem menção a cláusula contratual",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 42",
+      "artigoObtido": "Art. 51",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 12459,
+      "tempoPipelineMs": 16585,
+      "respostaTexto": "Entendo sua preocupação com a cobrança indevida. Pode ter direito à repetição do valor cobrado [Art. 42]. O PROCON avalia se a cobrança ocorreu por conta de uma cláusula abusiva no contrato de adesão, como por exemplo, se o contrato te impede de cancelar o serviço ou se a cobrança foi feita sem sua solicitação [Art. 51]. Para isso, verifique o contrato e procure por cláusulas que te prejudiquem. Se encontrar, guarde uma cópia e registre a ocorrência no PROCON.\n\nBase legal: Art. 51.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata uma cobrança indevida após o cancelamento de uma assinatura de streaming, tendo recebido confirmação do cancelamento.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cobrança indevida após cancelamento de assinatura de streaming"
+        },
+        "consultaBuscaUsada": "cobrança indevida após cancelamento de assinatura de streaming",
+        "candidatosRecuperados": [
+          "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+          "Art. 39 - Práticas Abusivas (Venda Casada e Envios não Solicitados)",
+          "Art. 54G - Condutas Vedadas em Contratos de Crédito",
+          "Art. 51 - Cláusulas Contratuais Abusivas"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 51",
+        "referenciaNormalizada": "Art. 51",
+        "referenciasPermitidas": [
+          "Art. 42",
+          "Art. 39",
+          "Art. 54-G",
+          "Art. 51"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-02",
+      "descricao": "Cobrança após cancelamento, mas empresa justifica com cláusula contratual",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 51",
+      "artigoObtido": "Art. 51",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5211,
+      "tempoPipelineMs": 12433,
+      "respostaTexto": "Entendo sua preocupação. O *Art. 51* diz que cláusulas contratuais que autorizam o fornecedor a cancelar o contrato unilateralmente, sem que igual direito seja conferido ao consumidor, são nulas. Isso significa que a academia não pode te cobrar a mensalidade após o cancelamento, a menos que essa condição seja recíproca para ambas as partes. O PROCON avalia se a cobrança é abusiva e pode te orientar sobre como proceder.\n\nBase legal: Art. 51.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão informa que teve sua matrícula cancelada em uma academia e, posteriormente, recebeu uma cobrança de mensalidade, alegando que a cobrança está prevista em contrato.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cobrança de mensalidade após cancelamento de matrícula em academia"
+        },
+        "consultaBuscaUsada": "cobrança de mensalidade após cancelamento de matrícula em academia",
+        "candidatosRecuperados": [
+          "Art. 51 - Cláusulas Contratuais Abusivas",
+          "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+          "Art. 71 - Infrações Penais (Cobrança Vexatória ou com Ameaça)",
+          "Art. 53 - Contratos de Compra e Venda a Prazo"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 51",
+        "referenciaNormalizada": "Art. 51",
+        "referenciasPermitidas": [
+          "Art. 51",
+          "Art. 42",
+          "Art. 71",
+          "Art. 53"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-03",
+      "descricao": "Produto entregue diferente do anunciado (descumprimento de oferta)",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 35",
+      "artigoObtido": "Art. 35",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4785,
+      "tempoPipelineMs": 11011,
+      "respostaTexto": "Entendo sua preocupação. O anúncio de 256GB e a entrega de um aparelho com 128GB de armazenamento é um *descumprimento da oferta*. \n\nVocê *pode ter direito* a exigir que a loja entregue o celular conforme anunciado, aceitar um modelo equivalente ou cancelar a compra e receber o dinheiro de volta. O PROCON avalia a situação para garantir seus direitos.\n\nBase legal: Art. 35.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter adquirido um celular com 256GB de armazenamento, mas recebeu um aparelho com apenas 128GB.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "celular com armazenamento diferente do anunciado"
+        },
+        "consultaBuscaUsada": "celular com armazenamento diferente do anunciado",
+        "candidatosRecuperados": [
+          "Art. 35 - Descumprimento da Oferta",
+          "Art. 72 - Infrações Penais (Impedir Acesso a Dados/Cadastros)",
+          "Art. 19 - Vício de Quantidade do Produto",
+          "Art. 30 - Oferta e Vinculação do Fornecedor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 35",
+        "referenciaNormalizada": "Art. 35",
+        "referenciasPermitidas": [
+          "Art. 35",
+          "Art. 72",
+          "Art. 19",
+          "Art. 30"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-04",
+      "descricao": "Direito de arrependimento em compra online dentro do prazo",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 49",
+      "artigoObtido": "Art. 49",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5198,
+      "tempoPipelineMs": 11733,
+      "respostaTexto": "Você *pode ter direito* a desistir da compra do tênis. O *Art. 49* garante o direito de arrependimento em compras online, permitindo que você desista do contrato em até 7 dias após o recebimento do produto. Para isso, entre em contato com a loja e informe sua desistência. O valor pago será devolvido, com ajustes de inflação. O PROCON avalia se a loja está cumprindo essa lei.\n\nBase legal: Art. 49.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata a compra de um tênis em um site, recebimento do produto e desejo de devolução por insatisfação, mesmo estando em perfeito estado.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "Devolução de tênis comprado em site"
+        },
+        "consultaBuscaUsada": "Devolução de tênis comprado em site",
+        "candidatosRecuperados": [
+          "Art. 49 - Direito de Arrependimento",
+          "Art. 53 - Contratos de Compra e Venda a Prazo",
+          "Art. 33 - Oferta por Telefone ou Reembolso Postal",
+          "Art. 54G - Condutas Vedadas em Contratos de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 49",
+        "referenciaNormalizada": "Art. 49",
+        "referenciasPermitidas": [
+          "Art. 49",
+          "Art. 53",
+          "Art. 33",
+          "Art. 54-G"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-05",
+      "descricao": "Venda casada",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 39",
+      "artigoObtido": "Art. 39",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5378,
+      "tempoPipelineMs": 11785,
+      "respostaTexto": "Entendo sua preocupação. O fornecedor não pode *condicionar* a venda de um serviço (internet) à contratação de outro (TV a cabo). Essa prática é chamada de venda casada e é proibida por lei. \n\nVocê pode registrar uma reclamação no PROCON informando que se sentiu pressionado a contratar um serviço que não queria. O PROCON avalia se houve descumprimento da lei e pode orientar as partes para um acordo. \n\nBase legal: Art. 39.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que o vendedor condicionou a venda de um plano de internet à contratação de um pacote de TV a cabo.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "condicionamento da venda de plano de internet com TV a cabo"
+        },
+        "consultaBuscaUsada": "condicionamento da venda de plano de internet com TV a cabo",
+        "candidatosRecuperados": [
+          "Art. 30 - Oferta e Vinculação do Fornecedor",
+          "Art. 33 - Oferta por Telefone ou Reembolso Postal",
+          "Art. 39 - Práticas Abusivas (Venda Casada e Envios não Solicitados)",
+          "Art. 41 - Controle e Tabelamento de Preços"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 39",
+        "referenciaNormalizada": "Art. 39",
+        "referenciasPermitidas": [
+          "Art. 30",
+          "Art. 33",
+          "Art. 39",
+          "Art. 41"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-06",
+      "descricao": "Cobrança vexatória / com ameaça",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 71",
+      "artigoObtido": "Art. 42",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5941,
+      "tempoPipelineMs": 14759,
+      "respostaTexto": "Entendo sua preocupação com as ligações e ameaças. A cobrança de dívidas não pode expor o consumidor a ridículo ou constrangimento, como as ligações excessivas e ameaças que você mencionou. *Você pode ter direito* à repetição do indébito, que é a devolução do valor pago indevidamente, acrescido de correção e juros. O PROCON avalia se a cobrança foi abusiva e pode orientar sobre os próximos passos. \n\nSe as ligações e ameaças persistirem, o Art. 71 também pode ser aplicado, pois utiliza ameaça ou coação na cobrança de dívidas é crime. O PROCON não pode determinar que houve crime, mas pode registrar sua reclamação e encaminhá-la para as autoridades competentes.\n\nBase legal: Art. 42.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata cobrança insistente e ameaças de protesto e exposição da dívida por parte de uma empresa de telefonia referente a uma parcela de plano de celular.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cobrança excessiva e ameaças de empresa de telefonia sobre dívida de plano de celular"
+        },
+        "consultaBuscaUsada": "cobrança excessiva e ameaças de empresa de telefonia sobre dívida de plano de celular",
+        "candidatosRecuperados": [
+          "Art. 71 - Infrações Penais (Cobrança Vexatória ou com Ameaça)",
+          "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+          "Art. 54A - Prevenção e Tratamento do Superendividamento",
+          "Art. 35 - Descumprimento da Oferta"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 42",
+        "referenciaNormalizada": "Art. 42",
+        "referenciasPermitidas": [
+          "Art. 71",
+          "Art. 42",
+          "Art. 54-A",
+          "Art. 35"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-07",
+      "descricao": "Venda entre particulares (fora do escopo)",
+      "categoriaEsperada": "FORA_ESCOPO_PARTICULAR",
+      "categoriaObtida": "FORA_ESCOPO_PARTICULAR",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "fixa",
+      "tipoRespostaObtida": "fixa",
+      "tipoRespostaOk": true,
+      "artigoEsperado": null,
+      "artigoObtido": null,
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5302,
+      "tempoPipelineMs": 23,
+      "respostaTexto": "Entendi, e sinto pelo transtorno. Como foi um acordo entre duas pessoas, sem loja ou empresa no meio, o PROCON não consegue atuar nesse caso.\n\nVocê pode procurar o Juizado Especial Cível (em causas de menor valor, muitas vezes sem precisar de advogado) ou a Defensoria Pública, que orienta gratuitamente quem não pode pagar um advogado.",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "FORA_ESCOPO_PARTICULAR",
+          "motivo": "O cidadão relata a compra de uma bicicleta usada diretamente de um vizinho, sem relação profissional entre as partes.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "resposta_fixa",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-08",
+      "descricao": "Tributo de órgão público (fora do escopo)",
+      "categoriaEsperada": "FORA_ESCOPO_TRIBUTO",
+      "categoriaObtida": "FORA_ESCOPO_TRIBUTO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "fixa",
+      "tipoRespostaObtida": "fixa",
+      "tipoRespostaOk": true,
+      "artigoEsperado": null,
+      "artigoObtido": null,
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4220,
+      "tempoPipelineMs": 3,
+      "respostaTexto": "Cobrança de imposto, taxa ou multa feita por órgão público (como IPTU ou multa de trânsito) não é assunto do PROCON.\n\nPara contestar, procure o próprio órgão que cobrou (prefeitura, Detran etc.) ou a Defensoria Pública.",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "FORA_ESCOPO_TRIBUTO",
+          "motivo": "O cidadão relata ter recebido uma cobrança de IPTU com valor considerado incorreto.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "resposta_fixa",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-09",
+      "descricao": "Atividade ilícita — invasão de conta (caso original que motivou a criação do classifyReport)",
+      "categoriaEsperada": "FORA_ESCOPO_ILICITO",
+      "categoriaObtida": "FORA_ESCOPO_ILICITO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "fixa",
+      "tipoRespostaObtida": "fixa",
+      "tipoRespostaOk": true,
+      "artigoEsperado": null,
+      "artigoObtido": null,
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4827,
+      "tempoPipelineMs": 3,
+      "respostaTexto": "O serviço que você descreveu não é permitido por lei, por isso o PROCON não consegue atuar nesse caso.\n\nSe você foi enganado ou ameaçado, registre um Boletim de Ocorrência na delegacia (em muitos casos dá para fazer online).",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "FORA_ESCOPO_ILICITO",
+          "motivo": "O cidadão relata ter contratado um serviço ilegal (invasão de conta de Instagram) e busca informações sobre a possibilidade de reclamar no PROCON.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "resposta_fixa",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-10",
+      "descricao": "Atividade ilícita — substância ilegal não entregue",
+      "categoriaEsperada": "FORA_ESCOPO_ILICITO",
+      "categoriaObtida": "FORA_ESCOPO_ILICITO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "fixa",
+      "tipoRespostaObtida": "fixa",
+      "tipoRespostaOk": true,
+      "artigoEsperado": null,
+      "artigoObtido": null,
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5141,
+      "tempoPipelineMs": 3,
+      "respostaTexto": "O serviço que você descreveu não é permitido por lei, por isso o PROCON não consegue atuar nesse caso.\n\nSe você foi enganado ou ameaçado, registre um Boletim de Ocorrência na delegacia (em muitos casos dá para fazer online).",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "FORA_ESCOPO_ILICITO",
+          "motivo": "O cidadão relata ter pago por uma substância ilegal (maconha) via Instagram e o vendedor desapareceu sem entregar o produto, além de não entregar o produto.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "resposta_fixa",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-11",
+      "descricao": "Vocabulário muito diferente do relato (linguagem informal/coloquial)",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 35",
+      "artigoObtido": "Art. 66",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5548,
+      "tempoPipelineMs": 10770,
+      "respostaTexto": "Entendo sua preocupação com a diferença entre o anunciado e o recebido. *A publicidade* que informa características falsas sobre um produto pode ter gerado um problema. Você *pode ter direito* a buscar reparação. O PROCON avalia se houve descumprimento da oferta. Para isso, registre sua reclamação e guarde os comprovantes da compra e do anúncio.\n\nBase legal: Art. 66.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão alega ter sido enganado por um site que anunciou um jogo de panelas, mas recebeu apenas uma unidade. Triagem de golpe não confirmada por declaração de identidade falsa; preservada a relação descrita.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": "Cara, o site me roubou! Anunciava um jogo de panelas de 5 peças e chegou só uma panela dentro da caixa.",
+        "candidatosRecuperados": [
+          "Art. 49 - Direito de Arrependimento",
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)",
+          "Art. 33 - Oferta por Telefone ou Reembolso Postal",
+          "Art. 71 - Infrações Penais (Cobrança Vexatória ou com Ameaça)"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 66",
+        "referenciaNormalizada": "Art. 66",
+        "referenciasPermitidas": [
+          "Art. 49",
+          "Art. 66",
+          "Art. 67",
+          "Art. 33",
+          "Art. 71"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-12",
+      "descricao": "Caso em que nenhum artigo recuperado é adequado",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "redirecionamento",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": false,
+      "artigoEsperado": null,
+      "artigoObtido": "Art. 42",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 6076,
+      "tempoPipelineMs": 14737,
+      "respostaTexto": "Entendo sua preocupação com o ocorrido. O banco pode ter que devolver o valor que você pagou a mais, acrescido de correção e juros, caso seja comprovado que a cobrança foi indevida. O PROCON avalia se houve engano justificável ou não. Para isso, você pode apresentar sua reclamação e documentos que comprovem o erro. Caso queira, pode buscar seus direitos judicialmente.\n\nBase legal: Art. 42.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter feito um PIX indevido para uma loja, o qual foi direcionado para a conta de outra pessoa devido a um erro bancário, e o banco se recusa a solucionar o problema.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "PIX indevido para loja, conta de terceiro, banco não resolve"
+        },
+        "consultaBuscaUsada": "PIX indevido para loja, conta de terceiro, banco não resolve",
+        "candidatosRecuperados": [
+          "Art. 13 - Responsabilidade do Comerciante",
+          "Art. 72 - Infrações Penais (Impedir Acesso a Dados/Cadastros)",
+          "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+          "Art. 54D - Deveres na Oferta de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 42",
+        "referenciaNormalizada": "Art. 42",
+        "referenciasPermitidas": [
+          "Art. 13",
+          "Art. 72",
+          "Art. 42",
+          "Art. 54-D"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-13",
+      "descricao": "Princípios da Política Nacional das Relações de Consumo",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 4",
+      "artigoObtido": "Art. 8",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5691,
+      "tempoPipelineMs": 10461,
+      "respostaTexto": "Entendo sua preocupação com a segurança. O fornecedor deve garantir que produtos e serviços não causem riscos à saúde ou segurança, e informar sobre os riscos normais de uso. *A loja pode ter que adotar medidas para proteger os clientes*. O PROCON pode avaliar se a loja está cumprindo esse dever. Consulte também o Art. 9, que trata da informação sobre produtos perigosos. Se precisar, procure atendimento presencial para uma análise mais detalhada.\n\nBase legal: Art. 8.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma loja se recusa a implementar medidas de segurança para proteger a saúde e segurança dos clientes, mesmo após alertas sobre um risco conhecido do produto.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "loja se recusando a adotar medidas de segurança para proteger a saúde e segurança dos clientes"
+        },
+        "consultaBuscaUsada": "loja se recusando a adotar medidas de segurança para proteger a saúde e segurança dos clientes",
+        "candidatosRecuperados": [
+          "Art. 9 - Informação sobre Produtos e Serviços Nocivos ou Perigosos",
+          "Art. 8 - Proteção à Saúde e Segurança dos Produtos e Serviços",
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)",
+          "Art. 13 - Responsabilidade do Comerciante"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 8",
+        "referenciaNormalizada": "Art. 8",
+        "referenciasPermitidas": [
+          "Art. 9",
+          "Art. 8",
+          "Art. 66",
+          "Art. 67",
+          "Art. 13"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-14",
+      "descricao": "Instrumentos de execução da Política Nacional",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 5",
+      "artigoObtido": "Art. 5",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4988,
+      "tempoPipelineMs": 12327,
+      "respostaTexto": "Em casos de abusos repetidos por empresas, a lei prevê que o poder público pode atuar de diversas formas. Existem Promotorias de Justiça de Defesa do Consumidor, delegacias especializadas e Juizados Especiais para resolver conflitos. Além disso, o PROCON pode oferecer assistência jurídica gratuita e incentivar a criação de associações de defesa do consumidor. *Art. 5*. O PROCON avalia cada caso para verificar se há necessidade de intervenção desses órgãos.\n\nBase legal: Art. 5.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão questiona sobre os órgãos e instrumentos públicos que podem proteger os consumidores contra abusos repetidos de empresas.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "órgãos e instrumentos públicos para proteger consumidores contra abusos de empresas"
+        },
+        "consultaBuscaUsada": "órgãos e instrumentos públicos para proteger consumidores contra abusos de empresas",
+        "candidatosRecuperados": [
+          "Art. 5 - Instrumentos da Política Nacional de Relações de Consumo",
+          "Art. 44 - Cadastro de Reclamações contra Fornecedores",
+          "Art. 4 - Política Nacional das Relações de Consumo",
+          "Art. 6 - Direitos Básicos do Consumidor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 5",
+        "referenciaNormalizada": "Art. 5",
+        "referenciasPermitidas": [
+          "Art. 5",
+          "Art. 44",
+          "Art. 4",
+          "Art. 6"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-15",
+      "descricao": "Direitos básicos do consumidor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 6",
+      "artigoObtido": "Art. 18",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5401,
+      "tempoPipelineMs": 10460,
+      "respostaTexto": "A loja tem que te dar informações claras sobre o produto e resolver o problema que ele causou. Se o problema não for resolvido em até 30 dias, você pode pedir a troca do produto, a devolução do dinheiro ou um desconto. *Art. 18*\n\nBase legal: Art. 18.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata falta de informações claras sobre um produto, ausência de explicação sobre riscos e recusa da loja em resolver um problema que causou prejuízo.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "Loja se recusa a fornecer informações e resolver problema com produto"
+        },
+        "consultaBuscaUsada": "Loja se recusa a fornecer informações e resolver problema com produto",
+        "candidatosRecuperados": [
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 13 - Responsabilidade do Comerciante",
+          "Art. 23 - Responsabilidade por Vícios",
+          "Art. 12 - Responsabilidade pelo Fato do Produto"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 18",
+        "referenciaNormalizada": "Art. 18",
+        "referenciasPermitidas": [
+          "Art. 18",
+          "Art. 13",
+          "Art. 23",
+          "Art. 12"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-16",
+      "descricao": "Direitos decorrentes de outras normas",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 7",
+      "artigoObtido": "Art. 7",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5053,
+      "tempoPipelineMs": 12324,
+      "respostaTexto": "Entendo sua preocupação. Os seus direitos como consumidor podem ser complementados por outras leis e tratados internacionais, como consta no *Art. 7*. O PROCON avalia cada caso para verificar se há outras normas aplicáveis à sua situação. Para isso, o PROCON pode analisar a legislação ordinária e os princípios gerais do direito. Se houver mais de um responsável pelo problema, todos respondem solidariamente. Caso precise de uma análise mais detalhada, oferecemos atendimento presencial.\n\nBase legal: Art. 7.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata um problema de consumo e questiona a aplicabilidade de outras leis além do Código de Defesa do Consumidor.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "problema de consumo e aplicabilidade de outras leis"
+        },
+        "consultaBuscaUsada": "problema de consumo e aplicabilidade de outras leis",
+        "candidatosRecuperados": [
+          "Art. 17 - Consumidores por Equiparação — Vítimas do Evento",
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 4 - Política Nacional das Relações de Consumo",
+          "Art. 7 - Direitos Complementares e Responsabilidade Solidária"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 7",
+        "referenciaNormalizada": "Art. 7",
+        "referenciasPermitidas": [
+          "Art. 17",
+          "Art. 18",
+          "Art. 4",
+          "Art. 7"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-17",
+      "descricao": "Segurança de produtos e serviços",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 8",
+      "artigoObtido": "Art. 8",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 6960,
+      "tempoPipelineMs": 12738,
+      "respostaTexto": "Entendo sua preocupação. De acordo com o *Art. 8*, riscos normais em produtos, como o choque elétrico que você mencionou, são aceitáveis, mas o fabricante deve informar sobre eles. \n\n1. Verifique se o liquidificador possui instruções claras sobre o risco e como evitá-lo. \n2. Caso a informação seja insuficiente ou ausente, entre em contato com a fabricante para solicitar mais informações.\n\nBase legal: Art. 8.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que um liquidificador de uma fabricante conhecida apresenta risco de choque elétrico quando usado conforme as instruções.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "liquidificador apresenta risco de choque elétrico"
+        },
+        "consultaBuscaUsada": "Comprei um liquidificador de uma fabricante conhecida e descobri que ele apresenta risco normal de choque elétrico quando usado conforme as instruções.",
+        "candidatosRecuperados": [
+          "Art. 8 - Proteção à Saúde e Segurança dos Produtos e Serviços",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 13 - Responsabilidade do Comerciante",
+          "Art. 9 - Informação sobre Produtos e Serviços Nocivos ou Perigosos"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 8",
+        "referenciaNormalizada": "Art. 8",
+        "referenciasPermitidas": [
+          "Art. 8",
+          "Art. 12",
+          "Art. 13",
+          "Art. 9"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-18",
+      "descricao": "Informação sobre produtos potencialmente perigosos",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 9",
+      "artigoObtido": "Art. 9",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5107,
+      "tempoPipelineMs": 10525,
+      "respostaTexto": "Entendo sua preocupação. O fornecedor deve informar sobre riscos de produtos perigosos, como esse produto de limpeza. *Você pode solicitar* que a empresa coloque um aviso claro na embalagem. O PROCON avalia se a falta de informação causou algum prejuízo à sua saúde.\n\nBase legal: Art. 9.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que um produto de limpeza comercializado no mercado apresenta risco à saúde sem aviso na embalagem.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "produto de limpeza com risco à saúde e falta de aviso na embalagem"
+        },
+        "consultaBuscaUsada": "produto de limpeza com risco à saúde e falta de aviso na embalagem",
+        "candidatosRecuperados": [
+          "Art. 9 - Informação sobre Produtos e Serviços Nocivos ou Perigosos",
+          "Art. 8 - Proteção à Saúde e Segurança dos Produtos e Serviços",
+          "Art. 10 - Produtos e Serviços com Alto Grau de Nocividade ou Periculosidade",
+          "Art. 18 - Vício do Produto — Garantia Legal"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 9",
+        "referenciaNormalizada": "Art. 9",
+        "referenciasPermitidas": [
+          "Art. 9",
+          "Art. 8",
+          "Art. 10",
+          "Art. 18"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-19",
+      "descricao": "Produto ou serviço que apresenta alto risco",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 10",
+      "artigoObtido": "Art. 10",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5528,
+      "tempoPipelineMs": 11586,
+      "respostaTexto": "Entendo sua preocupação com a venda contínua dos brinquedos, mesmo com o risco de acidentes. O fornecedor tem a obrigação de comunicar imediatamente às autoridades e aos consumidores sobre a periculosidade do produto. *O PROCON avalia* se a empresa descumpriu essa obrigação. Você pode registrar sua reclamação para que *o PROCON avalie* a situação e determine as medidas cabíveis.\n\nBase legal: Art. 10.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma empresa continua vendendo brinquedos com defeito que podem causar acidentes graves, sem comunicar o problema.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "brinquedos com defeito e risco de acidentes graves"
+        },
+        "consultaBuscaUsada": "brinquedos com defeito e risco de acidentes graves",
+        "candidatosRecuperados": [
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço",
+          "Art. 10 - Produtos e Serviços com Alto Grau de Nocividade ou Periculosidade",
+          "Art. 12 - Responsabilidade pelo Fato do Produto"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 10",
+        "referenciaNormalizada": "Art. 10",
+        "referenciasPermitidas": [
+          "Art. 18",
+          "Art. 14",
+          "Art. 10",
+          "Art. 12"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-20",
+      "descricao": "Responsabilidade pelo fato do produto",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 12",
+      "artigoObtido": "Art. 12",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5219,
+      "tempoPipelineMs": 12974,
+      "respostaTexto": "Entendo sua preocupação com o acidente. A legislação prevê que o fabricante, produtor, construtor, nacional ou estrangeiro, e o importador são responsáveis por danos causados por defeitos no produto, como a explosão do celular que causou suas queimaduras. *Você pode buscar informações sobre o fabricante no manual do aparelho ou na embalagem.* O PROCON pode avaliar a situação e orientar sobre os próximos passos para buscar seus direitos.\n\nBase legal: Art. 12.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que a bateria de um celular explodiu, causando queimaduras, e busca informações sobre a responsabilidade pelo ocorrido.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "bateria de celular explodiu e causou queimaduras"
+        },
+        "consultaBuscaUsada": "bateria de celular explodiu e causou queimaduras",
+        "candidatosRecuperados": [
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 9 - Informação sobre Produtos e Serviços Nocivos ou Perigosos"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 12",
+        "referenciaNormalizada": "Art. 12",
+        "referenciasPermitidas": [
+          "Art. 18",
+          "Art. 14",
+          "Art. 12",
+          "Art. 9"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-21",
+      "descricao": "Responsabilidade do comerciante pelo fato do produto",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 13",
+      "artigoObtido": "Art. 12",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5415,
+      "tempoPipelineMs": 12505,
+      "respostaTexto": "Entendo sua preocupação diante do ocorrido. *O fabricante é responsável* pela segurança do produto, mesmo que você não consiga identificar quem é ele. A loja também se responsabiliza nessa situação (Art. 13). \n\nVocê *pode ter direito* à reparação dos danos causados pela lesão. O PROCON pode avaliar a situação e orientar sobre os próximos passos. Caso precise, procure atendimento presencial para uma análise mais detalhada.\n\nBase legal: Art. 12.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata a compra de um aparelho que apresentou defeito grave, causando-lhe lesão, e a loja não consegue identificar o fabricante.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "aparelho com defeito grave causou lesão e loja não identifica fabricante"
+        },
+        "consultaBuscaUsada": "aparelho com defeito grave causou lesão e loja não identifica fabricante",
+        "candidatosRecuperados": [
+          "Art. 13 - Responsabilidade do Comerciante",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço",
+          "Art. 9 - Informação sobre Produtos e Serviços Nocivos ou Perigosos"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 12",
+        "referenciaNormalizada": "Art. 12",
+        "referenciasPermitidas": [
+          "Art. 13",
+          "Art. 12",
+          "Art. 14",
+          "Art. 9"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-22",
+      "descricao": "Responsabilidade pelo fato do serviço",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 14",
+      "artigoObtido": "Art. 14",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4973,
+      "tempoPipelineMs": 12577,
+      "respostaTexto": "Entendo sua preocupação com o acidente ocorrido. O fornecedor do serviço é responsável pela reparação de danos causados por defeitos na prestação do serviço, mesmo sem culpa. *Você pode ter direito* à reparação dos danos. \n\n1. Registre a ocorrência e guarde todos os comprovantes.\n2. O PROCON pode avaliar a responsabilidade do fornecedor e buscar uma solução amigável.\n\nBase legal: Art. 14.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata um problema com a instalação de um equipamento por uma empresa, resultando em um acidente em sua residência.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "Instalação de equipamento defeituosa causou acidente"
+        },
+        "consultaBuscaUsada": "Instalação de equipamento defeituosa causou acidente",
+        "candidatosRecuperados": [
+          "Art. 25 - Responsabilidade por Danos e Cláusulas Exoneratórias",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço",
+          "Art. 7 - Direitos Complementares e Responsabilidade Solidária"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 14",
+        "referenciaNormalizada": "Art. 14",
+        "referenciasPermitidas": [
+          "Art. 25",
+          "Art. 12",
+          "Art. 14",
+          "Art. 7"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-23",
+      "descricao": "Consumidor por equiparação em acidente de consumo",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "FORA_ESCOPO_OUTRO",
+      "categoriaOk": false,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "fixa",
+      "tipoRespostaOk": false,
+      "artigoEsperado": "Art. 17",
+      "artigoObtido": null,
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5410,
+      "tempoPipelineMs": 19,
+      "respostaTexto": "Esse assunto (família, trabalho, vizinhança ou outro tema que não é relação de consumo) não é tratado pelo PROCON.\n\nPara orientação gratuita, procure a *Defensoria Pública*. Questões de trabalho também podem ir ao sindicato ou à Justiça do Trabalho.",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "FORA_ESCOPO_OUTRO",
+          "motivo": "O cidadão relata ter sido atingido por uma peça de um eletrodoméstico defeituoso usado por outra pessoa, sem relação direta com a compra do produto.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "resposta_fixa",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-24",
+      "descricao": "Vício de qualidade do produto",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 18",
+      "artigoObtido": "Art. 18",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4678,
+      "tempoPipelineMs": 11138,
+      "respostaTexto": "Entendo sua preocupação com a geladeira. O problema que você descreveu é um *vício do produto*, o que significa que a geladeira não está funcionando como deveria. De acordo com o Art. 18, você pode solicitar a substituição do produto ou a devolução do valor pago, caso o conserto não resolva o problema em até 30 dias. O PROCON avalia se a loja deve arcar com o conserto ou troca. \n\nBase legal: Art. 18.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma geladeira nova apresentou defeito após poucos dias de uso e a loja está realizando o conserto sem sucesso.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "geladeira nova parou de funcionar e loja faz conserto"
+        },
+        "consultaBuscaUsada": "geladeira nova parou de funcionar e loja faz conserto",
+        "candidatosRecuperados": [
+          "Art. 13 - Responsabilidade do Comerciante",
+          "Art. 32 - Peças e Componentes de Reposição",
+          "Art. 21 - Reparação de Produtos e Peças de Reposição",
+          "Art. 18 - Vício do Produto — Garantia Legal"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 18",
+        "referenciaNormalizada": "Art. 18",
+        "referenciasPermitidas": [
+          "Art. 13",
+          "Art. 32",
+          "Art. 21",
+          "Art. 18"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-25",
+      "descricao": "Vício de quantidade do produto",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 19",
+      "artigoObtido": "Art. 19",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4755,
+      "tempoPipelineMs": 12263,
+      "respostaTexto": "Entendo sua preocupação com a quantidade do produto. De acordo com o Art. 19, quando o produto tem menos quantidade do que o indicado na embalagem, você *pode* solicitar, por exemplo, o abatimento do preço ou a entrega do restante do produto. O fornecedor tem até 30 dias para resolver o problema (Art. 18, §1°). Se não resolver, você *pode* pedir a devolução do dinheiro. O PROCON avalia a situação para garantir seus direitos.\n\nBase legal: Art. 19.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que recebeu um produto (alimento) em quantidade inferior à prometida na embalagem.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "pacote de alimento com quantidade inferior"
+        },
+        "consultaBuscaUsada": "pacote de alimento com quantidade inferior",
+        "candidatosRecuperados": [
+          "Art. 19 - Vício de Quantidade do Produto",
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 13 - Responsabilidade do Comerciante",
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 19",
+        "referenciaNormalizada": "Art. 19",
+        "referenciasPermitidas": [
+          "Art. 19",
+          "Art. 18",
+          "Art. 13",
+          "Art. 66",
+          "Art. 67"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-26",
+      "descricao": "Vício de qualidade do serviço",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 20",
+      "artigoObtido": "Art. 20",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5768,
+      "tempoPipelineMs": 12829,
+      "respostaTexto": "Entendo sua preocupação com o serviço de instalação do ar-condicionado. O Art. 20 estabelece que o fornecedor de serviços é responsável por vícios de qualidade que os tornem inadequados ou diminuam seu valor. \n\nNesse caso, você *pode ter direito* a solicitar a reexecução do serviço, a restituição do valor pago ou um desconto proporcional. O PROCON pode te ajudar a buscar uma solução amigável com a empresa.\n\nBase legal: Art. 20.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata problemas com a instalação de um ar-condicionado realizada por uma empresa, resultando em mau funcionamento do aparelho.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "instalação de ar-condicionado com serviço inadequado"
+        },
+        "consultaBuscaUsada": "instalação de ar-condicionado com serviço inadequado",
+        "candidatosRecuperados": [
+          "Art. 20 - Vício do Serviço",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço",
+          "Art. 22 - Serviços Públicos",
+          "Art. 39 - Práticas Abusivas (Venda Casada e Envios não Solicitados)"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 20",
+        "referenciaNormalizada": "Art. 20",
+        "referenciasPermitidas": [
+          "Art. 20",
+          "Art. 14",
+          "Art. 22",
+          "Art. 39"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-27",
+      "descricao": "Serviço de reparação com peças adequadas",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 21",
+      "artigoObtido": "Art. 21",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5183,
+      "tempoPipelineMs": 11724,
+      "respostaTexto": "Entendo sua preocupação. O *Art. 21* estabelece que, em reparos, o fornecedor deve usar peças de reposição novas ou que sigam as especificações do fabricante, a menos que você autorize o contrário. \n\nVocê *pode ter direito* a exigir que a oficina utilize peças adequadas e siga as especificações do fabricante. O PROCON avalia se houve descumprimento dessa obrigação. Caso queira, registre a reclamação na plataforma do PROCON para que possamos analisar o caso com mais detalhes.\n\nBase legal: Art. 21.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma oficina substituiu uma peça do freio do carro por uma peça usada sem informar, e o problema retornou.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "carro - oficina - freio - peça usada - problema"
+        },
+        "consultaBuscaUsada": "carro - oficina - freio - peça usada - problema",
+        "candidatosRecuperados": [
+          "Art. 21 - Reparação de Produtos e Peças de Reposição",
+          "Art. 32 - Peças e Componentes de Reposição",
+          "Art. 17 - Consumidores por Equiparação — Vítimas do Evento",
+          "Art. 23 - Responsabilidade por Vícios"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 21",
+        "referenciaNormalizada": "Art. 21",
+        "referenciasPermitidas": [
+          "Art. 21",
+          "Art. 32",
+          "Art. 17",
+          "Art. 23"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-28",
+      "descricao": "Serviço público adequado, eficiente e seguro",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 22",
+      "artigoObtido": "Art. 22",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5285,
+      "tempoPipelineMs": 10771,
+      "respostaTexto": "Entendo sua preocupação com a falta de água. O fornecedor de serviços essenciais, como água, tem a obrigação de manter o serviço adequado e contínuo. *Art. 22*. Se o serviço não for prestado adequadamente, você pode ter direito a reparação dos danos causados. O PROCON avalia se a concessionária está cumprindo suas obrigações. Para isso, registre sua reclamação e guarde protocolos de atendimento.\n\nBase legal: Art. 22.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata fornecimento irregular de água por parte de uma concessionária e questiona a falta de obrigação da empresa em manter o serviço adequado.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "fornecimento irregular de água por concessionária"
+        },
+        "consultaBuscaUsada": "fornecimento irregular de água por concessionária",
+        "candidatosRecuperados": [
+          "Art. 22 - Serviços Públicos",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço",
+          "Art. 39 - Práticas Abusivas (Venda Casada e Envios não Solicitados)",
+          "Art. 21 - Reparação de Produtos e Peças de Reposição"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 22",
+        "referenciaNormalizada": "Art. 22",
+        "referenciasPermitidas": [
+          "Art. 22",
+          "Art. 14",
+          "Art. 39",
+          "Art. 21"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-29",
+      "descricao": "Ignorância do vício pelo fornecedor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 23",
+      "artigoObtido": "Art. 23",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5388,
+      "tempoPipelineMs": 12649,
+      "respostaTexto": "Entendo sua preocupação. A empresa não pode se eximir da responsabilidade alegando desconhecer o defeito. A lei diz que a ignorância do fornecedor sobre vícios não o isenta da obrigação de resolver o problema. Você *pode ter direito* à substituição do produto, abatimento do preço ou devolução do valor pago, conforme previsto no Art. 18. O PROCON avalia a situação e pode ajudar a encontrar uma solução.\n\nBase legal: Art. 23.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que a empresa alega desconhecer o defeito do produto no momento da venda, buscando justificar a falta de solução para o problema.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "empresa alega desconhecer defeito do produto"
+        },
+        "consultaBuscaUsada": "empresa alega desconhecer defeito do produto",
+        "candidatosRecuperados": [
+          "Art. 23 - Responsabilidade por Vícios",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 13 - Responsabilidade do Comerciante"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 23",
+        "referenciaNormalizada": "Art. 23",
+        "referenciasPermitidas": [
+          "Art. 23",
+          "Art. 12",
+          "Art. 18",
+          "Art. 13"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-30",
+      "descricao": "Garantia legal",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 24",
+      "artigoObtido": "Art. 24",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4677,
+      "tempoPipelineMs": 10253,
+      "respostaTexto": "Entendo sua preocupação. A lei garante que você tem direito à garantia legal de adequação, mesmo que o contrato não mencione. Isso significa que, independentemente do que está escrito no contrato, o fornecedor é responsável por garantir que o produto funcione corretamente. \n\n*Você pode* buscar seus direitos com base nessa garantia. O PROCON avalia se a loja está cumprindo a lei.\n\nBase legal: Art. 24.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que a loja alega inexistência de garantia devido à ausência de menção no contrato.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "garantia não mencionada no contrato"
+        },
+        "consultaBuscaUsada": "garantia não mencionada no contrato",
+        "candidatosRecuperados": [
+          "Art. 50 - Garantia Contratual",
+          "Art. 24 - Garantia Legal de Adequação",
+          "Art. 25 - Responsabilidade por Danos e Cláusulas Exoneratórias",
+          "Art. 53 - Contratos de Compra e Venda a Prazo"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 24",
+        "referenciaNormalizada": "Art. 24",
+        "referenciasPermitidas": [
+          "Art. 50",
+          "Art. 24",
+          "Art. 25",
+          "Art. 53"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-31",
+      "descricao": "Limitação de responsabilidade por cláusula",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 25",
+      "artigoObtido": "Art. 25",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5258,
+      "tempoPipelineMs": 12340,
+      "respostaTexto": "Entendo sua preocupação com a cláusula do contrato. A lei proíbe que empresas exonem a responsabilidade por danos causados a consumidores. *Essa cláusula é abusiva e não tem validade*. Você pode buscar a reparação do dano causado pelo produto, independentemente do que está escrito no contrato.\n\nBase legal: Art. 25.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão questiona a validade de uma cláusula contratual que isenta a empresa de responsabilidade por danos causados por defeito no produto.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cláusula contratual sobre responsabilidade por defeito em produto"
+        },
+        "consultaBuscaUsada": "cláusula contratual sobre responsabilidade por defeito em produto",
+        "candidatosRecuperados": [
+          "Art. 25 - Responsabilidade por Danos e Cláusulas Exoneratórias",
+          "Art. 51 - Cláusulas Contratuais Abusivas",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 18 - Vício do Produto — Garantia Legal"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 25",
+        "referenciaNormalizada": "Art. 25",
+        "referenciasPermitidas": [
+          "Art. 25",
+          "Art. 51",
+          "Art. 12",
+          "Art. 18"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-32",
+      "descricao": "Prazo para reclamar de vício",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 26",
+      "artigoObtido": "Art. 26",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4979,
+      "tempoPipelineMs": 11243,
+      "respostaTexto": "Entendo sua preocupação com o problema no produto. Para vícios aparentes ou de fácil constatação em produtos duráveis, o prazo para reclamar é de 90 dias, contados a partir da data da entrega. \n\n*Importante:* A reclamação formalizada junto ao fornecedor e a resposta negativa podem suspender esse prazo. O PROCON avalia cada caso individualmente.\n\nBase legal: Art. 26.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata a compra de um produto durável com vício e busca informações sobre o prazo legal para reclamar.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "produto durável com vício e prazo para reclamar"
+        },
+        "consultaBuscaUsada": "produto durável com vício e prazo para reclamar",
+        "candidatosRecuperados": [
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 26 - Prazo para Reclamar de Vícios",
+          "Art. 49 - Direito de Arrependimento",
+          "Art. 19 - Vício de Quantidade do Produto"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 26",
+        "referenciaNormalizada": "Art. 26",
+        "referenciasPermitidas": [
+          "Art. 18",
+          "Art. 26",
+          "Art. 49",
+          "Art. 19"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-33",
+      "descricao": "Prazo para reparação por dano",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 27",
+      "artigoObtido": "Art. 27",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5123,
+      "tempoPipelineMs": 12667,
+      "respostaTexto": "Entendo sua preocupação com o ocorrido. Para pedir indenização por danos causados por um produto ou serviço, você tem um prazo de 5 anos, começando a contar a partir do momento em que você e sua família souberam que o produto causou o problema e quem é o responsável. *Art. 27*. O PROCON pode avaliar se o seu caso se enquadra nessa situação.\n\nBase legal: Art. 27.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata um prejuízo familiar causado por um produto defeituoso e busca informações sobre o prazo para reparação.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "produto defeituoso causou prejuízo e busca prazo para reparação"
+        },
+        "consultaBuscaUsada": "produto defeituoso causou prejuízo e busca prazo para reparação",
+        "candidatosRecuperados": [
+          "Art. 27 - Prescrição para Reparação de Danos",
+          "Art. 12 - Responsabilidade pelo Fato do Produto",
+          "Art. 18 - Vício do Produto — Garantia Legal",
+          "Art. 14 - Responsabilidade pelo Fato do Serviço"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 27",
+        "referenciaNormalizada": "Art. 27",
+        "referenciasPermitidas": [
+          "Art. 27",
+          "Art. 12",
+          "Art. 18",
+          "Art. 14"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-34",
+      "descricao": "Desconsideração da personalidade jurídica",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "FORA_ESCOPO_OUTRO",
+      "categoriaOk": false,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "fixa",
+      "tipoRespostaOk": false,
+      "artigoEsperado": "Art. 28",
+      "artigoObtido": null,
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5008,
+      "tempoPipelineMs": 26,
+      "respostaTexto": "Esse assunto (família, trabalho, vizinhança ou outro tema que não é relação de consumo) não é tratado pelo PROCON.\n\nPara orientação gratuita, procure a *Defensoria Pública*. Questões de trabalho também podem ir ao sindicato ou à Justiça do Trabalho.",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "FORA_ESCOPO_OUTRO",
+          "motivo": "O cidadão relata uma dívida não paga por uma empresa que encerrou atividades, indicando uma questão trabalhista ou contratual.",
+          "informacaoSuficiente": true
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "resposta_fixa",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-35",
+      "descricao": "Consumidor por equiparação nas práticas comerciais",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 29",
+      "artigoObtido": "Art. 29",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5843,
+      "tempoPipelineMs": 12154,
+      "respostaTexto": "Entendemos sua preocupação. De acordo com o *Art. 29* do Código de Defesa do Consumidor, você, ao ser exposto a uma prática comercial, é considerado consumidor para fins de proteção. Isso significa que as regras de proteção às práticas comerciais podem te alcançar, mesmo sem ter realizado a compra. \n\nPara mais informações sobre práticas comerciais, consulte o *Art. 30* que trata de ofertas e publicidade, e o *Art. 54-C* que trata de práticas vedadas na oferta de crédito.\n\nBase legal: Art. 29.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão questiona sobre a aplicabilidade das regras de proteção às práticas comerciais em relação a uma oferta publicitária recebida, mesmo sem ter realizado a compra.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "aplicabilidade de regras de proteção às práticas comerciais em oferta publicitária"
+        },
+        "consultaBuscaUsada": "aplicabilidade de regras de proteção às práticas comerciais em oferta publicitária",
+        "candidatosRecuperados": [
+          "Art. 29 - Consumidores Expostos às Práticas Comerciais",
+          "Art. 54C - Práticas Vedadas na Oferta de Crédito",
+          "Art. 30 - Oferta e Vinculação do Fornecedor",
+          "Art. 1 - Objeto e Finalidade do Código"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 29",
+        "referenciaNormalizada": "Art. 29",
+        "referenciasPermitidas": [
+          "Art. 29",
+          "Art. 54-C",
+          "Art. 30",
+          "Art. 1"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-36",
+      "descricao": "Oferta obriga o fornecedor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 30",
+      "artigoObtido": "Art. 37",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5141,
+      "tempoPipelineMs": 13527,
+      "respostaTexto": "Entendo sua frustração. A propaganda que você viu *pode ter direito* a ser cumprida, pois a publicidade enganosa é proibida. O Art. 37 do Código de Defesa do Consumidor diz que é enganosa a publicidade que induz o consumidor a erro, mesmo por omissão. \n\nVocê *pode*:\n1.  Exigir que a loja cumpra a oferta original do notebook.\n2.  Aceitar outro produto ou serviço equivalente.\n3.  Cancelar a compra e receber seu dinheiro de volta.\n\nO PROCON avalia se a loja agiu de forma abusiva. Para uma análise mais detalhada, procure atendimento presencial.\n\nBase legal: Art. 37.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma propaganda de notebook oferecia um preço e configuração específicos, mas a loja alega que a oferta não é válida.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "propaganda de notebook com preço e configuração diferentes da oferta real"
+        },
+        "consultaBuscaUsada": "propaganda de notebook com preço e configuração diferentes da oferta real",
+        "candidatosRecuperados": [
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)",
+          "Art. 37 - Publicidade Enganosa ou Abusiva",
+          "Art. 35 - Descumprimento da Oferta",
+          "Art. 36 - Identificação da Publicidade"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 37",
+        "referenciaNormalizada": "Art. 37",
+        "referenciasPermitidas": [
+          "Art. 66",
+          "Art. 67",
+          "Art. 37",
+          "Art. 35",
+          "Art. 36"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-37",
+      "descricao": "Informação clara na oferta",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 31",
+      "artigoObtido": "Art. 31",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5192,
+      "tempoPipelineMs": 10796,
+      "respostaTexto": "Entendo sua preocupação. A loja deve informar de forma clara a quantidade, composição e riscos do alimento no momento da oferta. *Art. 31* diz que a oferta deve ter informações precisas e ostensivas. Você pode solicitar que a loja forneça essas informações imediatamente. O PROCON avalia se a loja está cumprindo essa obrigação.\n\nBase legal: Art. 31.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que um anúncio de alimento não informa informações essenciais como quantidade, composição e riscos, e a loja só as fornece após a compra.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "anúncio de alimento sem informações obrigatórias"
+        },
+        "consultaBuscaUsada": "anúncio de alimento sem informações obrigatórias",
+        "candidatosRecuperados": [
+          "Art. 30 - Oferta e Vinculação do Fornecedor",
+          "Art. 31 - Informações na Oferta e Apresentação",
+          "Art. 8 - Proteção à Saúde e Segurança dos Produtos e Serviços",
+          "Art. 37 - Publicidade Enganosa ou Abusiva"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 31",
+        "referenciaNormalizada": "Art. 31",
+        "referenciasPermitidas": [
+          "Art. 30",
+          "Art. 31",
+          "Art. 8",
+          "Art. 37"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-38",
+      "descricao": "Peças de reposição",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 32",
+      "artigoObtido": "Art. 32",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5515,
+      "tempoPipelineMs": 11217,
+      "respostaTexto": "A lei garante que fabricantes e importadores devem oferecer peças de reposição enquanto o produto estiver sendo fabricado ou importado. Cessada a produção, a oferta deve continuar por um tempo razoável. *Você pode verificar se o período já expirou* e buscar um novo fornecedor ou considerar a possibilidade de conserto em outro local. O PROCON avalia se o tempo decorrido foi razoável.\n\nBase legal: Art. 32.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que o fabricante descontinuou um modelo de eletrodoméstico e a assistência técnica se recusa a fornecer peças de reposição.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "eletrodoméstico fora de linha, falta de peças de reposição"
+        },
+        "consultaBuscaUsada": "eletrodoméstico fora de linha, falta de peças de reposição",
+        "candidatosRecuperados": [
+          "Art. 21 - Reparação de Produtos e Peças de Reposição",
+          "Art. 32 - Peças e Componentes de Reposição",
+          "Art. 19 - Vício de Quantidade do Produto",
+          "Art. 18 - Vício do Produto — Garantia Legal"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 32",
+        "referenciaNormalizada": "Art. 32",
+        "referenciasPermitidas": [
+          "Art. 21",
+          "Art. 32",
+          "Art. 19",
+          "Art. 18"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-39",
+      "descricao": "Oferta por telefone ou reembolso postal",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "AMBIGUO",
+      "categoriaOk": false,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "clarificacao",
+      "tipoRespostaOk": false,
+      "artigoEsperado": "Art. 33",
+      "artigoObtido": null,
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5233,
+      "tempoPipelineMs": 20,
+      "respostaTexto": "Qual produto foi oferecido?",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "AMBIGUO",
+          "motivo": "O cidadão relata ter recebido uma oferta de produto por telefone, mas alega que a empresa não informou corretamente sua identidade e origem da ligação.",
+          "informacaoSuficiente": false,
+          "perguntaEsclarecimento": "Qual produto foi oferecido?"
+        },
+        "consultaBuscaUsada": null,
+        "candidatosRecuperados": [],
+        "motivoDescarte": "clarificacao",
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-40",
+      "descricao": "Responsabilidade por prepostos",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 34",
+      "artigoObtido": "Art. 34",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 6721,
+      "tempoPipelineMs": 9341,
+      "respostaTexto": "Entendo sua preocupação. O fornecedor é responsável pelos atos de seus funcionários, mesmo que a empresa tente negar. *Você pode* pedir que a empresa cumpra a promessa feita pelo vendedor. Se não houver acordo, o PROCON avalia a situação. Para isso, registre sua reclamação e apresente as provas da promessa feita pelo vendedor.\n\nBase legal: Art. 34.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que um vendedor prometeu uma condição de venda em nome da empresa, mas a empresa nega a responsabilidade pela promessa.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "promessa de vendedor não cumprida pela empresa"
+        },
+        "consultaBuscaUsada": "promessa de vendedor não cumprida pela empresa",
+        "candidatosRecuperados": [
+          "Art. 34 - Responsabilidade por Prepostos e Representantes",
+          "Art. 35 - Descumprimento da Oferta",
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)",
+          "Art. 30 - Oferta e Vinculação do Fornecedor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 34",
+        "referenciaNormalizada": "Art. 34",
+        "referenciasPermitidas": [
+          "Art. 34",
+          "Art. 35",
+          "Art. 66",
+          "Art. 67",
+          "Art. 30"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-41",
+      "descricao": "Publicidade identificável",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 36",
+      "artigoObtido": "Art. 36",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5192,
+      "tempoPipelineMs": 11983,
+      "respostaTexto": "Entendo sua preocupação. A publicidade deve ser clara para que o consumidor saiba que está sendo exposto a uma mensagem comercial. *A publicidade deve ser veiculada de forma que o consumidor a identifique facilmente como tal*. Isso significa que o conteúdo promocional precisava indicar que era publicidade. O PROCON avalia se a falta dessa identificação causou confusão ou prejuízo. Para mais detalhes, procure a equipe de atendimento presencial.\n\nBase legal: Art. 36.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma empresa publicou conteúdo promocional em uma página de notícias sem indicar que se tratava de publicidade.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "publicidade disfarçada em notícia"
+        },
+        "consultaBuscaUsada": "publicidade disfarçada em notícia",
+        "candidatosRecuperados": [
+          "Art. 37 - Publicidade Enganosa ou Abusiva",
+          "Art. 30 - Oferta e Vinculação do Fornecedor",
+          "Art. 36 - Identificação da Publicidade",
+          "Art. 33 - Oferta por Telefone ou Reembolso Postal"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 36",
+        "referenciaNormalizada": "Art. 36",
+        "referenciasPermitidas": [
+          "Art. 37",
+          "Art. 30",
+          "Art. 36",
+          "Art. 33"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-42",
+      "descricao": "Publicidade enganosa ou abusiva",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 37",
+      "artigoObtido": "Art. 37",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4871,
+      "tempoPipelineMs": 10812,
+      "respostaTexto": "A propaganda que promete resultados garantidos sem comprovação pode ser considerada *enganosa*. O Art. 37 do Código de Defesa do Consumidor proíbe esse tipo de publicidade. A empresa pode ter que comprovar a veracidade da afirmação (Art. 38). O PROCON avalia se a propaganda é abusiva ou enganosa, podendo orientar a empresa a corrigir a publicidade.\n\nBase legal: Art. 37.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão alega que um anúncio de suplemento faz afirmações garantidas sem apresentar comprovação.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "anúncio de suplemento garante resultado sem comprovação"
+        },
+        "consultaBuscaUsada": "anúncio de suplemento garante resultado sem comprovação",
+        "candidatosRecuperados": [
+          "Art. 37 - Publicidade Enganosa ou Abusiva",
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)",
+          "Art. 30 - Oferta e Vinculação do Fornecedor",
+          "Art. 38 - Ônus da Prova na Publicidade"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 37",
+        "referenciaNormalizada": "Art. 37",
+        "referenciasPermitidas": [
+          "Art. 37",
+          "Art. 66",
+          "Art. 67",
+          "Art. 30",
+          "Art. 38"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-43",
+      "descricao": "Ônus da prova da publicidade",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 38",
+      "artigoObtido": "Art. 38",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5430,
+      "tempoPipelineMs": 12264,
+      "respostaTexto": "A empresa fez uma promessa e agora exige que você prove que ela não cumpriu. De acordo com o *Art. 38*, quem faz a propaganda tem que provar que ela é verdadeira. Você *pode ter direito* a uma revisão da propaganda ou a outras medidas. O PROCON avalia se houve publicidade enganosa e pode solicitar à empresa que corrija a informação. \n\nSe a propaganda for considerada enganosa, o *Art. 37* também pode ser aplicado, pois proíbe publicidade enganosa ou abusiva.\n\nBase legal: Art. 38.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata uma divergência entre a propaganda de uma empresa e a posição desta quando questionada sobre a veracidade da afirmação.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "propaganda de produto que promete reduzir despesas e empresa exige prova da afirmação"
+        },
+        "consultaBuscaUsada": "propaganda de produto que promete reduzir despesas e empresa exige prova da afirmação",
+        "candidatosRecuperados": [
+          "Art. 38 - Ônus da Prova na Publicidade",
+          "Art. 66 e 67 - Infrações Penais (Falsa Afirmação e Publicidade Enganosa)",
+          "Art. 37 - Publicidade Enganosa ou Abusiva",
+          "Art. 19 - Vício de Quantidade do Produto"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 38",
+        "referenciaNormalizada": "Art. 38",
+        "referenciasPermitidas": [
+          "Art. 38",
+          "Art. 66",
+          "Art. 67",
+          "Art. 37",
+          "Art. 19"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-44",
+      "descricao": "Orçamento prévio",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 40",
+      "artigoObtido": "Art. 40",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5635,
+      "tempoPipelineMs": 11628,
+      "respostaTexto": "Entendo sua preocupação com os reparos realizados sem orçamento prévio. O fornecedor de serviço é obrigado a apresentar um orçamento detalhado antes de realizar qualquer intervenção. *O orçamento deve discriminar a mão de obra, os materiais e o prazo dos serviços.* \n\n1. Solicite à assistência técnica a apresentação do orçamento que deveria ter sido entregue antes dos reparos. \n2. Caso não haja acordo sobre os valores, o PROCON pode avaliar a situação para verificar se houve descumprimento da lei.\n\nBase legal: Art. 40.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma assistência técnica realizou reparos em seu computador sem autorização prévia e sem apresentar orçamento, o que indica um problema relacionado a um serviço contratado.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "computador - reparos sem orçamento"
+        },
+        "consultaBuscaUsada": "computador - reparos sem orçamento",
+        "candidatosRecuperados": [
+          "Art. 40 - Orçamento Prévio de Serviços",
+          "Art. 21 - Reparação de Produtos e Peças de Reposição",
+          "Art. 32 - Peças e Componentes de Reposição",
+          "Art. 54C - Práticas Vedadas na Oferta de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 40",
+        "referenciaNormalizada": "Art. 40",
+        "referenciasPermitidas": [
+          "Art. 40",
+          "Art. 21",
+          "Art. 32",
+          "Art. 54-C"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-45",
+      "descricao": "Preço anunciado e cobrança superior",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 30",
+      "artigoObtido": "Art. 35",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5621,
+      "tempoPipelineMs": 9311,
+      "respostaTexto": "Entendo sua preocupação com o valor cobrado no caixa diferente do preço na prateleira. De acordo com o Art. 35, o supermercado pode ser obrigado a cumprir a oferta original, ou você pode optar pela rescisão da compra e receber o valor pago de volta, com correção. O PROCON avalia se houve descumprimento da oferta.\n\nBase legal: Art. 35.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que um supermercado anunciou um preço de R$ 20 para um produto, mas tentou cobrar R$ 35 no caixa.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "Supermercado cobrou valor diferente do anunciado na prateleira."
+        },
+        "consultaBuscaUsada": "Supermercado cobrou valor diferente do anunciado na prateleira.",
+        "candidatosRecuperados": [
+          "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+          "Art. 35 - Descumprimento da Oferta",
+          "Art. 71 - Infrações Penais (Cobrança Vexatória ou com Ameaça)",
+          "Art. 20 - Vício do Serviço"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 35",
+        "referenciaNormalizada": "Art. 35",
+        "referenciasPermitidas": [
+          "Art. 42",
+          "Art. 35",
+          "Art. 71",
+          "Art. 20"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-46",
+      "descricao": "Cadastro de consumidores",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 43",
+      "artigoObtido": "Art. 43",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4944,
+      "tempoPipelineMs": 11539,
+      "respostaTexto": "Entendo sua preocupação. De acordo com o Art. 43, você tem o direito de saber quais informações sobre você estão registradas em cadastros de consumidores. \n\n*Você pode solicitar à empresa que informe quais dados foram registrados.* Caso encontre alguma informação incorreta, pode pedir a correção em até cinco dias úteis. \n\nO Art. 72 prevê penalidade para quem impedir o acesso a esses dados. O PROCON avalia se houve descumprimento da lei.\n\nBase legal: Art. 43.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que uma empresa o incluiu em um cadastro de consumidores com informações incorretas e impede o acesso aos dados registrados.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cadastro de consumidores com informação negativa incorreta"
+        },
+        "consultaBuscaUsada": "cadastro de consumidores com informação negativa incorreta",
+        "candidatosRecuperados": [
+          "Art. 43 - Bancos de Dados e Cadastros de Consumidores",
+          "Art. 72 - Infrações Penais (Impedir Acesso a Dados/Cadastros)",
+          "Art. 42A - Identificação nos Documentos de Cobrança",
+          "Art. 44 - Cadastro de Reclamações contra Fornecedores"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 43",
+        "referenciaNormalizada": "Art. 43",
+        "referenciasPermitidas": [
+          "Art. 43",
+          "Art. 72",
+          "Art. 42-A",
+          "Art. 44"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-47",
+      "descricao": "Cadastros e reclamações em órgãos de defesa do consumidor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 44",
+      "artigoObtido": "Art. 44",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5896,
+      "tempoPipelineMs": 10969,
+      "respostaTexto": "Os órgãos de defesa do consumidor mantêm cadastros de reclamações contra fornecedores, que são divulgados anualmente. Esses registros indicam se a reclamação foi atendida ou não. Você pode consultar esses dados para se orientar. \n\nPara acessar as informações, procure o site do órgão de defesa do consumidor da sua região. \n\nArt. 43 também garante seu acesso a dados pessoais e de consumo arquivados, desde que sejam claros e objetivos.\n\nBase legal: Art. 44.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão busca informações sobre registros públicos de reclamações contra uma empresa e o tratamento dessas informações por órgãos de defesa do consumidor.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "registros púborúricos de reclamações contra empresa"
+        },
+        "consultaBuscaUsada": "registros púborúricos de reclamações contra empresa",
+        "candidatosRecuperados": [
+          "Art. 44 - Cadastro de Reclamações contra Fornecedores",
+          "Art. 43 - Bancos de Dados e Cadastros de Consumidores",
+          "Art. 72 - Infrações Penais (Impedir Acesso a Dados/Cadastros)",
+          "Art. 42A - Identificação nos Documentos de Cobrança"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 44",
+        "referenciaNormalizada": "Art. 44",
+        "referenciasPermitidas": [
+          "Art. 44",
+          "Art. 43",
+          "Art. 72",
+          "Art. 42-A"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-48",
+      "descricao": "Contrato sem conhecimento prévio",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 46",
+      "artigoObtido": "Art. 54",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5279,
+      "tempoPipelineMs": 14744,
+      "respostaTexto": "A empresa pode não estar agindo corretamente. O *Art. 54* diz que em contratos de adesão, aqueles prontos e sem discussão, as cláusulas devem ser claras e destacadas para fácil compreensão. Se as condições importantes apareceram depois que você pagou, isso pode ser um problema. \n\nVocê pode verificar se as cláusulas são abusivas, ou seja, se colocam o consumidor em desvantagem. Se for o caso, o PROCON pode avaliar a possibilidade de anulação dessas cláusulas. Caso queira, procure a equipe de atendimento presencial para uma análise mais detalhada.\n\nBase legal: Art. 54.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter recebido um contrato de serviço com condições importantes após o pagamento e a empresa alega que as condições são obrigatórias por estarem no contrato.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "contrato de serviço com condições após pagamento"
+        },
+        "consultaBuscaUsada": "contrato de serviço com condições após pagamento",
+        "candidatosRecuperados": [
+          "Art. 40 - Orçamento Prévio de Serviços",
+          "Art. 54D - Deveres na Oferta de Crédito",
+          "Art. 54 - Contratos de Adesão",
+          "Art. 54F - Contratos Conexos de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54",
+        "referenciaNormalizada": "Art. 54",
+        "referenciasPermitidas": [
+          "Art. 40",
+          "Art. 54-D",
+          "Art. 54",
+          "Art. 54-F"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-49",
+      "descricao": "Interpretação mais favorável ao consumidor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 47",
+      "artigoObtido": "Art. 47",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5601,
+      "tempoPipelineMs": 14387,
+      "respostaTexto": "Entendo sua preocupação. As cláusulas do contrato devem ser interpretadas de forma a proteger você, consumidor. Isso significa que, se uma cláusula pode ser entendida de duas maneiras, a interpretação que te favorece deve ser a escolhida. Caso a empresa continue insistindo em uma interpretação prejudicial, essa cláusula pode ser considerada abusiva e anulada, conforme o Art. 51. O PROCON pode avaliar a situação e orientar sobre os próximos passos.\n\nBase legal: Art. 47.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão alega que uma cláusula contratual é ambígua e a empresa optou pela interpretação mais desfavorável ao consumidor.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cláusula contratual ambígua"
+        },
+        "consultaBuscaUsada": "cláusula contratual ambígua",
+        "candidatosRecuperados": [
+          "Art. 47 - Interpretação Favorável ao Consumidor",
+          "Art. 51 - Cláusulas Contratuais Abusivas",
+          "Art. 25 - Responsabilidade por Danos e Cláusulas Exoneratórias",
+          "Art. 54 - Contratos de Adesão"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 47",
+        "referenciaNormalizada": "Art. 47",
+        "referenciasPermitidas": [
+          "Art. 47",
+          "Art. 51",
+          "Art. 25",
+          "Art. 54"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-50",
+      "descricao": "Declarações ou escritos que obrigam o fornecedor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 48",
+      "artigoObtido": "Art. 48",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 6078,
+      "tempoPipelineMs": 11047,
+      "respostaTexto": "A promessa de condição comercial que a empresa entregou por escrito tem valor e deve ser cumprida. Isso porque, de acordo com o Art. 48, declarações e pré-contratos relativos às relações de consumo vinculam o fornecedor. Você pode exigir o cumprimento dessa promessa, nos termos do Art. 84. O PROCON avalia a situação e pode ajudar a garantir que a empresa cumpra o que prometeu.\n\nBase legal: Art. 48.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que a empresa forneceu um documento com promessa de condição comercial, mas agora nega a validade dessa promessa por não estar no contrato principal.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "promessa de condição comercial em documento separado do contrato principal"
+        },
+        "consultaBuscaUsada": "promessa de condição comercial em documento separado do contrato principal",
+        "candidatosRecuperados": [
+          "Art. 48 - Declarações e Pré-Contratos",
+          "Art. 35 - Descumprimento da Oferta",
+          "Art. 54D - Deveres na Oferta de Crédito",
+          "Art. 54F - Contratos Conexos de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 48",
+        "referenciaNormalizada": "Art. 48",
+        "referenciasPermitidas": [
+          "Art. 48",
+          "Art. 35",
+          "Art. 54-D",
+          "Art. 54-F"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-51",
+      "descricao": "Garantia contratual",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 50",
+      "artigoObtido": "Art. 50",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5268,
+      "tempoPipelineMs": 10170,
+      "respostaTexto": "A garantia contratual deve ser clara sobre as condições e procedimentos. O documento da garantia deve explicar de forma adequada o que cobre a garantia, o prazo e onde exercê-la. *Verifique o manual do produto* para mais informações. *Se ainda tiver dúvidas, entre em contato com o fabricante* para esclarecimentos.\n\nBase legal: Art. 50.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que o documento de garantia contratual não detalha as condições e procedimentos, apesar de a garantia ter prazo de dois anos.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "garantia contratual de dois anos sem detalhes sobre condições e procedimentos"
+        },
+        "consultaBuscaUsada": "garantia contratual de dois anos sem detalhes sobre condições e procedimentos",
+        "candidatosRecuperados": [
+          "Art. 50 - Garantia Contratual",
+          "Art. 24 - Garantia Legal de Adequação",
+          "Art. 31 - Informações na Oferta e Apresentação",
+          "Art. 40 - Orçamento Prévio de Serviços"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 50",
+        "referenciaNormalizada": "Art. 50",
+        "referenciasPermitidas": [
+          "Art. 50",
+          "Art. 24",
+          "Art. 31",
+          "Art. 40"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-52",
+      "descricao": "Crédito e financiamento ao consumidor",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 52",
+      "artigoObtido": "Art. 54-B",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 5268,
+      "tempoPipelineMs": 12053,
+      "respostaTexto": "Entendo sua preocupação. A loja deve informar de forma clara o preço total da televisão com e sem financiamento, além de detalhar os encargos. *Art. 54-B* estabelece essa obrigação. Verifique se a oferta inicial continha essas informações. Se não, procure a loja para solicitar os esclarecimentos. O PROCON avalia se a falta de informação configura descumprimento da oferta.\n\nBase legal: Art. 54-B.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata que a loja não informou de forma clara o preço total da televisão financiada, incluindo encargos.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "televisão financiada - falta informação sobre preço total e encargos"
+        },
+        "consultaBuscaUsada": "televisão financiada - falta informação sobre preço total e encargos",
+        "candidatosRecuperados": [
+          "Art. 54B - Informações na Oferta de Crédito e Venda a Prazo",
+          "Art. 52 - Crédito e Financiamento ao Consumidor",
+          "Art. 30 - Oferta e Vinculação do Fornecedor",
+          "Art. 31 - Informações na Oferta e Apresentação"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-B",
+        "referenciaNormalizada": "Art. 54-B",
+        "referenciasPermitidas": [
+          "Art. 54-B",
+          "Art. 52",
+          "Art. 30",
+          "Art. 31"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-53",
+      "descricao": "Perda das parcelas em contrato de financiamento",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 53",
+      "artigoObtido": "Art. 51",
+      "artigoOk": false,
+      "tempoClassificacaoMs": 6157,
+      "tempoPipelineMs": 14480,
+      "respostaTexto": "Entendo sua preocupação com a cláusula do contrato. O *Art. 51* diz que cláusulas que subtraem do consumidor o direito de reembolso do valor pago são nulas. Isso significa que a cláusula que prevê a perda total do que você já pagou pode não ser válida. Você pode buscar seus direitos na justiça ou tentar uma negociação amigável com a construtora. O PROCON avalia se a cláusula é abusiva e pode te ajudar a buscar uma solução.\n\nBase legal: Art. 51.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter assinado um contrato de compra e venda de imóvel a parcelas e questiona a validade de uma cláusula que prevê a perda total dos valores pagos em caso de desistência.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cláusula sobre perda de valores pagos em contrato de compra e venda de imóvel"
+        },
+        "consultaBuscaUsada": "cláusula sobre perda de valores pagos em contrato de compra e venda de imóvel",
+        "candidatosRecuperados": [
+          "Art. 53 - Contratos de Compra e Venda a Prazo",
+          "Art. 51 - Cláusulas Contratuais Abusivas",
+          "Art. 25 - Responsabilidade por Danos e Cláusulas Exoneratórias",
+          "Art. 54 - Contratos de Adesão"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 51",
+        "referenciaNormalizada": "Art. 51",
+        "referenciasPermitidas": [
+          "Art. 53",
+          "Art. 51",
+          "Art. 25",
+          "Art. 54"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-54",
+      "descricao": "Contrato de adesão",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54",
+      "artigoObtido": "Art. 54",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5090,
+      "tempoPipelineMs": 14343,
+      "respostaTexto": "Entendo que você assinou um contrato de adesão, onde as cláusulas já estavam definidas pela empresa. O Art. 54 garante que, em contratos de adesão, você não pode discutir ou modificar o conteúdo das cláusulas. *Se você considerar que alguma cláusula do contrato é injusta ou abusiva*, o Art. 51 pode ser aplicado para torná-la nula. O PROCON pode avaliar se a cláusula em questão se enquadra nessa situação.\n\nBase legal: Art. 54.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter assinado um contrato de internet pré-elaborado pela empresa, sem possibilidade de discussão das cláusulas.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "contrato de internet com cláusulas pré-definidas"
+        },
+        "consultaBuscaUsada": "contrato de internet com cláusulas pré-definidas",
+        "candidatosRecuperados": [
+          "Art. 54 - Contratos de Adesão",
+          "Art. 51 - Cláusulas Contratuais Abusivas",
+          "Art. 53 - Contratos de Compra e Venda a Prazo",
+          "Art. 47 - Interpretação Favorável ao Consumidor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54",
+        "referenciaNormalizada": "Art. 54",
+        "referenciasPermitidas": [
+          "Art. 54",
+          "Art. 51",
+          "Art. 53",
+          "Art. 47"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-55",
+      "descricao": "Prevenção e tratamento do superendividamento",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54-A",
+      "artigoObtido": "Art. 54-A",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 4641,
+      "tempoPipelineMs": 14958,
+      "respostaTexto": "Entendo sua preocupação com as dívidas. A lei [Art. 54-A] define superendividamento como a impossibilidade de pagar suas dívidas sem comprometer suas necessidades básicas. O PROCON pode te ajudar a entender seus direitos e buscar soluções. \n\n*Pode ter direito* a mecanismos de prevenção e tratamento do superendividamento, como negociação de dívidas e reestruturação de pagamentos. O PROCON avalia cada caso para verificar se há superendividamento e quais medidas podem ser tomadas.\n\nBase legal: Art. 54-A.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter dívidas de consumo e busca informações sobre mecanismos de proteção.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "dívidas de consumo e mecanismos de proteção"
+        },
+        "consultaBuscaUsada": "dívidas de consumo e mecanismos de proteção",
+        "candidatosRecuperados": [
+          "Art. 4 - Política Nacional das Relações de Consumo",
+          "Art. 5 - Instrumentos da Política Nacional de Relações de Consumo",
+          "Art. 54A - Prevenção e Tratamento do Superendividamento",
+          "Art. 54D - Deveres na Oferta de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-A",
+        "referenciaNormalizada": "Art. 54-A",
+        "referenciasPermitidas": [
+          "Art. 4",
+          "Art. 5",
+          "Art. 54-A",
+          "Art. 54-D"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-56",
+      "descricao": "Informações em contratos de crédito",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54-B",
+      "artigoObtido": "Art. 54-B",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5042,
+      "tempoPipelineMs": 11419,
+      "respostaTexto": "O banco deveria ter te informado de forma clara o custo total do empréstimo, os juros e o número de parcelas antes de você contratar. O *Art. 54-B* estabelece que essa informação deve ser prévia e adequada. Você pode verificar o contrato para confirmar se essas informações constam de forma clara. O PROCON avalia se a falta de clareza pode gerar direito a revisão contratual.\n\nBase legal: Art. 54-B.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão alega que o banco não informou de forma clara os custos de um empréstimo antes da contratação.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "Empréstimo bancário - falta de informação sobre custos"
+        },
+        "consultaBuscaUsada": "Empréstimo bancário - falta de informação sobre custos",
+        "candidatosRecuperados": [
+          "Art. 54B - Informações na Oferta de Crédito e Venda a Prazo",
+          "Art. 52 - Crédito e Financiamento ao Consumidor",
+          "Art. 54D - Deveres na Oferta de Crédito",
+          "Art. 54C - Práticas Vedadas na Oferta de Crédito"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-B",
+        "referenciaNormalizada": "Art. 54-B",
+        "referenciasPermitidas": [
+          "Art. 54-B",
+          "Art. 52",
+          "Art. 54-D",
+          "Art. 54-C"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-57",
+      "descricao": "Práticas proibidas na oferta de crédito",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54-C",
+      "artigoObtido": "Art. 54-C",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5385,
+      "tempoPipelineMs": 11215,
+      "respostaTexto": "A financeira não pode oferecer empréstimo sem avaliar se você consegue pagar. *Art. 54-C* veda que a oferta de crédito indique que a operação será concluída sem análise da sua situação financeira. A oferta deve ser clara sobre os custos e riscos do crédito. Se você tiver dúvidas, procure a equipe de atendimento presencial para uma análise mais detalhada.\n\nBase legal: Art. 54-C.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter recebido uma oferta de empréstimo por mensagem, com condições que sugerem falta de análise de capacidade financeira.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "oferta de empréstimo sem análise de capacidade financeira"
+        },
+        "consultaBuscaUsada": "oferta de empréstimo sem análise de capacidade financeira",
+        "candidatosRecuperados": [
+          "Art. 54C - Práticas Vedadas na Oferta de Crédito",
+          "Art. 54D - Deveres na Oferta de Crédito",
+          "Art. 54B - Informações na Oferta de Crédito e Venda a Prazo",
+          "Art. 52 - Crédito e Financiamento ao Consumidor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-C",
+        "referenciaNormalizada": "Art. 54-C",
+        "referenciasPermitidas": [
+          "Art. 54-C",
+          "Art. 54-D",
+          "Art. 54-B",
+          "Art. 52"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-58",
+      "descricao": "Deveres do fornecedor de crédito",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54-D",
+      "artigoObtido": "Art. 54-D",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 6034,
+      "tempoPipelineMs": 12812,
+      "respostaTexto": "Entendo sua preocupação. A lei diz que, na oferta de crédito, a financeira deve te informar de forma clara sobre todos os custos, juros e riscos do empréstimo, considerando sua idade e situação financeira. Além disso, ela deve avaliar se as condições de pagamento são adequadas para você. \n\n*Pode ter direito* a uma análise mais detalhada da sua situação. O PROCON pode avaliar se a financeira cumpriu suas obrigações de informar e avaliar suas condições. Para isso, procure o atendimento presencial.\n\nBase legal: Art. 54-D.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão alega que a financeira aprovou um empréstimo sem informar adequadamente os custos e sem avaliar as condições de pagamento.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "empréstimo - falta de informação sobre custos e condições de pagamento"
+        },
+        "consultaBuscaUsada": "empréstimo - falta de informação sobre custos e condições de pagamento",
+        "candidatosRecuperados": [
+          "Art. 54B - Informações na Oferta de Crédito e Venda a Prazo",
+          "Art. 54D - Deveres na Oferta de Crédito",
+          "Art. 54C - Práticas Vedadas na Oferta de Crédito",
+          "Art. 52 - Crédito e Financiamento ao Consumidor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-D",
+        "referenciaNormalizada": "Art. 54-D",
+        "referenciasPermitidas": [
+          "Art. 54-B",
+          "Art. 54-D",
+          "Art. 54-C",
+          "Art. 52"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-59",
+      "descricao": "Conexão entre contratos de crédito e compra",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54-F",
+      "artigoObtido": "Art. 54-F",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5734,
+      "tempoPipelineMs": 14049,
+      "respostaTexto": "Entendo sua preocupação. Como você adquiriu o produto por meio de um financiamento oferecido pelo próprio fornecedor, pode haver uma relação entre o contrato de compra e o contrato de crédito. *Art. 54-F* estabelece que, em caso de problemas com o produto, você pode ter o direito de rescindir o contrato de crédito. O PROCON pode avaliar essa situação para verificar se os contratos são considerados conexos e quais os seus direitos.\n\nBase legal: Art. 54-F.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata a compra de um produto financiado pelo próprio fornecedor, com a não entrega do produto, e questiona se isso afeta o contrato de crédito.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "produto financiado não entregue e impacto no contrato de crédito"
+        },
+        "consultaBuscaUsada": "produto financiado não entregue e impacto no contrato de crédito",
+        "candidatosRecuperados": [
+          "Art. 54F - Contratos Conexos de Crédito",
+          "Art. 54G - Condutas Vedadas em Contratos de Crédito",
+          "Art. 54D - Deveres na Oferta de Crédito",
+          "Art. 52 - Crédito e Financiamento ao Consumidor"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-F",
+        "referenciaNormalizada": "Art. 54-F",
+        "referenciasPermitidas": [
+          "Art. 54-F",
+          "Art. 54-G",
+          "Art. 54-D",
+          "Art. 52"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    },
+    {
+      "id": "OD-60",
+      "descricao": "Práticas abusivas em operações de crédito",
+      "categoriaEsperada": "CONSUMO",
+      "categoriaObtida": "CONSUMO",
+      "categoriaOk": true,
+      "tipoRespostaEsperada": "orientacao_final",
+      "tipoRespostaObtida": "orientacao_final",
+      "tipoRespostaOk": true,
+      "artigoEsperado": "Art. 54-G",
+      "artigoObtido": "Art. 54-G",
+      "artigoOk": true,
+      "tempoClassificacaoMs": 5655,
+      "tempoPipelineMs": 15722,
+      "respostaTexto": "Entendo sua preocupação com as cobranças que você não reconhece. A lei [Art. 54-G] garante que você pode contestar esses valores e a instituição financeira não pode continuar cobrando enquanto a situação não for resolvida. Você pode deduzir o valor contestado da fatura e efetuar o pagamento do restante, e a instituição pode lançar o valor contestado como uma 'crédito em confiança' até que a situação seja esclarecida. \n\nSe a cobrança for confirmada como indevida, você [Art. 42] pode ter direito à repetição do valor pago em dobro, com correção e juros. Para isso, registre a contestação junto à administradora do cartão com pelo menos 10 dias de antecedência da data de vencimento da fatura.\n\nBase legal: Art. 54-G.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+      "diagnostics": {
+        "classificacaoUsada": {
+          "categoria": "CONSUMO",
+          "motivo": "O cidadão relata ter recebido uma cobrança indevida em seu cartão de crédito e deseja saber sobre as proteções disponíveis para contestar a cobrança.",
+          "informacaoSuficiente": true,
+          "consultaBusca": "cobrança indevida cartão de crédito"
+        },
+        "consultaBuscaUsada": "cobrança indevida cartão de crédito",
+        "candidatosRecuperados": [
+          "Art. 54G - Condutas Vedadas em Contratos de Crédito",
+          "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+          "Art. 39 - Práticas Abusivas (Venda Casada e Envios não Solicitados)",
+          "Art. 42A - Identificação nos Documentos de Cobrança"
+        ],
+        "motivoDescarte": null,
+        "referenciaGerada": "Art. 54-G",
+        "referenciaNormalizada": "Art. 54-G",
+        "referenciasPermitidas": [
+          "Art. 54-G",
+          "Art. 42",
+          "Art. 39",
+          "Art. 42-A"
+        ],
+        "temperatura": 0,
+        "parametrosModelo": {
+          "modelo": "gemma3:12b",
+          "thinking": false
+        }
+      }
+    }
+  ],
+  "resultadosClarificacao": [
+    {
+      "id": "PC-01",
+      "descricao": "Mensagem vaga sobre não devolução de dinheiro, sem saber tipo de vendedor nem o que foi comprado",
+      "etapaInicial": {
+        "categoriaEsperada": "AMBIGUO",
+        "categoriaObtida": "AMBIGUO",
+        "categoriaOk": true,
+        "fezPergunta": true,
+        "tipoRespostaEsperado": "clarificacao",
+        "tipoRespostaOk": true,
+        "tipoRespostaObtido": "clarificacao",
+        "resposta": "Qual produto ou serviço você adquiriu?",
+        "tempoMs": 4998,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "AMBIGUO",
+            "motivo": "O cidadão relata uma compra e a não devolução do dinheiro, sem especificar o produto, serviço ou o fornecedor.",
+            "informacaoSuficiente": false,
+            "perguntaEsclarecimento": "Qual produto ou serviço você adquiriu?"
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "clarificacao",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      },
+      "etapaFinal": {
+        "categoriaEsperada": "CONSUMO",
+        "categoriaObtida": "CONSUMO",
+        "categoriaOk": true,
+        "artigoEsperado": "Art. 35",
+        "artigoObtido": "Art. 49",
+        "artigoOk": false,
+        "tipoRespostaObtido": "orientacao_final",
+        "resposta": "Entendo sua preocupação com a não entrega do produto. Como a compra foi feita em loja online, você *pode ter direito* a desistir da compra em até 7 dias, conforme o Art. 49. Para isso, entre em contato com a loja e formalize sua desistência. O PROCON avalia se a loja cumpriu com suas obrigações.\n\nBase legal: Art. 49.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+        "tempoMs": 14216,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "CONSUMO",
+            "motivo": "O cidadão relata não ter recebido um produto comprado em uma loja de eletrônicos online e a loja parou de responder.",
+            "informacaoSuficiente": true,
+            "consultaBusca": "produto não entregue e loja inativa"
+          },
+          "consultaBuscaUsada": "produto não entregue e loja inativa",
+          "candidatosRecuperados": [
+            "Art. 13 - Responsabilidade do Comerciante",
+            "Art. 34 - Responsabilidade por Prepostos e Representantes",
+            "Art. 24 - Garantia Legal de Adequação",
+            "Art. 49 - Direito de Arrependimento"
+          ],
+          "motivoDescarte": null,
+          "referenciaGerada": "Art. 49",
+          "referenciaNormalizada": "Art. 49",
+          "referenciasPermitidas": [
+            "Art. 13",
+            "Art. 34",
+            "Art. 24",
+            "Art. 49"
+          ],
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      }
+    },
+    {
+      "id": "PC-02",
+      "descricao": "Cobrança não reconhecida, sem saber se é empresa e qual contexto",
+      "etapaInicial": {
+        "categoriaEsperada": "AMBIGUO",
+        "categoriaObtida": "AMBIGUO",
+        "categoriaOk": true,
+        "fezPergunta": true,
+        "tipoRespostaEsperado": "clarificacao",
+        "tipoRespostaOk": true,
+        "tipoRespostaObtido": "clarificacao",
+        "resposta": "Qual serviço ou produto a empresa está cobrando?",
+        "tempoMs": 5285,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "AMBIGUO",
+            "motivo": "O cidadão informa que a empresa está cobrando um valor desconhecido, sem especificar qual empresa ou o tipo de serviço/produto envolvido.",
+            "informacaoSuficiente": false,
+            "perguntaEsclarecimento": "Qual serviço ou produto a empresa está cobrando?"
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "clarificacao",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      },
+      "etapaFinal": {
+        "categoriaEsperada": "CONSUMO",
+        "categoriaObtida": "CONSUMO",
+        "categoriaOk": true,
+        "artigoEsperado": "Art. 51",
+        "artigoObtido": "Art. 51",
+        "artigoOk": true,
+        "tipoRespostaObtido": "orientacao_final",
+        "resposta": "Entendo sua preocupação com essa cobrança. O contrato pode ter uma cláusula que a empresa está usando para justificar a cobrança, mas *cláusulas contratuais abusivas* são consideradas nulas (Art. 51). Isso significa que elas não podem ser usadas para cobrar valores indevidos.\n\nVocê pode verificar se a cláusula que está sendo usada para cobrar é abusiva, buscando informações sobre o que são cláusulas abusivas. Se você achar que a cláusula é abusiva, pode registrar sua reclamação no PROCON. O PROCON avalia se a cláusula é abusiva e pode ajudar a resolver a situação.\n\nBase legal: Art. 51.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+        "tempoMs": 21524,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "CONSUMO",
+            "motivo": "O cidadão relata cobrança indevida de uma academia após cancelamento, alegando confirmação do cancelamento pela empresa e citação de cláusula contratual para justificar a cobrança.",
+            "informacaoSuficiente": true,
+            "consultaBusca": "cobrança indevida após cancelamento de academia"
+          },
+          "consultaBuscaUsada": "cobrança indevida após cancelamento de academia",
+          "candidatosRecuperados": [
+            "Art. 42 - Cobrança de Dívidas e Repetição do Indébito",
+            "Art. 54G - Condutas Vedadas em Contratos de Crédito",
+            "Art. 51 - Cláusulas Contratuais Abusivas",
+            "Art. 39 - Práticas Abusivas (Venda Casada e Envios não Solicitados)"
+          ],
+          "motivoDescarte": null,
+          "referenciaGerada": "Art. 51",
+          "referenciaNormalizada": "Art. 51",
+          "referenciasPermitidas": [
+            "Art. 42",
+            "Art. 54-G",
+            "Art. 51",
+            "Art. 39"
+          ],
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      }
+    },
+    {
+      "id": "PC-03",
+      "descricao": "Serviço contratado não realizado, sem saber se prestador é empresa/autônomo formal ou informal, nem a natureza do serviço",
+      "etapaInicial": {
+        "categoriaEsperada": "AMBIGUO",
+        "categoriaObtida": "AMBIGUO",
+        "categoriaOk": true,
+        "fezPergunta": true,
+        "tipoRespostaEsperado": "clarificacao",
+        "tipoRespostaOk": true,
+        "tipoRespostaObtido": "clarificacao",
+        "resposta": "Qual serviço foi contratado?",
+        "tempoMs": 5103,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "AMBIGUO",
+            "motivo": "O cidadão relata ter contratado alguém para um serviço, mas não especificou qual serviço foi contratado nem o problema enfrentado.",
+            "informacaoSuficiente": false,
+            "perguntaEsclarecimento": "Qual serviço foi contratado?"
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "clarificacao",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      },
+      "etapaFinal": {
+        "categoriaEsperada": "CONSUMO",
+        "categoriaObtida": "CONSUMO",
+        "categoriaOk": true,
+        "artigoEsperado": "Art. 20",
+        "artigoObtido": "Art. 35",
+        "artigoOk": false,
+        "tipoRespostaObtido": "orientacao_final",
+        "resposta": "Entendo sua preocupação com a empresa que não cumpriu o contrato. Você *pode ter direito* a rescindir o contrato e receber o valor pago de volta, com correção monetária e perdas e danos, conforme o Art. 35. O PROCON avalia a possibilidade de buscar o cumprimento do contrato ou a devolução do valor pago. Para isso, você pode apresentar uma reclamação formal com a documentação que comprovar o ocorrido.\n\nBase legal: Art. 35.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+        "tempoMs": 18960,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "CONSUMO",
+            "motivo": "O cidadão contratou uma empresa de reformas, realizou um pagamento antecipado e a empresa desapareceu sem prestar o serviço.",
+            "informacaoSuficiente": true,
+            "consultaBusca": "Empresa de reformas desapareceu após receber adiantamento para pintura."
+          },
+          "consultaBuscaUsada": "Empresa de reformas desapareceu após receber adiantamento para pintura.",
+          "candidatosRecuperados": [
+            "Art. 40 - Orçamento Prévio de Serviços",
+            "Art. 35 - Descumprimento da Oferta",
+            "Art. 21 - Reparação de Produtos e Peças de Reposição",
+            "Art. 34 - Responsabilidade por Prepostos e Representantes"
+          ],
+          "motivoDescarte": null,
+          "referenciaGerada": "Art. 35",
+          "referenciaNormalizada": "Art. 35",
+          "referenciasPermitidas": [
+            "Art. 40",
+            "Art. 35",
+            "Art. 21",
+            "Art. 34"
+          ],
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      }
+    },
+    {
+      "id": "PC-04",
+      "descricao": "Mesmo enunciado do PC-03, mas a clarificação revela que é ilícito — testa se o classificador reavalia corretamente após a resposta, e não fica ancorado na primeira impressão de 'CONSUMO'",
+      "etapaInicial": {
+        "categoriaEsperada": "AMBIGUO",
+        "categoriaObtida": "AMBIGUO",
+        "categoriaOk": true,
+        "fezPergunta": true,
+        "tipoRespostaEsperado": "clarificacao",
+        "tipoRespostaOk": true,
+        "tipoRespostaObtido": "clarificacao",
+        "resposta": "Qual serviço foi contratado?",
+        "tempoMs": 5116,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "AMBIGUO",
+            "motivo": "O cidadão relata ter contratado alguém para um serviço, mas não especificou qual serviço foi contratado nem o problema enfrentado.",
+            "informacaoSuficiente": false,
+            "perguntaEsclarecimento": "Qual serviço foi contratado?"
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "clarificacao",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      },
+      "etapaFinal": {
+        "categoriaEsperada": "FORA_ESCOPO_ILICITO",
+        "categoriaObtida": "FORA_ESCOPO_ILICITO",
+        "categoriaOk": true,
+        "artigoEsperado": null,
+        "artigoObtido": null,
+        "artigoOk": true,
+        "tipoRespostaObtido": "fixa",
+        "resposta": "O serviço que você descreveu não é permitido por lei, por isso o PROCON não consegue atuar nesse caso.\n\nSe você foi enganado ou ameaçado, registre um Boletim de Ocorrência na delegacia (em muitos casos dá para fazer online).",
+        "tempoMs": 5754,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "FORA_ESCOPO_ILICITO",
+            "motivo": "O cidadão relata ter contratado um serviço ilegal, que consiste em clonar o WhatsApp de outra pessoa, e alega ter pago adiantado sem receber o serviço.",
+            "informacaoSuficiente": true
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "resposta_fixa",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      }
+    },
+    {
+      "id": "PC-05",
+      "descricao": "Histórico contém assunto irrelevante antes do relato real (testa se ruído no histórico não desvia a classificação/recuperação)",
+      "etapaInicial": {
+        "categoriaEsperada": "INFO_ATENDIMENTO",
+        "categoriaObtida": "INFO_ATENDIMENTO",
+        "categoriaOk": true,
+        "fezPergunta": false,
+        "tipoRespostaEsperado": "fixa",
+        "tipoRespostaOk": true,
+        "tipoRespostaObtido": "fixa",
+        "resposta": "Este é o assistente virtual do PROCON de Jacareí. Atendimento presencial: Rua Capitão Joaquim Pinheiro do Prado, 222, Centro, Jacareí-SP.\n\n📞 Telefone e WhatsApp: (12) 3955-9130\n✉️ E-mail: procon@jacarei.sp.gov.br\n🕗 Horário: consulte pelo telefone\n\nPor aqui eu posso orientar você e fazer seu agendamento presencial. Para falar com uma pessoa, use os contatos acima. Se mora em outro município, confirme com a equipe onde deve ser atendido.",
+        "tempoMs": 2,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "INFO_ATENDIMENTO",
+            "motivo": "Intencao explicita reconhecida sem modelo."
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "resposta_fixa",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      },
+      "etapaFinal": {
+        "categoriaEsperada": "CONSUMO",
+        "categoriaObtida": "CONSUMO",
+        "categoriaOk": true,
+        "artigoEsperado": "Art. 35",
+        "artigoObtido": "Art. 35",
+        "artigoOk": true,
+        "tipoRespostaObtido": "orientacao_final",
+        "resposta": "Entendo sua preocupação com a geladeira. Ocorre que a geladeira veio diferente do que foi anunciado, o que pode ser considerado um descumprimento da oferta (*Art. 35*). Você pode exigir que a loja cumpra a oferta original, entregando uma geladeira sem amassado, ou aceitar um produto equivalente ou cancelar a compra e receber seu dinheiro de volta. O PROCON avalia se você pode ter direito a outras compensações.\n\nBase legal: Art. 35.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+        "tempoMs": 18571,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "CONSUMO",
+            "motivo": "O cidadão relata ter adquirido uma geladeira com um amassado diferente do que constava na foto do anúncio.",
+            "informacaoSuficiente": true,
+            "consultaBusca": "geladeira com amassado diferente do anúncio"
+          },
+          "consultaBuscaUsada": "geladeira com amassado diferente do anúncio",
+          "candidatosRecuperados": [
+            "Art. 18 - Vício do Produto — Garantia Legal",
+            "Art. 35 - Descumprimento da Oferta",
+            "Art. 19 - Vício de Quantidade do Produto",
+            "Art. 31 - Informações na Oferta e Apresentação"
+          ],
+          "motivoDescarte": null,
+          "referenciaGerada": "Art. 35",
+          "referenciaNormalizada": "Art. 35",
+          "referenciasPermitidas": [
+            "Art. 18",
+            "Art. 35",
+            "Art. 19",
+            "Art. 31"
+          ],
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      }
+    },
+    {
+      "id": "PC-06",
+      "descricao": "Ambiguidade genuína que permanece mesmo após uma rodada de clarificação, testando se o bot aceita não resolver de imediato",
+      "etapaInicial": {
+        "categoriaEsperada": "AMBIGUO",
+        "categoriaObtida": "AMBIGUO",
+        "categoriaOk": true,
+        "fezPergunta": true,
+        "tipoRespostaEsperado": "clarificacao",
+        "tipoRespostaOk": true,
+        "tipoRespostaObtido": "clarificacao",
+        "resposta": "Qual o tipo de contrato e qual o problema que você está enfrentando?",
+        "tempoMs": 5360,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "AMBIGUO",
+            "motivo": "O cidadão informa que possui um problema com um contrato, mas não especifica qual tipo de contrato ou qual o problema.",
+            "informacaoSuficiente": false,
+            "perguntaEsclarecimento": "Qual o tipo de contrato e qual o problema que você está enfrentando?"
+          },
+          "consultaBuscaUsada": null,
+          "candidatosRecuperados": [],
+          "motivoDescarte": "clarificacao",
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      },
+      "etapaFinal": {
+        "categoriaEsperada": "FORA_ESCOPO_PARTICULAR",
+        "categoriaObtida": "CONSUMO",
+        "categoriaOk": false,
+        "artigoEsperado": null,
+        "artigoObtido": "Art. 25",
+        "artigoOk": false,
+        "tipoRespostaObtido": "orientacao_final",
+        "resposta": "Entendo sua preocupação com a não devolução do depósito. É importante saber se o contrato tem cláusulas que dificultam ou impedem a devolução, pois elas podem ser consideradas inválidas. *O PROCON avalia* se a retenção do depósito é abusiva e pode ter direito à devolução integral. Para isso, o PROCON pode solicitar o contrato para análise.\n\nBase legal: Art. 25.\n\n*Resposta processada por inteligência artificial seguindo as diretrizes do PROCON. Possui caráter orientativo e não substitui análise formal.*",
+        "tempoMs": 16490,
+        "diagnostics": {
+          "classificacaoUsada": {
+            "categoria": "CONSUMO",
+            "motivo": "O cidadão relata um problema com um contrato de aluguel de imóvel, especificamente a não devolução do depósito pelo proprietário.",
+            "informacaoSuficiente": true,
+            "consultaBusca": "problema com contrato de aluguel e não devolução do depósito"
+          },
+          "consultaBuscaUsada": "problema com contrato de aluguel e não devolução do depósito",
+          "candidatosRecuperados": [
+            "Art. 72 - Infrações Penais (Impedir Acesso a Dados/Cadastros)",
+            "Art. 54F - Contratos Conexos de Crédito",
+            "Art. 25 - Responsabilidade por Danos e Cláusulas Exoneratórias",
+            "Art. 53 - Contratos de Compra e Venda a Prazo"
+          ],
+          "motivoDescarte": null,
+          "referenciaGerada": "Art. 25",
+          "referenciaNormalizada": "Art. 25",
+          "referenciasPermitidas": [
+            "Art. 72",
+            "Art. 54-F",
+            "Art. 25",
+            "Art. 53"
+          ],
+          "temperatura": 0,
+          "parametrosModelo": {
+            "modelo": "gemma3:12b",
+            "thinking": false
+          }
+        }
+      }
+    }
+  ]
+}

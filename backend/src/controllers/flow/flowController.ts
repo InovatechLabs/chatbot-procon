@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../../database/index.js';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env' });
 
 export const FlowController = {
   // Adiciona uma nova etapa/menu
@@ -14,7 +14,7 @@ export const FlowController = {
       });
       return res.status(201).json(newStep);
     } catch (error) {
-      console.error("Erro ao criar etapa:", error);
+      console.error("Erro ao criar etapa:", error instanceof Error ? error.name : 'erro');
       return res.status(500).json({ error: "Erro interno ao criar etapa." });
     }
   },
@@ -27,7 +27,7 @@ export const FlowController = {
       });
       return res.status(200).json(steps);
     } catch (error) {
-      console.error("Erro ao listar etapas:", error);
+      console.error("Erro ao listar etapas:", error instanceof Error ? error.name : 'erro');
       return res.status(500).json({ error: "Erro interno ao listar etapas." });
     }
   },
@@ -45,7 +45,7 @@ export const FlowController = {
       }
       return res.status(200).json(step);
     } catch (error) {
-      console.error("Erro ao buscar etapa:", error);
+      console.error("Erro ao buscar etapa:", error instanceof Error ? error.name : 'erro');
       return res.status(500).json({ error: "Erro interno ao buscar etapa." });
     }
   },
@@ -62,7 +62,7 @@ export const FlowController = {
       });
       return res.status(200).json(updatedStep);
     } catch (error) {
-      console.error("Erro ao atualizar etapa:", error);
+      console.error("Erro ao atualizar etapa:", error instanceof Error ? error.name : 'erro');
       return res.status(500).json({ error: "Erro interno ao atualizar etapa." });
     }
   },
@@ -76,7 +76,7 @@ export const FlowController = {
       });
       return res.status(204).send();
     } catch (error) {
-      console.error("Erro ao excluir etapa:", error);
+      console.error("Erro ao excluir etapa:", error instanceof Error ? error.name : 'erro');
       return res.status(500).json({ error: "Erro ao excluir etapa. Verifique se existem dependências." });
     }
   }

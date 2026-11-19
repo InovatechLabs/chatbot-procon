@@ -1,0 +1,963 @@
+{
+  "schemaVersion": 2,
+  "version": 2,
+  "sources": [
+    {
+      "id": "CDC-PLANALTO",
+      "title": "CDC consolidado — referência principal",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm",
+      "access": "search_excerpt",
+      "checkedOn": "2026-11-17"
+    },
+    {
+      "id": "CDC-CAMARA",
+      "title": "CDC consolidado — cotejamento oficial",
+      "url": "https://www2.camara.leg.br/legin/fed/lei/1990/lei-8078-11-setembro-1990-365086-normaatualizada-pl.html",
+      "access": "full_text",
+      "checkedOn": "2026-11-17"
+    }
+  ],
+  "safetyPolicy": {
+    "surfaces": [
+      "orientacao_final",
+      "clarificacao",
+      "redirecionamento",
+      "menu_rewrite"
+    ],
+    "acceptedCitizenFactOrigins": [
+      "citizen_message",
+      "explicit_confirmation"
+    ],
+    "supportOrigin": "retrieved_legal_text",
+    "assistantTextIsEvidence": false,
+    "modelInferenceIsVerifiedFact": false,
+    "unknownSatisfiesCondition": false,
+    "automaticDeadlineCalculation": false,
+    "missingSupport": "clarify_or_redirect"
+  },
+  "rules": [
+    {
+      "id": "CDC18-REPARO",
+      "version": 2,
+      "topic": "Reparo e suas condições",
+      "relatedArticles": [
+        "Art. 18",
+        "Art. 26"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 18",
+          "provision": "§§ 1º, 2º e 3º",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "issue",
+          "value": "product_defect"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "issue"
+          ]
+        },
+        {
+          "purpose": "individual_deadline",
+          "facts": [
+            "agreementReviewed",
+            "repairExceptionsReviewed"
+          ]
+        }
+      ],
+      "deadline": {
+        "purpose": "repair",
+        "amount": 30,
+        "unit": "days",
+        "trigger": "requires_case_review",
+        "agreedVariation": {
+          "minimumDays": 7,
+          "maximumDays": 180,
+          "requiresAgreement": true,
+          "separateConsentForAdhesion": true
+        },
+        "automaticCalculation": false
+      },
+      "modelNotes": {
+        "distinction": "Sanar o vício e reclamar são finalidades distintas.",
+        "mustPreserve": [
+          "Convenção e exceções legais."
+        ],
+        "mustNotClaim": [
+          "Ampliação automática; espera obrigatória em todo caso."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Produto com falha; consumidor pergunta sobre reparo.",
+        "insufficient": "Há dúvida sobre convenção e condições especiais do caso."
+      },
+      "auditCases": [
+        "SJ-01",
+        "SJ-02",
+        "SJ-12",
+        "SJ-13"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "repair",
+        "terms": [
+          "conserto",
+          "reparo",
+          "assistência",
+          "não liga",
+          "não funciona"
+        ]
+      }
+    },
+    {
+      "id": "CDC26-APARENTE-DURAVEL",
+      "version": 2,
+      "topic": "Reclamação: aparente, durável",
+      "relatedArticles": [
+        "Art. 18",
+        "Art. 20",
+        "Art. 26"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 26",
+          "provision": "incisos I e II; §§ 1º e 2º",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "defectVisibility",
+          "value": "apparent"
+        },
+        {
+          "fact": "durability",
+          "value": "durable"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "defectVisibility",
+            "durability"
+          ]
+        },
+        {
+          "purpose": "individual_deadline",
+          "facts": [
+            "issue",
+            "defectVisibility",
+            "durability",
+            "deliveredOn",
+            "obstaclesReviewed"
+          ]
+        }
+      ],
+      "deadline": {
+        "purpose": "complaint",
+        "amount": 90,
+        "unit": "days",
+        "trigger": "delivery_or_service_end",
+        "agreedVariation": null,
+        "automaticCalculation": false
+      },
+      "modelNotes": {
+        "distinction": "Compra e entrega não são eventos equivalentes.",
+        "mustPreserve": [
+          "Marco e condições aplicáveis; causas obstativas."
+        ],
+        "mustNotClaim": [
+          "Prazo remanescente sem fatos confirmados."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Vício perceptível na entrega; natureza confirmada.",
+        "insufficient": "Natureza, enquadramento ou evento relevante não foram confirmados."
+      },
+      "auditCases": [
+        "SJ-09",
+        "SJ-10"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "complaint",
+        "terms": [
+          "prazo",
+          "garantia",
+          "reclamar",
+          "vício oculto",
+          "defeito",
+          "apareceu depois",
+          "entrega"
+        ]
+      }
+    },
+    {
+      "id": "CDC26-APARENTE-NAO_DURAVEL",
+      "version": 2,
+      "topic": "Reclamação: aparente, não durável",
+      "relatedArticles": [
+        "Art. 18",
+        "Art. 20",
+        "Art. 26"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 26",
+          "provision": "incisos I e II; §§ 1º e 2º",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "defectVisibility",
+          "value": "apparent"
+        },
+        {
+          "fact": "durability",
+          "value": "non_durable"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "defectVisibility",
+            "durability"
+          ]
+        },
+        {
+          "purpose": "individual_deadline",
+          "facts": [
+            "issue",
+            "defectVisibility",
+            "durability",
+            "deliveredOn",
+            "obstaclesReviewed"
+          ]
+        }
+      ],
+      "deadline": {
+        "purpose": "complaint",
+        "amount": 30,
+        "unit": "days",
+        "trigger": "delivery_or_service_end",
+        "agreedVariation": null,
+        "automaticCalculation": false
+      },
+      "modelNotes": {
+        "distinction": "Compra e entrega não são eventos equivalentes.",
+        "mustPreserve": [
+          "Marco e condições aplicáveis; causas obstativas."
+        ],
+        "mustNotClaim": [
+          "Prazo remanescente sem fatos confirmados."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Vício perceptível na entrega; natureza confirmada.",
+        "insufficient": "Natureza, enquadramento ou evento relevante não foram confirmados."
+      },
+      "auditCases": [
+        "SJ-09",
+        "SJ-10"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "complaint",
+        "terms": [
+          "prazo",
+          "garantia",
+          "reclamar",
+          "vício oculto",
+          "defeito",
+          "apareceu depois",
+          "entrega"
+        ]
+      }
+    },
+    {
+      "id": "CDC26-OCULTO-DURAVEL",
+      "version": 2,
+      "topic": "Reclamação: oculto, durável",
+      "relatedArticles": [
+        "Art. 18",
+        "Art. 20",
+        "Art. 26"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 26",
+          "provision": "incisos I e II; §§ 2º e 3º",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "defectVisibility",
+          "value": "hidden"
+        },
+        {
+          "fact": "durability",
+          "value": "durable"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "defectVisibility",
+            "durability"
+          ]
+        },
+        {
+          "purpose": "individual_deadline",
+          "facts": [
+            "issue",
+            "defectVisibility",
+            "durability",
+            "defectEvidentOn",
+            "obstaclesReviewed"
+          ]
+        }
+      ],
+      "deadline": {
+        "purpose": "complaint",
+        "amount": 90,
+        "unit": "days",
+        "trigger": "defect_evidence",
+        "agreedVariation": null,
+        "automaticCalculation": false
+      },
+      "modelNotes": {
+        "distinction": "Não presumir o enquadramento apenas pelo aparecimento posterior.",
+        "mustPreserve": [
+          "Marco e condições aplicáveis; causas obstativas."
+        ],
+        "mustNotClaim": [
+          "Prazo remanescente sem fatos confirmados."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Enquadramento e natureza confirmados; pede-se explicação da regra.",
+        "insufficient": "Natureza, enquadramento ou evento relevante não foram confirmados."
+      },
+      "auditCases": [
+        "SJ-05",
+        "SJ-06",
+        "SJ-07",
+        "SJ-08",
+        "SJ-09",
+        "SJ-10",
+        "SJ-19",
+        "SJ-20"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "complaint",
+        "terms": [
+          "prazo",
+          "garantia",
+          "reclamar",
+          "vício oculto",
+          "defeito",
+          "apareceu depois",
+          "entrega"
+        ]
+      }
+    },
+    {
+      "id": "CDC26-OCULTO-NAO_DURAVEL",
+      "version": 2,
+      "topic": "Reclamação: oculto, não durável",
+      "relatedArticles": [
+        "Art. 18",
+        "Art. 20",
+        "Art. 26"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 26",
+          "provision": "incisos I e II; §§ 2º e 3º",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "defectVisibility",
+          "value": "hidden"
+        },
+        {
+          "fact": "durability",
+          "value": "non_durable"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "defectVisibility",
+            "durability"
+          ]
+        },
+        {
+          "purpose": "individual_deadline",
+          "facts": [
+            "issue",
+            "defectVisibility",
+            "durability",
+            "defectEvidentOn",
+            "obstaclesReviewed"
+          ]
+        }
+      ],
+      "deadline": {
+        "purpose": "complaint",
+        "amount": 30,
+        "unit": "days",
+        "trigger": "defect_evidence",
+        "agreedVariation": null,
+        "automaticCalculation": false
+      },
+      "modelNotes": {
+        "distinction": "Não presumir o enquadramento apenas pelo aparecimento posterior.",
+        "mustPreserve": [
+          "Marco e condições aplicáveis; causas obstativas."
+        ],
+        "mustNotClaim": [
+          "Prazo remanescente sem fatos confirmados."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Enquadramento e natureza confirmados; pede-se explicação da regra.",
+        "insufficient": "Natureza, enquadramento ou evento relevante não foram confirmados."
+      },
+      "auditCases": [
+        "SJ-05",
+        "SJ-06",
+        "SJ-07",
+        "SJ-08",
+        "SJ-09",
+        "SJ-10",
+        "SJ-19",
+        "SJ-20"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "complaint",
+        "terms": [
+          "prazo",
+          "garantia",
+          "reclamar",
+          "vício oculto",
+          "defeito",
+          "apareceu depois",
+          "entrega"
+        ]
+      }
+    },
+    {
+      "id": "CDC27-REPARACAO-DANOS",
+      "version": 2,
+      "topic": "Prazo de reparação por fato do produto ou serviço",
+      "relatedArticles": [
+        "Art. 12",
+        "Art. 14",
+        "Art. 26",
+        "Art. 27"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 27",
+          "provision": "caput",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "issue",
+          "value": "damage_event"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "issue"
+          ]
+        },
+        {
+          "purpose": "individual_deadline",
+          "facts": [
+            "issue",
+            "damageKnownOn",
+            "authorKnownOn",
+            "obstaclesReviewed"
+          ]
+        }
+      ],
+      "deadline": {
+        "purpose": "compensation",
+        "amount": 5,
+        "unit": "years",
+        "trigger": "damage_and_authorship_knowledge",
+        "agreedVariation": null,
+        "automaticCalculation": false
+      },
+      "modelNotes": {
+        "distinction": "Não é prazo geral para consertar produto.",
+        "mustPreserve": [
+          "Conhecimento do dano e autoria."
+        ],
+        "mustNotClaim": [
+          "Aplicação a qualquer falha de funcionamento."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Fato do serviço com dano relatado; pergunta sobre o prazo.",
+        "insufficient": "Há somente mau funcionamento, sem elementos de fato do produto ou serviço."
+      },
+      "auditCases": [
+        "SJ-11"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "compensation",
+        "terms": [
+          "dano",
+          "lesão",
+          "feriu",
+          "acidente",
+          "explodiu",
+          "indenização",
+          "cinco anos"
+        ]
+      }
+    },
+    {
+      "id": "CDC18-VICIO-PRODUTO",
+      "version": 2,
+      "topic": "Funcionamento do produto",
+      "relatedArticles": [
+        "Art. 12",
+        "Art. 13",
+        "Art. 14",
+        "Art. 18",
+        "Art. 20"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 18",
+          "provision": "caput",
+          "sourceId": "CDC-CAMARA"
+        },
+        {
+          "article": "Art. 14",
+          "provision": "caput",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "issue",
+          "value": "product_defect"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "issue"
+          ]
+        }
+      ],
+      "deadline": null,
+      "modelNotes": {
+        "distinction": "Separar produto de serviço e dano externo.",
+        "mustPreserve": [
+          "Fatos relatados, sem inventar acidente."
+        ],
+        "mustNotClaim": [
+          "Serviço apenas porque houve compra."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Aparelho comprado não liga.",
+        "insufficient": "Há também relato de lesão, serviço ou dúvida sobre os responsáveis."
+      },
+      "auditCases": [
+        "SJ-04"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "product",
+        "terms": [
+          "produto",
+          "celular",
+          "geladeira",
+          "aparelho",
+          "não funciona",
+          "não liga"
+        ]
+      }
+    },
+    {
+      "id": "CDC20-VICIO-SERVICO",
+      "version": 2,
+      "topic": "Qualidade do serviço",
+      "relatedArticles": [
+        "Art. 14",
+        "Art. 20",
+        "Art. 23"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 20",
+          "provision": "caput e incisos",
+          "sourceId": "CDC-CAMARA"
+        },
+        {
+          "article": "Art. 23",
+          "provision": "caput",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "issue",
+          "value": "service_quality"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "issue"
+          ]
+        }
+      ],
+      "deadline": null,
+      "modelNotes": {
+        "distinction": "Distinguir vício do serviço e reparação de danos.",
+        "mustPreserve": [
+          "Alternativas pertinentes, sem troca automática de artigo."
+        ],
+        "mustNotClaim": [
+          "Artigo sobre desconhecimento como regra de serviço não entregue."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Pintura malfeita, sem dano externo relatado.",
+        "insufficient": "Há lesão ou outro dano cuja causa não foi esclarecida."
+      },
+      "auditCases": [
+        "SJ-14"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "service",
+        "terms": [
+          "serviço",
+          "pintura",
+          "pintor",
+          "obra",
+          "malfeito",
+          "técnico"
+        ]
+      }
+    },
+    {
+      "id": "CDC42-COBRANCA",
+      "version": 2,
+      "topic": "Cobrança e restituição",
+      "relatedArticles": [
+        "Art. 42"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 42",
+          "provision": "caput e parágrafo único",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "issue",
+          "value": "collection"
+        },
+        {
+          "fact": "collectionReported",
+          "value": true
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "collectionReported"
+          ]
+        },
+        {
+          "purpose": "individual_restitution",
+          "facts": [
+            "collectionReported",
+            "paymentExcess",
+            "justifiableErrorReviewed"
+          ]
+        }
+      ],
+      "deadline": null,
+      "modelNotes": {
+        "distinction": "Cobrança e pagamento excessivo são fatos diferentes.",
+        "mustPreserve": [
+          "Ressalva de engano justificável."
+        ],
+        "mustNotClaim": [
+          "Restituição automática por cobrança não paga."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Consumidor relata cobrança e pagamento excessivo.",
+        "insufficient": "Existe apenas boleto, sem pagamento informado."
+      },
+      "auditCases": [
+        "SJ-16"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "collection",
+        "terms": [
+          "cobrança",
+          "cobraram",
+          "dívida",
+          "boleto",
+          "devolução",
+          "paguei"
+        ]
+      }
+    },
+    {
+      "id": "PIX-DESTINO-INCERTO",
+      "version": 2,
+      "topic": "Transferência com destino controvertido",
+      "relatedArticles": [
+        "Art. 3",
+        "Art. 14",
+        "Art. 42"
+      ],
+      "legalBasis": [
+        {
+          "article": "Art. 3",
+          "provision": "§ 2º",
+          "sourceId": "CDC-CAMARA"
+        },
+        {
+          "article": "Art. 14",
+          "provision": "caput e § 3º",
+          "sourceId": "CDC-CAMARA"
+        },
+        {
+          "article": "Art. 42",
+          "provision": "parágrafo único",
+          "sourceId": "CDC-CAMARA"
+        }
+      ],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "issue",
+          "value": "transfer"
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "issue",
+            "collectionReported"
+          ]
+        }
+      ],
+      "deadline": null,
+      "modelNotes": {
+        "distinction": "Uma transferência não comprova cobrança indevida.",
+        "mustPreserve": [
+          "Incerteza de causa e responsabilidade."
+        ],
+        "mustNotClaim": [
+          "Devolução automática ou exclusão do CDC só por ser banco."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "PIX chegou a terceiro; causa e participação dos envolvidos são incertas.",
+        "insufficient": "O classificador afirmou erro bancário sem confirmação no relato."
+      },
+      "auditCases": [
+        "SJ-15"
+      ],
+      "kind": "legal",
+      "policyReference": null,
+      "retrieval": {
+        "group": "transfer",
+        "terms": [
+          "pix",
+          "transferência",
+          "destinatário",
+          "terceiro",
+          "banco"
+        ]
+      }
+    },
+    {
+      "id": "SEM-FUNDAMENTO-SUFICIENTE",
+      "version": 2,
+      "topic": "Abstenção por falta de suporte",
+      "relatedArticles": [],
+      "legalBasis": [],
+      "review": {
+        "status": "technical_draft",
+        "checkedOn": "2026-11-17",
+        "reviewedBy": null,
+        "reviewedOn": null
+      },
+      "conditions": [
+        {
+          "fact": "sourceSupport",
+          "value": false
+        }
+      ],
+      "requirements": [
+        {
+          "purpose": "general_guidance",
+          "facts": [
+            "sourceSupport"
+          ]
+        }
+      ],
+      "deadline": null,
+      "modelNotes": {
+        "distinction": "Política do sistema: não escolher o candidato menos inadequado.",
+        "mustPreserve": [
+          "Possibilidade de esclarecimento ou atendimento."
+        ],
+        "mustNotClaim": [
+          "Tratar escore de proximidade como confirmação jurídica."
+        ]
+      },
+      "onMissingFacts": "clarify_or_redirect",
+      "onConflict": "redirect",
+      "examples": {
+        "applies": "Nenhum texto recuperado sustenta a conclusão proposta.",
+        "insufficient": "Há candidatos próximos, mas sua pertinência ainda não foi verificada."
+      },
+      "auditCases": [
+        "SJ-03",
+        "SJ-15",
+        "SJ-17",
+        "SJ-18"
+      ],
+      "kind": "operational",
+      "policyReference": "docs/auditoria-seguranca-juridica.md",
+      "retrieval": {
+        "group": "abstention",
+        "terms": []
+      }
+    }
+  ]
+}
