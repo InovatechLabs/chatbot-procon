@@ -15,6 +15,7 @@ import { createRetentionRouter } from './privacy/retention.js';
 import { createHandoffRouter } from './conversations/handoff.js';
 import { createInstitutionRouter } from './institution.js';
 import { createAiSettingsRouter } from './aiSettings.js';
+import { createHandoffSettingsRouter } from './handoffSettings.js';
 
 export function createApiRouter(service: AuthService = createAuthService(), config: AuthConfig = authConfig(), users: PanelUserService = createPanelUserService()) {
 const ApiRouter = Router();
@@ -34,6 +35,7 @@ ApiRouter.use('/schedule', createScheduleAdminRouter());
 ApiRouter.use('/retention', createRetentionRouter());
 ApiRouter.use('/institution', createInstitutionRouter());
 ApiRouter.use('/ai-settings', createAiSettingsRouter());
+ApiRouter.use('/handoff-settings', createHandoffSettingsRouter());
 ApiRouter.use('/users', createPanelUsersRouter(users));
 ApiRouter.use('/flow', flowRouter);
 ApiRouter.use('/nodes', nodesRouter);

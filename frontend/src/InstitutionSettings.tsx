@@ -14,7 +14,6 @@ const contacts = [
 const messages = [
   { key: 'referralMessage', label: 'Encaminhamento para análise presencial', help: 'Enviada quando o bot precisa encaminhar o caso para análise da equipe.' },
   { key: 'appointmentMessage', label: 'Convite para agendar', help: 'Enviada quando o bot identifica um pedido de agendamento.' },
-  { key: 'queueMessage', label: 'Entrada na fila de atendimento por chat', help: 'O bot acrescenta a posição na fila e a opção de cancelar.' },
   { key: 'rescheduleMessage', label: 'Pedido de cancelamento ou remarcação', help: 'Orienta quem deseja alterar um agendamento presencial.' },
   { key: 'privacyMessage', label: 'Solicitação sobre dados pessoais', help: 'Orienta quem quer falar com a equipe sobre seus dados.' },
   { key: 'unavailableMessage', label: 'Consulta temporariamente indisponível', help: 'Enviada quando o bot não consegue concluir a consulta.' },

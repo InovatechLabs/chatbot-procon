@@ -31,6 +31,8 @@ test('atendimento humano por HTTP e filas: disputa, áudio autorizado, autoria, 
     username: `fixture-handoff-${name}`, displayName: `Atendente ${name.toUpperCase()}`, role: 'ATTENDANT', passwordHash: await hashPassword(password),
   } })));
   const cookies = await Promise.all(operators.map(async user => `procon_session=${(await auth.login(user.username, password, user.id)).token}`));
+  const admin = await prisma.panelUser.create({ data: { username: 'fixture-handoff-admin', role: 'ADMIN', passwordHash: await hashPassword(password) } });
+  const adminCookie = `procon_session=${(await auth.login(admin.username, password, admin.id)).token}`;
   const origin = 'http://localhost:5173';
   const server = createApp(auth, { origins: [origin], secure: false }).listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -76,6 +78,21 @@ test('atendimento humano por HTTP e filas: disputa, áudio autorizado, autoria, 
     return message;
   };
   try {
+    const rules = (who: string, body?: unknown) => fetch(`${base}/handoff-settings`, {
+      method: body === undefined ? 'GET' : 'PUT', headers: { Cookie: who, Origin: origin, 'Content-Type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const value = { enabled: true, periods: null, queueMessage: 'Fila de {{nome}}.', closedMessage: 'Fora do expediente.' };
+    assert.equal((await rules('')).status, 401);
+    assert.equal((await rules(cookies[0]!)).status, 403);
+    assert.equal((await rules(cookies[0]!, { version: 0, value })).status, 403);
+    const initial = await (await rules(adminCookie)).json();
+    assert.equal(initial.enabled, true, 'usa a ativação anterior até o primeiro salvamento');
+    assert.equal(initial.pilotRestricted, true);
+    assert.equal(initial.version, 0);
+    assert.equal((await rules(adminCookie, { version: 0, value: { ...value, closedMessage: '{{cpf}}' } })).status, 400);
+    assert.equal((await rules(adminCookie, { version: 0, value })).status, 200);
+    assert.equal((await rules(adminCookie, { version: 0, value })).status, 409);
     assert.equal((await call('', '')).status, 401);
     assert.equal((await call('/events', '')).status, 401);
     const updates = await fetch(`${base}/conversations/events`, { headers: { Cookie: cookies[0]! }, signal: AbortSignal.timeout(30_000) });
@@ -317,7 +334,8 @@ test('atendimento humano por HTTP e filas: disputa, áudio autorizado, autoria, 
     await prisma.outgoingMessage.deleteMany({ where });
     await prisma.messageReceipt.deleteMany({ where });
     await prisma.humanHandoff.deleteMany({ where });
-    await prisma.panelUser.deleteMany({ where: { id: { in: operators.map(user => user.id) } } });
+    await prisma.handoffSettings.deleteMany({ where: { id: 'main' } });
+    await prisma.panelUser.deleteMany({ where: { id: { in: [...operators, admin].map(user => user.id) } } });
     await prisma.$disconnect();
   }
 });

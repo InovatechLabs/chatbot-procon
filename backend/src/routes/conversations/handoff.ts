@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { AuthError, type AuthService } from '../../services/auth/authService.js';
 import { sessionCookie } from '../auth/auth.js';
-import { handoffEnabled } from '../../services/conversation/handoff.js';
+import { prisma } from '../../database/index.js';
+import { readHandoffSettings } from '../../services/conversation/handoffSettings.js';
 import { botConversationHistory, changeHandoff, getHandoffAudio, handoffHistory, handoffStreamSnapshot, listBotConversations, listHandoffs, sendHandoffMessage } from '../../services/conversation/handoffControl.js';
 import { charLength } from '../../services/whatsapp/messagePolicy.js';
 import { downloadWhatsAppAudio } from '../../services/whatsapp/downloadAudio.js';
@@ -21,7 +22,10 @@ export function createHandoffRouter(auth: AuthService) {
   const router = Router();
   router.use((_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
-    if (!handoffEnabled()) { res.status(404).json({ error: 'Atendimento por chat indisponível.' }); return; }
+    next();
+  });
+  router.use('/bot', async (_req, _res, next) => {
+    if (!(await readHandoffSettings(prisma)).enabled) throw new AuthError(404, 'Atendimento por chat desativado.');
     next();
   });
   router.get('/', async (req, res) => {
@@ -44,19 +48,22 @@ export function createHandoffRouter(auth: AuthService) {
       try {
         const actor = await auth.current(cookie);
         if (closed) return;
-        if (!actor || actor.mustChangePassword || !handoffEnabled()) {
-          res.write(`event: access-changed\ndata: ${JSON.stringify({ reason: !actor || actor.mustChangePassword ? 'session' : 'feature' })}\n\n`);
+        if (!actor || actor.mustChangePassword) {
+          res.write('event: access-changed\ndata: {"reason":"session"}\n\n');
           res.end();
           return;
         }
-        const next = await handoffStreamSnapshot(actor, selected, selectedBot, req.query.watchBot === 'true');
+        const watchBot = req.query.watchBot === 'true';
+        const botEnabled = (watchBot || selectedBot !== undefined) && (await readHandoffSettings(prisma)).enabled;
+        const next = await handoffStreamSnapshot(actor, selected, botEnabled ? selectedBot : undefined, botEnabled && watchBot);
+        const nextRevision = `${botEnabled}:${next.revision}`;
         if (closed) return;
         // Um painel lento reconecta e refaz o snapshot em vez de acumular dados.
-        const writable = next.revision !== revision
+        const writable = nextRevision !== revision
           ? res.write(`event: refresh\ndata: ${JSON.stringify({ waiting: next.waiting, latestRequestedAt: next.latestRequestedAt })}\n\n`)
           : res.write(': heartbeat\n\n');
         if (!writable) { res.end(); return; }
-        revision = next.revision;
+        revision = nextRevision;
         timer = setTimeout(() => void tick(), 2500);
       } catch { if (!closed) res.end(); }
     };

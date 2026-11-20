@@ -7,7 +7,7 @@ import type { IncomingMessage } from '../../controllers/webhook/conversation.js'
 import type { MetaPayload } from './outgoingContext.js';
 import { deliverMetaPayload } from '../metaAPI.js';
 import { inboundTimestamp, serviceWindowUntil } from './serviceWindow.js';
-import { handoffAllowed, waitingForHuman } from '../conversation/handoff.js';
+import { handoffInScope, waitingForHuman } from '../conversation/handoff.js';
 
 const MAX_ATTEMPTS = 5;
 
@@ -28,7 +28,7 @@ export async function persistIncoming(messages: IncomingMessage[]) {
 }
 
 export async function queueOutgoing(payload: MetaPayload, receiptId?: string) {
-  const handoff = handoffAllowed(payload.to) ? await waitingForHuman(prisma, payload.to) : null;
+  const handoff = handoffInScope(payload.to) ? await waitingForHuman(prisma, payload.to) : null;
   const row = await prisma.outgoingMessage.create({ data: { phoneNumber: payload.to, payload: JSON.stringify(payload), handoffVersion: handoff?.version ?? null, ...(receiptId ? { receiptId } : {}) } });
   return { queued: true, id: row.id };
 }
@@ -87,12 +87,13 @@ export class DurableOutbox {
       const candidate = rows[0];
       if (!candidate || !await phoneLock(19781118, candidate.phoneLookup)) return null;
       const pending = await prisma.outgoingMessage.findUniqueOrThrow({ where: { id: candidate.id } });
-      const handoff = handoffAllowed(pending.phoneNumber) || pending.humanAuthored || pending.handoffVersion !== null
+      const inScope = handoffInScope(pending.phoneNumber);
+      const handoff = inScope
         ? await prisma.humanHandoff.findUnique({ where: { phoneLookup: candidate.phoneLookup } }) : null;
       const paused = handoff?.status === 'WAITING' || handoff?.status === 'ACTIVE';
       const outdated = pending.humanAuthored
-        ? !handoffAllowed(pending.phoneNumber) || handoff?.status !== 'ACTIVE' || handoff.version !== pending.handoffVersion
-        : pending.handoffVersion !== null ? !handoffAllowed(pending.phoneNumber) || handoff?.version !== pending.handoffVersion : paused;
+        ? handoff?.status !== 'ACTIVE' || handoff.version !== pending.handoffVersion
+        : pending.handoffVersion !== null ? handoff?.version !== pending.handoffVersion : paused;
       const requiresWindow = pending.humanAuthored || pending.handoffVersion !== null;
       const serviceWindow = requiresWindow && !outdated ? await serviceWindowUntil(prisma, candidate.phoneLookup) : null;
       const expired = requiresWindow && (!serviceWindow || serviceWindow.getTime() <= Date.now());

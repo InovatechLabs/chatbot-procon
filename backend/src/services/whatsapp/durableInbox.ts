@@ -7,7 +7,8 @@ import { withMessageSender } from './outgoingContext.js';
 import { queueOutgoing, retryDelay } from './durableMessages.js';
 import { ExternalWorkRequired, withExternalWorkCache } from './externalWork.js';
 import type { ExternalWorkCache } from './externalWork.js';
-import { handoffAllowed } from '../conversation/handoff.js';
+import { handoffInScope } from '../conversation/handoff.js';
+import { readHandoffSettings } from '../conversation/handoffSettings.js';
 import { isHumanRequest, normalize } from '../../utils/intents/intents.js';
 import { readGeneration, type GenerationSettings } from '../ollama/settings.js';
 
@@ -113,7 +114,8 @@ export class DurableInbox {
               const next = await rootPrisma.messageReceipt.findFirst({ where: { phoneNumber: claim.first.phoneNumber, sequence: { gt: claim.batch.at(-1)!.sequence }, state: 'PENDING' }, orderBy: { sequence: 'asc' } });
               if (!next?.payload) return false;
               const incoming = JSON.parse(next.payload) as IncomingMessage;
-              if (handoffAllowed(incoming.from) && incoming.type === 'text' && isHumanRequest(normalize(incoming.text?.body ?? ''))) return true;
+              if (handoffInScope(incoming.from) && incoming.type === 'text' && isHumanRequest(normalize(incoming.text?.body ?? ''))
+                && (await readHandoffSettings(prisma)).enabled) return true;
               return canDebounce(incoming) && await this.options.canGroup(incoming);
             }, generation)));
             const finished = await prisma.messageReceipt.updateMany({ where: { id: { in: claim.ids }, state: 'PROCESSING', leaseToken: claim.token, leaseUntil: { gt: new Date() } }, data: { state: 'DONE', payload: null, processedAt: new Date(), lastError: null, leaseToken: null, leaseUntil: null } });

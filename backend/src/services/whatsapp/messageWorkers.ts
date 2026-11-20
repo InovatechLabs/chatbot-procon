@@ -6,14 +6,14 @@ import type { IncomingMessage } from '../../controllers/webhook/conversation.js'
 import { DurableInbox, DurableOutbox, queueOutgoing } from './durableMessages.js';
 import { configureMessageQueue } from './outgoingContext.js';
 import { expireInactiveSessions } from '../analytics/inactivity.js';
-import { CHAT_OPTION, handoffAllowed, waitingForHuman } from '../conversation/handoff.js';
+import { CHAT_OPTION, IN_PERSON_OPTION, handoffInScope, waitingForHuman } from '../conversation/handoff.js';
 
 export async function canGroupIncoming(message: IncomingMessage) {
-  if (handoffAllowed(message.from) && await waitingForHuman(prisma, message.from)) return false;
+  if (handoffInScope(message.from) && await waitingForHuman(prisma, message.from)) return false;
   const session = await prisma.userSession.findFirst({ where: { phoneNumber: message.from, status: 'OPEN' }, orderBy: { createdAt: 'desc' } });
   if (session) {
     const decoded = decodeSession(session);
-    if (decoded.invalid || !canGroupText(decoded.snapshot.state) || decoded.snapshot.choices.some(option => option.id === CHAT_OPTION.id)) return false;
+    if (decoded.invalid || !canGroupText(decoded.snapshot.state) || decoded.snapshot.choices.some(option => option.id === CHAT_OPTION.id || option.id === IN_PERSON_OPTION.id)) return false;
   }
   if (!session?.currentStepId) return true;
   const options = await prisma.option.findMany({ where: { stepId: session.currentStepId } });

@@ -1,5 +1,13 @@
 # Contexto: atendimento humano pelo painel
 
+## Regras operacionais no painel
+
+Em **Configurações → Atendimento humano**, um administrador pode ativar ou suspender novos pedidos, definir o expediente semanal em **America/Sao_Paulo** e editar as mensagens de entrada na fila e de fora do expediente. A grade admite vários intervalos por dia, com início inclusivo e fim exclusivo. Use `24:00` para o fim à meia-noite. Dias sem intervalo ficam fechados quando a grade está ativa.
+
+Fora do expediente, um novo pedido recebe a mensagem configurada com acesso ao agendamento presencial e ao menu. O bot continua a conversar por texto. A fila e os atendimentos em andamento continuam disponíveis para a equipe mesmo quando a entrada de novos pedidos está suspensa. A janela de envio do WhatsApp continua sendo verificada separadamente.
+
+A migração `20261120000400_handoff_settings` habilita a persistência. Antes do primeiro salvamento, vale a ativação do ambiente e o texto de fila migrado por leitura das configurações institucionais. O filtro de piloto `HUMAN_HANDOFF_TEST_PHONE` continua definido no servidor e restringe a entrada e o painel ao número autorizado.
+
 Proposta: nova página Conversas com fila, acompanhamento do bot em tempo real, solicitação de humano, assumir/transferir/encerrar/devolver ao bot, histórico com autoria e responsáveis identificados pelo servidor. Mensagens do funcionário usam a Cloud API existente, sem WhatsApp Web ou número individual.
 
 Base existente: React/Vite, Express/Prisma/PostgreSQL, Meta API, ChatLog/UserSession e histórico atualmente vinculado à agenda. Login anterior era admin/admin validado no navegador, sem autenticação de API.

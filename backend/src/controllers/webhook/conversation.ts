@@ -21,11 +21,13 @@ import type { ConversationState } from '../../services/conversation/state.js';
 import { recordEvent } from '../../services/analytics/events.js';
 import type { EventInput } from '../../services/analytics/events.js';
 import { ExternalWorkRequired } from '../../services/whatsapp/externalWork.js';
-import { CHAT_OPTION, IN_PERSON_OPTION, LEAVE_QUEUE_OPTION, cancelWaitingHandoff, handoffAllowed, queuePosition, requestHuman, waitingForHuman } from '../../services/conversation/handoff.js';
+import { CHAT_OPTION, IN_PERSON_OPTION, LEAVE_QUEUE_OPTION, cancelWaitingHandoff, handoffInScope, queuePosition, requestHuman, waitingForHuman } from '../../services/conversation/handoff.js';
+import { isHandoffOpen, readHandoffSettings } from '../../services/conversation/handoffSettings.js';
 
 const defaults = { db: prisma, text: sendTextMessage, interactive: sendInteractiveMessage, list: sendListMessage,
   answer: answerWithRAG, rewrite: generateOrientativeResponse, pending: getPendingAppointment,
-  slots: getAvailableSlots, dates: getScheduleDates, book: createAppointment, documents: sendDocumentCategoryList, document: handleDocumentCategorySelection, handoffEnabled: handoffAllowed };
+  slots: getAvailableSlots, dates: getScheduleDates, book: createAppointment, documents: sendDocumentCategoryList, document: handleDocumentCategorySelection,
+  handoffEnabled: (phone: string, enabled: boolean) => enabled && handoffInScope(phone) };
 export type ConversationDependencies = typeof defaults;
 
 export interface IncomingMessage {
@@ -53,7 +55,9 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
     if (message.type === 'reaction') return;
     const phone = message.from;
     const institution = await readInstitution(d.db);
-    const allowHandoff = d.handoffEnabled(phone);
+    const handoff = await readHandoffSettings(d.db, institution.queueMessage);
+    const allowHandoff = d.handoffEnabled(phone, handoff.enabled);
+    const handoffOpen = () => isHandoffOpen({ ...handoff, enabled: allowHandoff });
     let session = await d.db.userSession.findFirst({ where: { phoneNumber: phone, status: 'OPEN' }, orderBy: { createdAt: 'desc' } });
     const age = session ? (Date.now() - session.updatedAt.getTime()) / 60_000 : 0;
     const scheduling = !!session && isScheduling(decodeSession(session).snapshot.state);
@@ -120,7 +124,7 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
       }
       const start = await d.db.step.findFirst({ where: { isStart: true }, include: { options: { orderBy: { id: 'asc' } } } });
       await update({ kind: 'MENU' }, { currentStepId: start?.id ?? null, isChat: false });
-      if (start) await say(`${intro}${renderInstitution(start.message, institution)}${allowHandoff ? '\n\nPara falar com a equipe por aqui, digite *atendente*.' : ''}`, start.options);
+      if (start) await say(`${intro}${renderInstitution(start.message, institution)}${handoffOpen() ? '\n\nPara falar com a equipe por aqui, digite *atendente*.' : ''}`, start.options);
       else await say(`${intro}O menu está temporariamente indisponível. Você pode escrever sua dúvida ou procurar a equipe do PROCON.`);
     };
     const fixed = async (category: string) => {
@@ -147,13 +151,25 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
       await update({ kind: 'SCHEDULE_CATEGORY' }, { userName: null, userCpf: null });
       await say(`Para agendar atendimento presencial — ${institution.name}, escolha o assunto. Se não encontrar, escolha Outros assuntos.\n\nPara sair, digite *menu*.`, categories.map(c => ({ id: `btn_sch_cat_${c.key}`, text: c.text })));
     };
+    const offerInPerson = async (text: string) => {
+      if (!isScheduling(flow.state)) return say(text, [IN_PERSON_OPTION, MENU_OPTION]);
+      const savedOptions = flow.choices;
+      await say(`${text}\n\nSeu agendamento em andamento foi mantido. Para continuar, use as opções do agendamento que você já recebeu.`, [MENU_OPTION]);
+      await choices(savedOptions);
+    };
+    const chatUnavailable = () => offerInPerson(allowHandoff
+      ? renderInstitution(handoff.closedMessage, institution)
+      : 'No momento, o atendimento com a equipe por aqui está indisponível. Posso te ajudar a marcar um atendimento presencial na unidade.');
     const enterHumanQueue = async () => {
+      if (!handoffOpen()) return chatUnavailable();
       if (!await requestHuman(d.db, phone)) return;
       await event({ kind: 'HANDOFF_REQUESTED', stage: flow.state.kind });
       const position = await queuePosition(d.db, phone);
-      await say(`${renderInstitution(institution.queueMessage, institution)}\n\n*Posição na fila: ${position}*\nDigite *posição* para consultar sua posição na fila ou *sair da fila* para cancelar.`, [LEAVE_QUEUE_OPTION]);
+      await say(`${renderInstitution(handoff.queueMessage, institution)}\n\n*Posição na fila: ${position}*\nDigite *posição* para consultar sua posição na fila ou *sair da fila* para cancelar.`, [LEAVE_QUEUE_OPTION]);
     };
-    const confirmChannel = async () => say('Como você prefere ser atendido pelo PROCON?', [CHAT_OPTION, IN_PERSON_OPTION, MENU_OPTION]);
+    const confirmChannel = async () => handoffOpen()
+      ? say('Como você prefere ser atendido pelo PROCON?', [CHAT_OPTION, IN_PERSON_OPTION, MENU_OPTION])
+      : chatUnavailable();
     const selectChannel = async (id: string) => {
       if (id === CHAT_OPTION.id) await enterHumanQueue();
       else if (isScheduling(flow.state)) await say('Seu agendamento já está em andamento. Digite *menu* se quiser recomeçar.', [MENU_OPTION]);
@@ -202,11 +218,11 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
       }
       // O complemento já está na fila e será analisado com este relato no histórico.
       if (await hasNewerText()) return;
-      if (allowHandoff && result.atendimento === 'chat') await enterHumanQueue();
-      else if (allowHandoff && result.atendimento === 'confirmar_canal') await confirmChannel();
+      if (result.atendimento === 'chat') await enterHumanQueue();
+      else if (result.atendimento === 'confirmar_canal') await confirmChannel();
       else await render(result);
     };
-    const human = allowHandoff ? await waitingForHuman(d.db, phone) : null;
+    const human = handoffInScope(phone) ? await waitingForHuman(d.db, phone) : null;
     if (human) {
       // Continua registrando mensagens sem reativar o bot, inclusive após expirar a sessão.
       const selection = message.interactive?.button_reply?.id ?? message.interactive?.list_reply?.id;
@@ -259,15 +275,13 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
         await newSession();
         await showMenu(); return;
       }
-      if (isHumanRequest(n) || isLogistics(n)) {
-        if (isHumanRequest(n)) {
-          if (allowHandoff) { await log('INBOUND', raw); await enterHumanQueue(); return; }
-          await event({ kind: 'HANDOFF_REQUESTED', stage: flow.state.kind });
-        }
-        await fixed('INFO_ATENDIMENTO'); return;
+      if (isHumanRequest(n)) {
+        if (!allowHandoff) await event({ kind: 'HANDOFF_REQUESTED', stage: flow.state.kind });
+        await log('INBOUND', raw); await enterHumanQueue(); return;
       }
-      if (allowHandoff && isAmbiguousServiceRequest(n)) { await log('INBOUND', raw); await confirmChannel(); return; }
-      if (allowHandoff && flow.choices.some(option => option.id === CHAT_OPTION.id)) {
+      if (isLogistics(n)) { await fixed('INFO_ATENDIMENTO'); return; }
+      if (isAmbiguousServiceRequest(n)) { await log('INBOUND', raw); await confirmChannel(); return; }
+      if (flow.choices.some(option => option.id === CHAT_OPTION.id || option.id === IN_PERSON_OPTION.id)) {
         const channel = matchOption(raw, flow.choices, normalize);
         if (channel?.id === CHAT_OPTION.id || channel?.id === IN_PERSON_OPTION.id) {
           await log('INBOUND', raw);
@@ -309,12 +323,12 @@ export function createConversationHandler(overrides: Partial<typeof defaults> = 
         }
       }
     } else if (message.type !== 'interactive') {
-      await say(message.type === 'audio' ? `${MSG_AUDIO}${allowHandoff ? '\n\nSe preferir explicar por áudio, digite *atendente* para falar com a equipe. Envie o áudio depois de entrar na fila.' : ''}` : ['image', 'document', 'video'].includes(message.type) ? MSG_ARQUIVO : 'Consigo ler mensagens de texto e seleções nas opções. Escreva sua dúvida ou digite *menu*.', [MENU_OPTION]); return;
+      await say(message.type === 'audio' ? `${MSG_AUDIO}${handoffOpen() ? '\n\nSe preferir explicar por áudio, digite *atendente* para falar com a equipe. Envie o áudio depois de entrar na fila.' : ''}` : ['image', 'document', 'video'].includes(message.type) ? MSG_ARQUIVO : 'Consigo ler mensagens de texto e seleções nas opções. Escreva sua dúvida ou digite *menu*.', [MENU_OPTION]); return;
     }
 
     if (!selected) { await say(MSG_MENU_EXPIRADO); await showMenu(); return; }
     if (selected === CHAT_OPTION.id || selected === IN_PERSON_OPTION.id) {
-      if (!allowHandoff || !flow.choices.some(option => option.id === selected)) { await say(MSG_MENU_EXPIRADO, flow.choices); return; }
+      if (!flow.choices.some(option => option.id === selected)) { await say(MSG_MENU_EXPIRADO, flow.choices); return; }
       await log('INBOUND', selected === CHAT_OPTION.id ? CHAT_OPTION.text : IN_PERSON_OPTION.text);
       await selectChannel(selected);
       return;

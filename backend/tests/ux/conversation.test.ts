@@ -6,6 +6,8 @@ import { getNextBusinessDays } from '../../src/utils/validators/index.js';
 import { createRagService } from '../../src/services/llm/llmService.js';
 import { parseClassification } from '../../src/services/llm/helpers/classifyReport.js';
 import { defaultInstitution } from '../../src/services/institution/settings.js';
+import { CHAT_OPTION, IN_PERSON_OPTION } from '../../src/services/conversation/handoff.js';
+import { MENU_OPTION } from '../../src/services/whatsapp/messagePolicy.js';
 
 function fixture(state: Record<string, unknown> = {}) {
   let session: any = { id: 'session', phoneNumber: '5512999999999', status: 'OPEN', isChat: false, currentStepId: null, stepState: null, userName: null, userCpf: null, updatedAt: new Date(), ...state };
@@ -64,6 +66,48 @@ function fixture(state: Record<string, unknown> = {}) {
   return { text, click, handle, sent, logs, feedback, steps, options, overrides,
     session: () => session, aiCalls: () => aiCalls, bookings: () => bookings, documents: () => documents };
 }
+
+test('chat desativado sugere atendimento presencial e menu em pedidos diretos, ambíguos e reconhecidos pela IA', async () => {
+  for (const [body, atendimento] of [
+    ['atendente', null],
+    ['quero atendimento', null],
+    ['Uma pessoa da equipe poderia continuar esta conversa?', 'chat'],
+    ['Como faço para receber auxílio da equipe?', 'confirmar_canal'],
+  ] as const) {
+    const f = fixture();
+    f.overrides.db.handoffSettings = { findUnique: async () => ({
+      enabled: false, periods: [], queueMessage: 'Fila', closedMessage: 'Fora do expediente',
+    }) };
+    let classified = false;
+    const handle = createConversationHandler({ ...f.overrides, answer: async () => {
+      assert.ok(atendimento, 'O comando direto deve ser reconhecido sem IA.');
+      classified = true;
+      return { tipoResposta: 'fixa', texto: 'Informações de contato', artigo: null, atendimento };
+    } });
+    await handle({ id: 'request', from: f.session().phoneNumber, type: 'text', text: { body } });
+    assert.equal(classified, atendimento !== null);
+    assert.match(f.sent.at(-1)!.text, /Posso te ajudar a marcar um atendimento presencial na unidade/);
+    assert.deepEqual(f.sent.at(-1)!.options, [IN_PERSON_OPTION, MENU_OPTION]);
+    await f.click(IN_PERSON_OPTION.id);
+    assert.equal(decodeSession(f.session()).snapshot.state.kind, 'SCHEDULE_CATEGORY');
+    await f.click(MENU_OPTION.id);
+    assert.equal(decodeSession(f.session()).snapshot.state.kind, 'MENU');
+  }
+});
+
+test('botão de chat antigo usa a configuração de ativação do turno atual', async () => {
+  const f = fixture();
+  let enabled = true;
+  f.overrides.db.handoffSettings = { findUnique: async () => ({
+    enabled, periods: [], queueMessage: 'Fila', closedMessage: 'Fora do expediente',
+  }) };
+  await f.text('quero atendimento');
+  assert.ok(f.sent.at(-1)!.options.some(option => option.id === CHAT_OPTION.id));
+  enabled = false;
+  await f.click(CHAT_OPTION.id);
+  assert.match(f.sent.at(-1)!.text, /atendimento com a equipe por aqui está indisponível/);
+  assert.deepEqual(f.sent.at(-1)!.options, [IN_PERSON_OPTION, MENU_OPTION]);
+});
 
 test('contatos institucionais passam do cadastro para o menu, a logística e o convite de agendamento', async () => {
   const f = fixture();
@@ -241,7 +285,12 @@ test('pedido de humano não vira nome e logística preserva agendamento em andam
   assert.equal(f.session().userName, null);
   assertState(f, 'SCH_STEP_NAME:GERAL');
   assert.equal(f.aiCalls(), 0);
-  assert.ok(f.sent.some(message => message.text.includes('3955-9130')));
+  assert.match(f.sent.at(-1)!.text, /Seu agendamento em andamento foi mantido/);
+  assert.deepEqual(f.sent.at(-1)!.options, [MENU_OPTION]);
+  const sentBeforeLogistics = f.sent.length;
+  await f.text('Qual o telefone do Procon?');
+  assertState(f, 'SCH_STEP_NAME:GERAL');
+  assert.ok(f.sent.slice(sentBeforeLogistics).some(message => message.text.includes('3955-9130')));
 });
 
 test('nome é confirmado antes de pedir CPF, e CPF não entra no chatLog', async () => {

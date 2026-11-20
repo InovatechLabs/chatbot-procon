@@ -37,6 +37,8 @@ const contacts = { nome: 'name', endereco: 'address', telefone: 'phone', email: 
 const placeholders = /\{\{(nome|endereco|telefone|email|horario)\}\}/g;
 export const renderInstitution = (text: string, settings: Institution) =>
   text.replace(placeholders, (_, key: keyof typeof contacts) => settings[contacts[key]]);
+export const isInstitutionTemplate = (text: string, settings: Institution) =>
+  !/[{}]/.test(text.replace(placeholders, '')) && charLength(renderInstitution(text, settings)) <= 700;
 
 export const institutionMessageKeys = ['referralMessage', 'appointmentMessage', 'unavailableMessage', 'rescheduleMessage', 'privacyMessage', 'queueMessage'] as const;
 
@@ -45,7 +47,7 @@ export const institutionMutation = z.object({
   value: institutionSchema.superRefine((value, ctx) => {
     for (const key of institutionMessageKeys) {
       const template = value[key];
-      if (/[{}]/.test(template.replace(placeholders, '')) || charLength(renderInstitution(template, value)) > 700) {
+      if (!isInstitutionTemplate(template, value)) {
         ctx.addIssue({ code: 'custom', path: [key], message: 'Use apenas os campos indicados e até 700 caracteres após a substituição.' });
       }
     }

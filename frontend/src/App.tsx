@@ -13,6 +13,7 @@ import ScheduleSettingsPage from './ScheduleSettings';
 import RetentionSettingsPage from './RetentionSettings';
 import InstitutionSettingsPage from './InstitutionSettings';
 import AiSettingsPage from './AiSettings';
+import HandoffSettingsPage from './HandoffSettings';
 import Conversations from './Conversations';
 import { ConversationEventsContext, useConversationStream } from './services/conversationEvents';
 import Brand from './Brand';
@@ -50,6 +51,7 @@ const IconLogOut = () => (
 );
 
 const settingsLinks = [
+  { path: '/handoff-settings', label: 'Atendimento humano', icon: <IconChat /> },
   { path: '/flow', label: 'Menu do chatbot', icon: <IconTree /> },
   { path: '/schedule', label: 'Disponibilidade', icon: <IconCalendar /> },
   { path: '/institution', label: 'Institucional', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M10 21v-5h4v5M9 10h1m4 0h1m-6 3h1m4 0h1"/></svg> },
@@ -92,11 +94,12 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const isSchedule = location.pathname === '/schedule';
   const isInstitution = location.pathname === '/institution';
   const isAiSettings = location.pathname === '/ai-settings';
+  const isHandoffSettings = location.pathname === '/handoff-settings';
   const isRetention = location.pathname === '/retention';
   const isConversations = location.pathname === '/conversations';
   const conversationEvents = useConversationStream(!!auth.user && !auth.user.mustChangePassword);
-  const pageTitle = isConversations ? 'Conversas' : isAiSettings ? 'Configurações de IA' : isInstitution ? 'Configurações institucionais' : isRetention ? 'Retenção de dados' : isSchedule ? 'Disponibilidade' : isUsers ? 'Usuários e acessos' : isAccount ? 'Minha conta' : isAnalytics ? 'Indicadores' : isAgenda ? 'Agenda de atendimentos' : 'Menu do chatbot';
-  const description = isConversations ? 'Acompanhe a fila e responda pelo WhatsApp do PROCON.' : isAiSettings ? 'Escolha o modelo de geração do chatbot e ajuste o thinking mode.' : isInstitution ? 'Atualize os dados da unidade e as mensagens de encaminhamento do chatbot.' : isRetention ? 'Defina os prazos e controle a exclusão automática dos registros vencidos.' : isSchedule ? 'Defina os dias, os horários e as vagas de atendimento.' : isUsers ? 'Gerencie as contas e as permissões da equipe.' : isAccount ? 'Mantenha sua senha de acesso atualizada.' : isAnalytics ? 'Acompanhe o uso do assistente e os atendimentos.' : isAgenda ? 'Consulte a agenda e organize os atendimentos presenciais.' : 'Organize as opções e as orientações do assistente virtual.';
+  const pageTitle = isConversations ? 'Conversas' : isHandoffSettings ? 'Atendimento humano' : isAiSettings ? 'Configurações de IA' : isInstitution ? 'Configurações institucionais' : isRetention ? 'Retenção de dados' : isSchedule ? 'Disponibilidade' : isUsers ? 'Usuários e acessos' : isAccount ? 'Minha conta' : isAnalytics ? 'Indicadores' : isAgenda ? 'Agenda de atendimentos' : 'Menu do chatbot';
+  const description = isConversations ? 'Acompanhe a fila e responda pelo WhatsApp do PROCON.' : isHandoffSettings ? 'Gerencie a entrada na fila, o expediente do chat e as mensagens enviadas ao cidadão.' : isAiSettings ? 'Escolha o modelo de geração do chatbot e ajuste o thinking mode.' : isInstitution ? 'Atualize os dados da unidade e as mensagens de encaminhamento do chatbot.' : isRetention ? 'Defina os prazos e controle a exclusão automática dos registros vencidos.' : isSchedule ? 'Defina os dias, os horários e as vagas de atendimento.' : isUsers ? 'Gerencie as contas e as permissões da equipe.' : isAccount ? 'Mantenha sua senha de acesso atualizada.' : isAnalytics ? 'Acompanhe o uso do assistente e os atendimentos.' : isAgenda ? 'Consulte a agenda e organize os atendimentos presenciais.' : 'Organize as opções e as orientações do assistente virtual.';
 
   return (
     <ConversationEventsContext.Provider value={conversationEvents}><div data-ui="admin-layout" className={cx(ui.adminLayout)} onKeyDown={event => { if (event.key === 'Escape' && navOpen) { setNavOpen(false); menuButton.current?.focus(); } }}>
@@ -238,6 +241,7 @@ export default function App() {
         <Route path="/schedule" element={<ProtectedRoute admin><MainLayout><ScheduleSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/institution" element={<ProtectedRoute admin><MainLayout><InstitutionSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/ai-settings" element={<ProtectedRoute admin><MainLayout><AiSettingsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/handoff-settings" element={<ProtectedRoute admin><MainLayout><HandoffSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/retention" element={<ProtectedRoute admin><MainLayout><RetentionSettingsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/conversations" element={<ProtectedRoute><MainLayout><Conversations /></MainLayout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />

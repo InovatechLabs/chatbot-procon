@@ -2,9 +2,8 @@ import { lookupHash } from '../privacy/crypto.js';
 import type { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
-export const handoffEnabled = () => process.env.HUMAN_HANDOFF_ENABLED === 'true';
 const testPhone = () => process.env.HUMAN_HANDOFF_TEST_PHONE;
-export const handoffAllowed = (phone: string) => handoffEnabled() && (!testPhone() || testPhone() === phone);
+export const handoffInScope = (phone: string) => !testPhone() || testPhone() === phone;
 export const handoffTestLookup = () => {
   const phone = testPhone();
   return phone ? lookupHash('phoneNumber', phone) : undefined;
@@ -33,7 +32,7 @@ export async function cancelWaitingHandoff(db: PrismaClient, phone: string) {
 }
 
 export function waitingForHuman(db: PrismaClient, phone: string) {
-  return db.humanHandoff.findFirst({ where: { phoneLookup: lookupHash('phoneNumber', phone), status: { in: ['WAITING', 'ACTIVE'] } } });
+  return db.humanHandoff?.findFirst({ where: { phoneLookup: lookupHash('phoneNumber', phone), status: { in: ['WAITING', 'ACTIVE'] } } });
 }
 
 export async function queuePosition(db: PrismaClient, phone: string) {

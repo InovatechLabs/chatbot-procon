@@ -108,6 +108,16 @@ model HumanHandoff {
   @@index([status, requestedAt])
 }
 
+model HandoffSettings {
+  id            String   @id
+  version       Int
+  enabled       Boolean
+  periods       Json
+  queueMessage  String
+  closedMessage String
+  updatedAt     DateTime @updatedAt
+}
+
 model AiSettings {
   id              String   @id
   model           String
