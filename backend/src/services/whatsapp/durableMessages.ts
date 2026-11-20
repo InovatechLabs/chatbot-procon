@@ -6,6 +6,8 @@ import type { IncomingMessage } from '../../controllers/webhook/conversation.js'
 
 import type { MetaPayload } from './outgoingContext.js';
 import { deliverMetaPayload } from '../metaAPI.js';
+import { inboundTimestamp, serviceWindowUntil } from './serviceWindow.js';
+import { handoffAllowed, waitingForHuman } from '../conversation/handoff.js';
 
 const MAX_ATTEMPTS = 5;
 
@@ -21,17 +23,42 @@ export async function persistIncoming(messages: IncomingMessage[]) {
   // Um lote só recebe ACK depois que todos os IDs novos foram persistidos.
   await rootPrisma.$transaction(async tx => {
     for (const message of messages) await tx.messageReceipt.upsert({ where: { metaMessageId: message.id }, update: { metaMessageId: message.id },
-      create: { metaMessageId: message.id, phoneNumber: message.from, payload: JSON.stringify(message) } });
+      create: { metaMessageId: message.id, phoneNumber: message.from, payload: JSON.stringify(message), sourceAt: message.type === 'reaction' ? null : inboundTimestamp(message.timestamp) } });
   });
 }
 
 export async function queueOutgoing(payload: MetaPayload, receiptId?: string) {
-  const row = await prisma.outgoingMessage.create({ data: { phoneNumber: payload.to, payload: JSON.stringify(payload), ...(receiptId ? { receiptId } : {}) } });
+  const handoff = handoffAllowed(payload.to) ? await waitingForHuman(prisma, payload.to) : null;
+  const row = await prisma.outgoingMessage.create({ data: { phoneNumber: payload.to, payload: JSON.stringify(payload), handoffVersion: handoff?.version ?? null, ...(receiptId ? { receiptId } : {}) } });
   return { queued: true, id: row.id };
 }
 
 export { DurableInbox } from './durableInbox.js';
 export type { DurableInboxOptions } from './durableInbox.js';
+
+export type DeliveryUpdate = { id: string; status: 'sent' | 'delivered' | 'read' | 'failed'; biz_opaque_callback_data?: string | undefined };
+export async function persistDeliveryUpdates(updates: DeliveryUpdate[]) {
+  if (!updates.length) return;
+  const earlier = { sent: [], delivered: ['sent', 'failed'], read: ['sent', 'delivered', 'failed'], failed: ['sent'] };
+  await rootPrisma.$transaction(async tx => {
+    for (const update of updates) {
+      const correlation = update.biz_opaque_callback_data;
+      if (correlation && update.status !== 'failed') {
+        // Callback pode chegar antes da resposta HTTP ou resolver um timeout.
+        await tx.outgoingMessage.updateMany({ where: { id: correlation, metaMessageId: null,
+          state: { in: ['SENDING', 'UNKNOWN'] }, humanAuthored: true }, data: {
+          state: 'SENT', metaMessageId: update.id, sentAt: new Date(), payload: null, leaseToken: null, leaseUntil: null, lastError: null,
+        } });
+      }
+      await tx.outgoingMessage.updateMany({ where: {
+        AND: [
+          { OR: [{ metaMessageId: update.id }, ...(correlation ? [{ id: correlation, metaMessageId: null, state: { in: ['SENDING', 'UNKNOWN'] }, humanAuthored: true }] : [])] },
+          { OR: [{ deliveryStatus: null }, { deliveryStatus: { in: earlier[update.status] } }] },
+        ],
+      }, data: { deliveryStatus: update.status } });
+    }
+  });
+}
 
 export function outgoingFailure(error: unknown, attempt: number): { state: string; reason: string } {
   if (axios.isAxiosError(error) && error.response) {
@@ -55,26 +82,51 @@ export class DurableOutbox {
       const rows = await prisma.$queryRaw<{ id: string; phoneLookup: string }[]>`
         SELECT r."id", r."phoneLookup" FROM "OutgoingMessage" r
         WHERE r."state" = 'PENDING' AND r."availableAt" <= NOW()
-        AND NOT EXISTS (SELECT 1 FROM "OutgoingMessage" old WHERE old."phoneLookup" = r."phoneLookup" AND old."sequence" < r."sequence" AND old."state" NOT IN ('SENT','SKIPPED'))
+        AND NOT EXISTS (SELECT 1 FROM "OutgoingMessage" old WHERE old."phoneLookup" = r."phoneLookup" AND old."sequence" < r."sequence" AND old."state" IN ('PENDING','SENDING'))
         ORDER BY r."sequence" FOR UPDATE OF r SKIP LOCKED LIMIT 1`;
       const candidate = rows[0];
       if (!candidate || !await phoneLock(19781118, candidate.phoneLookup)) return null;
+      const pending = await prisma.outgoingMessage.findUniqueOrThrow({ where: { id: candidate.id } });
+      const handoff = handoffAllowed(pending.phoneNumber) || pending.humanAuthored || pending.handoffVersion !== null
+        ? await prisma.humanHandoff.findUnique({ where: { phoneLookup: candidate.phoneLookup } }) : null;
+      const paused = handoff?.status === 'WAITING' || handoff?.status === 'ACTIVE';
+      const outdated = pending.humanAuthored
+        ? !handoffAllowed(pending.phoneNumber) || handoff?.status !== 'ACTIVE' || handoff.version !== pending.handoffVersion
+        : pending.handoffVersion !== null ? !handoffAllowed(pending.phoneNumber) || handoff?.version !== pending.handoffVersion : paused;
+      const requiresWindow = pending.humanAuthored || pending.handoffVersion !== null;
+      const serviceWindow = requiresWindow && !outdated ? await serviceWindowUntil(prisma, candidate.phoneLookup) : null;
+      const expired = requiresWindow && (!serviceWindow || serviceWindow.getTime() <= Date.now());
+      if (outdated || expired) {
+        await prisma.outgoingMessage.update({ where: { id: candidate.id }, data: { state: 'SKIPPED', payload: null, lastError: outdated ? 'HandoffChanged' : 'WindowExpired' } });
+        return 'skipped' as const;
+      }
       return prisma.outgoingMessage.update({ where: { id: candidate.id }, data: { state: 'SENDING', attempts: { increment: 1 }, leaseToken: randomUUID(), leaseUntil: new Date(Date.now() + 45_000) } });
     });
     if (!item) return false;
+    if (item === 'skipped') return true;
+    let metaId: string;
     try {
-      if (!item.payload) throw new Error('MissingPayload');
-      const response = await this.send(JSON.parse(item.payload) as MetaPayload);
-      const metaId = response?.messages?.[0]?.id;
-      if (typeof metaId !== 'string' || !metaId) throw new Error('MissingMetaMessageId');
-      await rootPrisma.outgoingMessage.updateMany({ where: { id: item.id, leaseToken: item.leaseToken }, data: { state: 'SENT', metaMessageId: metaId, payload: null, sentAt: new Date(), leaseToken: null, leaseUntil: null, lastError: null } });
+      if (!item.payload) throw new DeliveryUnconfirmed('MissingPayload');
+      const payload = JSON.parse(item.payload) as MetaPayload;
+      const response = await this.send(item.humanAuthored ? { ...payload, biz_opaque_callback_data: item.id } : payload);
+      const id = response?.messages?.[0]?.id;
+      if (typeof id !== 'string' || !id) throw new DeliveryUnconfirmed('MissingMetaMessageId');
+      metaId = id;
     } catch (error) {
       const failure = outgoingFailure(error, item.attempts);
       await rootPrisma.outgoingMessage.updateMany({ where: { id: item.id, leaseToken: item.leaseToken, state: 'SENDING' }, data: { state: failure.state, lastError: failure.reason, availableAt: new Date(Date.now() + retryDelay(item.attempts)), leaseToken: null, leaseUntil: null } });
       console.error('Falha na outbox persistente:', item.id, failure.reason);
+      return true;
     }
+    // Uma falha ao salvar a confirmação não converte um envio aceito em retry.
+    // O callback ou o vencimento do lease resolve o estado dessa tentativa.
+    await rootPrisma.outgoingMessage.updateMany({ where: { id: item.id, leaseToken: item.leaseToken }, data: { state: 'SENT', metaMessageId: metaId, payload: null, sentAt: new Date(), leaseToken: null, leaseUntil: null, lastError: null } });
     return true;
   }
+}
+
+class DeliveryUnconfirmed extends Error {
+  constructor(reason: 'MissingPayload' | 'MissingMetaMessageId') { super(reason); this.name = reason; }
 }
 
 export async function messageQueueStatus() {

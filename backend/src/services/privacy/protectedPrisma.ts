@@ -6,7 +6,7 @@ export const protectedFields: Record<string, readonly string[]> = {
   OutgoingMessage: ['phoneNumber', 'payload'],
   ScheduleBlock: ['note'],
   UserSession: ['phoneNumber', 'userName', 'userCpf'],
-  ChatLog: ['phoneNumber', 'messageText'],
+  ChatLog: ['phoneNumber', 'messageText', 'audioMediaId'],
   Appointment: ['phoneNumber', 'userName', 'userCpf', 'citizenName', 'subject', 'categoryName', 'issueSummary', 'notes', 'agentNotes'],
   SessionFeedback: ['phoneNumber', 'comment', 'agentFeedback', 'resolvedAction'],
 };

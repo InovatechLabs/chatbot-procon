@@ -28,7 +28,7 @@ Lease expirado é recuperado automaticamente pelo próximo worker, com token nov
 
 Saída: PENDING → SENDING → SENT. O HTTP de envio tem timeout de quinze segundos e o lease dura quarenta e cinco. Erros HTTP 429, 5xx ou explicitamente transitórios permitem nova tentativa com backoff de 2, 4, 8… segundos, limitado a sessenta segundos e cinco tentativas. Outros erros HTTP vão para DEAD. Códigos numéricos da Meta são registrados sem guardar o corpo do erro.
 
-Timeout, desconexão ou queda do processo com lease expirado produzem UNKNOWN: a Meta pode ter aceitado o envio. Não existe reenvio automático desses casos. DEAD/UNKNOWN bloqueiam as saídas seguintes daquele telefone até revisão, preservando ordem. Entradas DEAD também precisam de revisão antes dos próximos turnos daquele telefone. Outros consumidores continuam sendo atendidos.
+Timeout, desconexão ou queda do processo com lease expirado produzem UNKNOWN, pois a Meta pode ter aceitado o envio. A tentativa incerta não é repetida automaticamente. Saídas PENDING ou SENDING ainda preservam a ordem por telefone. Saídas DEAD ou UNKNOWN ficam disponíveis para revisão e a fila avança. Um status tardio ou um retry manual pode alterar a ordem observada pelo consumidor. Entradas DEAD continuam aguardando revisão antes dos próximos turnos daquele telefone.
 
 SENT significa aceitação pela API com ID de mensagem; não comprova entrega/leitura no aparelho. Os webhooks de status continuam sendo reconhecidos sem gerar turnos; rastreamento completo de entrega/leitura não foi adicionado nesta etapa. A distinção entre mensagens recebidas e notificações de status está na [referência oficial da Meta](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/messages).
 
@@ -45,7 +45,7 @@ npm run messages:queue -- retry outbox UUID --confirm
 npm run messages:queue -- skip outbox UUID --confirm
 ```
 
-Status apresenta contagens e até cem registros DEAD/UNKNOWN por fila, com ID interno, tentativas, data e tipo/código do erro. Não mostra telefone ou conteúdo. `retry` autoriza uma nova tentativa; em UNKNOWN pode duplicar uma mensagem já recebida. `skip` abandona explicitamente o item e libera os seguintes. Revisar os IDs e o histórico do atendimento antes de executar. Não existe operação em massa nem reenvio de SENT/DONE. O acesso é operacional pelo servidor nesta etapa; não foi criada uma tela administrativa de filas.
+Status apresenta contagens e até cem registros DEAD/UNKNOWN por fila, com ID interno, tentativas, data e tipo/código do erro. Não mostra telefone ou conteúdo. `retry` autoriza uma nova tentativa; em UNKNOWN pode duplicar uma mensagem já recebida. `skip` abandona explicitamente o item. Em entradas, também libera as seguintes. Revisar os IDs e o histórico do atendimento antes de executar. Não existe operação em massa nem reenvio de SENT/DONE. O acesso é operacional pelo servidor nesta etapa; não foi criada uma tela administrativa de filas.
 
 Se o serviço encerrar normalmente, para de buscar novos trabalhos e aguarda até vinte segundos. Interrupção forçada reverte a preparação/finalização em andamento; a entrada PROCESSING aguarda expiração do lease para recuperação; uma saída já reclamada pode ficar UNKNOWN após o lease. Reiniciar o processo basta para retomar itens pendentes.
 

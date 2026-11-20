@@ -9,8 +9,7 @@ export interface RespostaFixa {
   acoes: Acao[];
 }
 
-const PROCON_TEL = '(12) 3955-9130';
-const PROCON_EMAIL = 'procon@jacarei.sp.gov.br';
+import { defaultInstitution, renderInstitution, type Institution } from '../../institution/settings.js';
 
 export const MSG_AUDIO =
   'Ainda não consigo ouvir áudios. Pode escrever com suas palavras o que aconteceu?';
@@ -30,16 +29,15 @@ export const MSG_CPF_INVALIDO =
 // Contato verificado pelo conector de recursos locais em 15/11/2026 (Brasil).
 export const MSG_CRISE = 'Sinto muito que você esteja passando por isso. Você não precisa enfrentar isso sozinho(a).\n\nSe você pensa em se machucar, procure alguém de confiança para ficar com você e ligue para o CVV: 188 (24 horas, gratuito). Se houver perigo imediato, ligue 192 (SAMU) ou 190.\n\nQuando se sentir pronto(a), podemos continuar com sua dúvida de consumo. Para voltar às opções, digite *menu*.';
 
-export const MSG_SAIDA_AGENDAMENTO =
-  `Tudo bem! Se preferir falar com a equipe, ligue ou chame no WhatsApp ${PROCON_TEL}.\n\nPara voltar ao menu, digite *menu*.`;
+export const scheduleExitMessage = (institution: Institution) =>
+  renderInstitution('Tudo bem! Se preferir falar com a equipe, ligue ou chame no WhatsApp {{telefone}}.\n\nPara voltar ao menu, digite *menu*.', institution);
 
 export const MSG_ENCERRADO = 'Atendimento encerrado. Quando precisar, é só me chamar. 👋';
 export const MSG_AGENDAMENTO_INTERROMPIDO = 'Tudo bem, interrompi o agendamento. Nenhum horário foi reservado.';
 export const MSG_DE_NADA = 'De nada! Se precisar de mais alguma coisa, escreva o que aconteceu ou digite *menu*.';
 export const MSG_NAO_QUER_AGENDAR = 'Tudo bem! Se precisar, escreva o que aconteceu ou digite *menu*.';
 
-// Texto montado na hora da chamada (lê PROCON_HORARIO do .env depois do dotenv.config()).
-const FIXAS: Record<string, () => RespostaFixa> = {
+const FIXAS: Record<string, (institution: Institution) => RespostaFixa> = {
   RISCO_PESSOAL: () => ({ texto: MSG_CRISE, acoes: ['menu'] }),
   FORA_ESCOPO_PARTICULAR: () => ({
     texto:
@@ -88,25 +86,23 @@ const FIXAS: Record<string, () => RespostaFixa> = {
     acoes: ['agendar', 'menu'],
   }),
 
-  INFO_ATENDIMENTO: () => ({
+  INFO_ATENDIMENTO: (institution) => ({
     texto:
-      `Este é o assistente virtual do PROCON de Jacareí. Atendimento presencial: ${process.env.PROCON_ENDERECO || 'Rua Capitão Joaquim Pinheiro do Prado, 222, Centro, Jacareí-SP'}.\n\n` +
-      `📞 Telefone e WhatsApp: ${PROCON_TEL}\n` +
-      `✉️ E-mail: ${PROCON_EMAIL}\n` +
-      `🕗 Horário: ${process.env.PROCON_HORARIO ?? 'consulte pelo telefone'}\n\n` +
-      'Por aqui eu posso orientar você e fazer seu agendamento presencial. Para falar com uma pessoa, use os contatos acima. Se mora em outro município, confirme com a equipe onde deve ser atendido.',
+      renderInstitution('Assistente virtual — {{nome}}. Atendimento presencial: {{endereco}}.\n\n' +
+      '📞 Telefone e WhatsApp: {{telefone}}\n✉️ E-mail: {{email}}\n🕗 Horário: {{horario}}\n\n' +
+      'Por aqui eu posso orientar você e fazer seu agendamento presencial. Para falar com uma pessoa, use os contatos acima. Se mora em outro município, confirme com a equipe onde deve ser atendido.', institution),
     acoes: ['agendar', 'menu'],
   }),
 
-  ACOMPANHAMENTO: () => ({
+  ACOMPANHAMENTO: (institution) => ({
     texto:
-      `Para saber como está a sua reclamação, tenha em mãos o número do protocolo e fale com o PROCON: ${PROCON_TEL} ou ${PROCON_EMAIL}.\n\n` +
-      'A empresa tem até 10 dias corridos para responder à carta de aviso (CIP) do PROCON. Depois disso, você pode ser chamado a informar se o problema foi resolvido.',
+      renderInstitution('Para saber como está a sua reclamação, tenha em mãos o número do protocolo e fale com a equipe: {{telefone}} ou {{email}}.\n\n' +
+      'A empresa tem até 10 dias corridos para responder à carta de aviso (CIP) do PROCON. Depois disso, você pode ser chamado a informar se o problema foi resolvido.', institution),
     acoes: ['menu'],
   }),
 
-  CANCELAR_REMARCAR: () => ({
-    texto: `Por aqui eu ainda não consigo cancelar ou remarcar. Fale com o PROCON pelo telefone ou WhatsApp ${PROCON_TEL} para ajustar o seu horário.`,
+  CANCELAR_REMARCAR: (institution) => ({
+    texto: renderInstitution(institution.rescheduleMessage, institution),
     acoes: ['menu'],
   }),
 
@@ -129,7 +125,7 @@ const FIXAS: Record<string, () => RespostaFixa> = {
   }),
 };
 
-export const getRespostaFixa = (categoria: string): RespostaFixa | null => {
+export const getRespostaFixa = (categoria: string, institution = defaultInstitution()): RespostaFixa | null => {
   const build = FIXAS[categoria];
-  return build ? build() : null;
+  return build ? build(institution) : null;
 };

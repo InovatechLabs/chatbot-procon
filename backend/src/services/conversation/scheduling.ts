@@ -1,14 +1,14 @@
 import { cleanAndValidateCpf, validateFullName } from '../../utils/validators/index.js';
 import { querSair, YES, NO } from '../../utils/intents/intents.js';
 import { MENU_OPTION, maskCpf } from '../whatsapp/messagePolicy.js';
-import { MSG_MENU_EXPIRADO, MSG_NOME_INVALIDO, MSG_CPF_INVALIDO, MSG_SAIDA_AGENDAMENTO } from '../llm/helpers/fixedResponses.js';
+import { MSG_MENU_EXPIRADO, MSG_NOME_INVALIDO, MSG_CPF_INVALIDO, scheduleExitMessage } from '../llm/helpers/fixedResponses.js';
 import { DOCUMENT_GUIDES } from '../documents/documentGuides.js';
 import { categorySchema } from './state.js';
 import type { ScheduleCategory } from './state.js';
 import type { ConversationContext } from './context.js';
 
 export function createSchedulingHandler(context: ConversationContext) {
-  const { d, update, choices, say, showMenu, pendingNotice, phone } = context;
+  const { d, update, choices, say, showMenu, pendingNotice, phone, institution } = context;
     const showDates = async (category: ScheduleCategory, intro = '') => {
       // Só apresenta dias com vagas, sem repetir cinco dias lotados.
       const days = await d.dates();
@@ -19,7 +19,7 @@ export function createSchedulingHandler(context: ConversationContext) {
       }
       if (!freeDays.length) {
         await update({ kind: 'READY' });
-        await say('Não encontrei vagas nos próximos 90 dias. Para consultar novas datas, fale com o PROCON: (12) 3955-9130. Nenhum horário foi reservado.', [MENU_OPTION]);
+        await say(`Não encontrei vagas nos próximos 90 dias. Para consultar novas datas, fale com a equipe: ${institution.phone}. Nenhum horário foi reservado.`, [MENU_OPTION]);
         return;
       }
       await update({ kind: 'SCHEDULE_DATE', category });
@@ -45,7 +45,7 @@ export function createSchedulingHandler(context: ConversationContext) {
   async function handleText(raw: string, n: string): Promise<{ handled: boolean; selection?: string }> {
     const state = context.snapshot().state;
     if (state.kind === 'SCHEDULE_NAME') {
-      if (querSair(n, raw)) { await say(MSG_SAIDA_AGENDAMENTO, [MENU_OPTION]); return { handled: true }; }
+      if (querSair(n, raw)) { await say(scheduleExitMessage(institution), [MENU_OPTION]); return { handled: true }; }
       if (!validateFullName(raw)) { await say(MSG_NOME_INVALIDO); return { handled: true }; }
       await update({ kind: 'SCHEDULE_NAME_CONFIRM', category: state.category }, { userName: raw });
       await say(`O nome para o atendimento é *${raw}*?`, [{ id: 'btn_sch_name_yes', text: 'Sim, está certo' }, { id: 'btn_sch_name_no', text: 'Corrigir nome' }, MENU_OPTION]);
@@ -57,7 +57,7 @@ export function createSchedulingHandler(context: ConversationContext) {
       await say('Confirme o nome pelos botões ou digite *sim*, *não* ou *menu*.'); return { handled: true };
     }
     if (state.kind === 'SCHEDULE_CPF') {
-      if (querSair(n, raw)) { await say(MSG_SAIDA_AGENDAMENTO, [MENU_OPTION]); return { handled: true }; }
+      if (querSair(n, raw)) { await say(scheduleExitMessage(institution), [MENU_OPTION]); return { handled: true }; }
       const cpf = cleanAndValidateCpf(raw);
       if (!cpf) { await say(MSG_CPF_INVALIDO); return { handled: true }; }
       await update(state, { userCpf: cpf });
@@ -110,7 +110,7 @@ export function createSchedulingHandler(context: ConversationContext) {
         await context.refresh();
         await update({ kind: 'READY' }, { currentStepId: null, isChat: false });
         const when = appointment.scheduledAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' });
-        await say(`Agendamento confirmado!\n\nData e horário: *${when}*\nNome: ${appointment.userName}\nCPF: ${maskCpf(appointment.userCpf)}\nAssunto: ${appointment.categoryName}\n\nLocal: ${process.env.PROCON_ENDERECO || 'Rua Capitão Joaquim Pinheiro do Prado, 222, Centro, Jacareí-SP'}.\n\nPara cancelar ou remarcar, fale com a equipe: (12) 3955-9130.`, [MENU_OPTION, { id: 'btn_evaluate', text: 'Avaliar atendimento' }]);
+        await say(`Agendamento confirmado!\n\nData e horário: *${when}*\nNome: ${appointment.userName}\nCPF: ${maskCpf(appointment.userCpf)}\nAssunto: ${appointment.categoryName}\n\nLocal: ${institution.address}.\n\nPara cancelar ou remarcar, fale com a equipe: ${institution.phone}.`, [MENU_OPTION, { id: 'btn_evaluate', text: 'Avaliar atendimento' }]);
         const guide = appointment.documentGuide ?? DOCUMENT_GUIDES.find(item => item.categoryKey === category);
         if (guide) await say(`Documentos para o atendimento:\n${guide.requiredDocs.map((doc, i) => `${i + 1}. ${doc}`).join('\n')}\n\n${guide.observations ?? ''}\n\nPara continuar, digite *menu*.`, [MENU_OPTION]);
       } catch (error) {

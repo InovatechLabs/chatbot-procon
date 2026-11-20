@@ -45,7 +45,11 @@ export const isCrisis = (n: string): boolean =>
   && !/\bnao (?:vou|quero|queria) me (?:matar|suicidar)\b/.test(n);
 
 export const isHumanRequest = (n: string): boolean =>
-  /^(?:(?:eu )?(?:quero|preciso|gostaria de|posso) )?(?:(?:falar|conversar) com (?:um |uma |o |a )?)?(?:atendente|humano|pessoa|alguem)(?: (?:humano|humana|de verdade))?$/.test(n);
+  /^(?:(?:eu )?(?:quero|preciso|gostaria de|posso) )?(?:(?:falar|conversar) com (?:um |uma |o |a )?)?(?:atendente|humano|pessoa|alguem)(?: (?:humano|humana|de verdade))?(?: (?:por aqui|pelo chat|pelo whatsapp|por favor))?$/.test(n)
+  || /^(?:(?:por favor )?(?:me )?passa (?:para|pra) (?:um |uma )?atendente)(?: (?:falar|conversar) comigo)?(?: por favor)?$/.test(n);
+
+export const isAmbiguousServiceRequest = (n: string): boolean =>
+  /^(?:(?:eu )?(?:quero|preciso (?:de )?|gostaria de|queria)) (?:um )?atendimento(?: por favor)?$/.test(n);
 
 export const isLogistics = (n: string): boolean =>
   /^(?:(?:(?:qual (?:e )?|(?:me )?(?:passe|informe) )?(?:o |a )?(?:endereco|telefone|whatsapp|horario(?: de atendimento)?|e mail))|(?:onde (?:fica|e|voces ficam))|(?:que horas (?:abre|fecha)))(?: (?:do |de |da |o |a )?(?:procon|voces|atendimento)(?: de jacarei)?)?$/.test(n);

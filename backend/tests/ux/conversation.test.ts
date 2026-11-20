@@ -5,6 +5,7 @@ import { decodeSession } from '../../src/services/conversation/state.js';
 import { getNextBusinessDays } from '../../src/utils/validators/index.js';
 import { createRagService } from '../../src/services/llm/llmService.js';
 import { parseClassification } from '../../src/services/llm/helpers/classifyReport.js';
+import { defaultInstitution } from '../../src/services/institution/settings.js';
 
 function fixture(state: Record<string, unknown> = {}) {
   let session: any = { id: 'session', phoneNumber: '5512999999999', status: 'OPEN', isChat: false, currentStepId: null, stepState: null, userName: null, userCpf: null, updatedAt: new Date(), ...state };
@@ -63,6 +64,31 @@ function fixture(state: Record<string, unknown> = {}) {
   return { text, click, handle, sent, logs, feedback, steps, options, overrides,
     session: () => session, aiCalls: () => aiCalls, bookings: () => bookings, documents: () => documents };
 }
+
+test('contatos institucionais passam do cadastro para o menu, a logística e o convite de agendamento', async () => {
+  const f = fixture();
+  let institution = { ...defaultInstitution(), name: 'Unidade de teste', hours: 'Dias úteis', appointmentMessage: 'Agende com {{nome}} pelo menu.' };
+  f.overrides.db.institutionSettings = { findUnique: async () => institution };
+  f.steps[1].message = 'Canal da unidade: {{email}}';
+  f.overrides.rewrite = async () => assert.fail('O contato publicado deve chegar ao WhatsApp sem reescrita');
+  f.overrides.answer = createRagService({
+    db: f.overrides.db,
+    classify: async () => parseClassification({ categoria: 'AGENDAMENTO', motivo: 'Pede atendimento' }),
+  });
+  const handle = createConversationHandler(f.overrides);
+  const send = (body: string) => handle({ id: String(f.logs.length), from: '5512999999999', type: 'text', text: { body } });
+  await send('menu');
+  await f.click('rights');
+  assert.equal(f.sent.at(-1)?.text, `Canal da unidade: ${institution.email}`);
+  institution = { ...institution, email: 'contato@example.org' };
+  await send('qual o endereço do procon?');
+  for (const value of [institution.name, institution.address, institution.hours, institution.phone, institution.email]) {
+    assert.ok(f.sent.at(-1)?.text.includes(value));
+  }
+  await send('eu gostaria de agendar um atendimento');
+  assert.equal(f.sent.at(-1)?.text, 'Agende com Unidade de teste pelo menu.');
+  assert.ok(f.sent.at(-1)?.options.some(option => option.id === 'btn_agendar_sim'));
+});
 
 test('agendamento reconhecido pelo classificador consulta pendência sem busca jurídica ou nova reserva', async () => {
   for (const phrase of ['quero agendar um atendimento', 'eu gostaria de agendar um atendimento']) {

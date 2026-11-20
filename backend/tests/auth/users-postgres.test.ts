@@ -46,10 +46,11 @@ test('gestão de contas: HTTP, senha temporária, revogação e último ADMIN co
     assert.equal((await request('/users')).status, 401);
     assert.equal((await request('/users', 'POST', rootCookie, {}, 'https://invalido.example')).status, 403);
     assert.equal((await request('/users', 'POST', rootCookie, { username: 'x', role: 'ADMIN', password: initialPassword })).status, 400);
-    const creation = await request('/users', 'POST', rootCookie, { username: `${prefix}-staff`.toUpperCase(), role: 'ATTENDANT', password: initialPassword });
+    const creation = await request('/users', 'POST', rootCookie, { username: `${prefix}-staff`.toUpperCase(), role: 'ATTENDANT', password: initialPassword, displayName: 'João da Silva' });
     assert.equal(creation.status, 201);
     const staff = (await creation.json()).user;
     assert.equal(staff.username, `${prefix}-staff`);
+    assert.equal(staff.displayName, 'João da Silva');
     assert.equal(staff.mustChangePassword, true);
     assert.equal('passwordHash' in staff, false);
     assert.equal((await request('/users', 'POST', rootCookie, { username: staff.username, role: 'ATTENDANT', password: initialPassword })).status, 409);
@@ -61,6 +62,11 @@ test('gestão de contas: HTTP, senha temporária, revogação e último ADMIN co
     assert.equal((await request('/auth/password', 'POST', temporaryCookie, { currentPassword: initialPassword, newPassword: personalPassword })).status, 204);
     assert.equal((await request('/auth/me', 'GET', temporaryCookie)).status, 401);
     const staffCookie = await login(staff.username, personalPassword);
+    assert.equal((await request(`/users/${staff.id}`, 'PATCH', rootCookie, { displayName: '*Outra pessoa*' })).status, 400);
+    const renamed = await request(`/users/${staff.id}`, 'PATCH', rootCookie, { displayName: 'João Silva' });
+    assert.equal(renamed.status, 200);
+    assert.equal((await renamed.json()).user.displayName, 'João Silva');
+    assert.equal((await request('/auth/me', 'GET', staffCookie)).status, 200);
     for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
       const path = method === 'PATCH' || method === 'DELETE' ? `/users/${root.id}` : '/users';
       assert.equal((await request(path, method, staffCookie, method === 'POST' || method === 'PATCH' ? { role: 'ADMIN' } : undefined)).status, 403);

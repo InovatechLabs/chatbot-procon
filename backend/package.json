@@ -14,6 +14,8 @@
     "test:safety:replay": "tsx tests/llm/replay-output-claims.ts",
     "test": "node scripts/run-tests.mjs unit",
     "test:integration": "node scripts/run-tests.mjs integration",
+    "test:coverage": "c8 --reports-dir coverage/unit --temp-directory .ci-generated/coverage-unit node scripts/run-tests.mjs unit",
+    "test:coverage:integration": "c8 --reports-dir coverage/integration --temp-directory .ci-generated/coverage-integration node scripts/run-tests.mjs integration",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build && npm test",
     "test:webhook": "node --import tsx --test --test-concurrency=1 tests/webhook/*.test.ts",
@@ -51,6 +53,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.2",
     "@types/pg": "^8.23.1",
+    "c8": "^12.0.0",
     "tsx": "^4.23.9",
     "typescript": "^7.0.2"
   }

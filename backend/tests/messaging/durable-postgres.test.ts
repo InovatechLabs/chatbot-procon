@@ -92,10 +92,10 @@ test('mensagens duráveis: deduplicação, rollback, retomada, ordenação e fal
       } }).runOne();
     });
 
-    await t.test('429 retenta somente a saída; timeout fica incerto e bloqueia a ordem até revisão', async () => {
+    await t.test('429 preserva a ordem; timeout fica incerto sem travar a próxima saída', async () => {
       await clear();
       const first = await queueOutgoing({ to: '5511999999900', type: 'text', text: { body: 'Primeira' } });
-      await queueOutgoing({ to: '5511999999900', type: 'text', text: { body: 'Segunda' } });
+      await queueOutgoing({ to: '5511999999900', type: 'text', text: { body: '❤️❤️❤️' } });
       let attempts = 0;
       const sender = async () => {
         if (++attempts === 1) throw new AxiosError('limited', 'ERR_BAD_RESPONSE', undefined, undefined, { status: 429 } as any);
@@ -107,13 +107,18 @@ test('mensagens duráveis: deduplicação, rollback, retomada, ordenação e fal
       assert.equal(await new DurableOutbox(sender).runOne(), false, 'segunda aguarda primeira');
       await prisma.outgoingMessage.update({ where: { id: first.id }, data: { availableAt: new Date(0) } });
       await new DurableOutbox(sender).runOne(); assert.equal(attempts, 2);
-      const timeout = new DurableOutbox(async () => { throw new AxiosError('timeout', 'ECONNABORTED'); });
+      const timeout = new DurableOutbox(async payload => {
+        assert.deepEqual(payload.text, { body: '❤️❤️❤️' });
+        throw new AxiosError('timeout', 'ECONNABORTED');
+      });
       await timeout.runOne();
       const uncertain = await prisma.outgoingMessage.findFirstOrThrow({ where: { state: 'UNKNOWN' } });
-      await queueOutgoing({ to: '5511999999900', type: 'text', text: { body: 'Terceira' } });
-      assert.equal(await new DurableOutbox(sender).runOne(), false);
-      await resolveQueuedMessage('outbox', uncertain.id, 'skip');
+      assert.equal(uncertain.lastError, 'ECONNABORTED');
+      const third = await queueOutgoing({ to: '5511999999900', type: 'text', text: { body: 'Terceira' } });
       assert.equal(await new DurableOutbox(sender).runOne(), true);
+      assert.equal((await prisma.outgoingMessage.findUniqueOrThrow({ where: { id: third.id } })).state, 'SENT');
+      assert.equal((await prisma.outgoingMessage.findUniqueOrThrow({ where: { id: uncertain.id } })).attempts, 1);
+      await resolveQueuedMessage('outbox', uncertain.id, 'skip');
       assert.equal((await prisma.outgoingMessage.findUniqueOrThrow({ where: { id: uncertain.id } })).payload, null);
     });
 

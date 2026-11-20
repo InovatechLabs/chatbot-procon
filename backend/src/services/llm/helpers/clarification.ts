@@ -1,3 +1,4 @@
+import { defaultInstitution, renderInstitution } from '../../institution/settings.js';
 import type { RagResult } from '../llmService.js';
 import { clarificationRounds, decodeSession, initialSnapshot, persistable } from '../../conversation/state.js';
 
@@ -12,13 +13,13 @@ export function clarificationState(count: number): string {
 }
 
 /** Só limita outra pergunta: detalhes suficientes ainda podem produzir orientação. */
-export function applyClarificationLimit(result: RagResult, count: number): RagResult {
+export function applyClarificationLimit(result: RagResult, count: number, institution = defaultInstitution()): RagResult {
   if (result.tipoResposta !== 'clarificacao' || count < MAX_CLARIFICATIONS) return result;
   return {
     ...result,
     tipoResposta: 'redirecionamento',
     artigo: null,
-    texto: 'Ainda não consegui entender os detalhes para orientar com segurança. A equipe pode ouvir e analisar seu caso presencialmente. Quer agendar?',
+    texto: `Ainda não consegui entender os detalhes para orientar com segurança. ${renderInstitution(institution.referralMessage, institution)}`,
     ...(result.diagnostics ? { diagnostics: { ...result.diagnostics, motivoDescarte: 'excesso_clarificacoes' } } : {}),
   };
 }

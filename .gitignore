@@ -4,3 +4,4 @@ dist/
 build/
 .private-backups/
 backend/.ci-generated/
+backend/coverage/

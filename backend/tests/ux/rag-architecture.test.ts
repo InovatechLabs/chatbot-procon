@@ -27,6 +27,10 @@ test('triagem material e intencoes explicitas ficam separadas', () => {
  assert.equal(schedule.informacaoSuficiente, true);
  assert.equal(schedule.consultaBusca, undefined);
  assert.equal(schedule.perguntaEsclarecimento, undefined);
+ assert.equal(validateScopeEvidence(schedule, 'Eu queria receber atendimento do PROCON e não sei por onde começar.', '').categoria, 'CANAL_ATENDIMENTO_INDEFINIDO');
+ assert.equal(validateScopeEvidence(schedule, 'Gostaria de marcar um horário para ir ao PROCON.', '').categoria, 'AGENDAMENTO');
+ assert.equal(classifyExplicitIntent('passa pra um atendente falar comigo'), 'ATENDIMENTO_HUMANO_CHAT');
+ assert.equal(classifyExplicitIntent('quero atendimento'), 'CANAL_ATENDIMENTO_INDEFINIDO');
  for (const phrase of ['quero agendar um atendimento', 'eu gostaria de agendar um atendimento', 'Eu queria marcar uma consulta, por favor!', 'Por favor, eu preciso agendar um atendimento no PROCON de Jacareí.']) {
    assert.equal(classifyExplicitIntent(phrase), null, 'pedido deve passar pelo classificador: ' + phrase);
  }

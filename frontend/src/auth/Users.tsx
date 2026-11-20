@@ -16,6 +16,7 @@ export default function Users() {
   const [message, setMessage] = useState('');
   const [action, setAction] = useState<Action | null>(null);
   const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<PanelUser['role']>('ATTENDANT');
   const [active, setActive] = useState(true);
   const [password, setPassword] = useState('');
@@ -38,6 +39,7 @@ export default function Users() {
   const open = (next: Action) => {
     setAction(next); setError(''); setMessage(''); setPassword(''); setConfirmation('');
     setUsername(next.kind === 'create' ? '' : next.user.username);
+    setDisplayName(next.kind === 'create' ? '' : next.user.displayName ?? '');
     setRole(next.kind === 'create' ? 'ATTENDANT' : next.user.role);
     setActive(next.kind === 'create' ? true : next.user.active);
   };
@@ -52,8 +54,8 @@ export default function Users() {
     setBusy(true);
     try {
       switch (action.kind) {
-        case 'create': await panelUsersService.create({ username, role, password }); break;
-        case 'edit': await panelUsersService.update(action.user.id, { username, role, active }); break;
+        case 'create': await panelUsersService.create({ username, role, password, displayName: displayName.trim() || null }); break;
+        case 'edit': await panelUsersService.update(action.user.id, { username, role, active, displayName: displayName.trim() || null }); break;
         case 'password': await panelUsersService.resetPassword(action.user.id, password); break;
         case 'revoke': await panelUsersService.revokeSessions(action.user.id); break;
         case 'delete': await panelUsersService.remove(action.user.id); break;
@@ -85,6 +87,7 @@ export default function Users() {
         <fieldset disabled={busy}>
           {changesIdentity && <>
             <div data-ui="form-group" className={cx(ui.formGroup)}><label htmlFor="managed-username">Usuário</label><input id="managed-username" autoFocus required minLength={3} maxLength={64} pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,63}" autoComplete="off" value={username} onChange={event => setUsername(event.target.value)} /><small>3–64 caracteres: letras sem acento, números, ponto, hífen ou sublinhado.</small></div>
+            <div data-ui="form-group" className={cx(ui.formGroup)}><label htmlFor="managed-display-name">Nome público no WhatsApp</label><input id="managed-display-name" minLength={2} maxLength={80} autoComplete="off" value={displayName} onChange={event => setDisplayName(event.target.value)} /><small>Deixe vazio para assinar como Atendente do PROCON.</small></div>
             <div data-ui="form-group" className={cx(ui.formGroup)}><label htmlFor="managed-role">Perfil</label><select id="managed-role" value={role} onChange={event => setRole(event.target.value as PanelUser['role'])}><option value="ATTENDANT">Atendente</option><option value="ADMIN">Administrador</option></select></div>
           </>}
           {action.kind === 'edit' && <><label data-ui="users-active" className={cx(ui.usersActive)}><input type="checkbox" checked={active} onChange={event => setActive(event.target.checked)} /> Conta ativa</label><p>Alterações de usuário, perfil ou situação encerram as sessões dessa conta.</p></>}

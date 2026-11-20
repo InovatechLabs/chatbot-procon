@@ -28,6 +28,7 @@ export async function retentionInTransaction(tx: Prisma.TransactionClient, polic
         SELECT s."id", s."phoneLookup" FROM "UserSession" s
         WHERE s."updatedAt" < ${sessionsBefore} AND s."phoneLookup" IS NOT NULL
         AND NOT EXISTS (SELECT 1 FROM "Appointment" a WHERE a."sessionId" = s."id")
+        AND NOT EXISTS (SELECT 1 FROM "HumanHandoff" h WHERE h."phoneLookup" = s."phoneLookup" AND h."status" IN ('WAITING','ACTIVE'))
         AND NOT EXISTS (SELECT 1 FROM "MessageReceipt" r WHERE r."phoneLookup" = s."phoneLookup" AND r."state" NOT IN ('DONE','SKIPPED'))
         AND NOT EXISTS (SELECT 1 FROM "OutgoingMessage" o WHERE o."phoneLookup" = s."phoneLookup" AND o."state" NOT IN ('SENT','SKIPPED'))
         ORDER BY s."id" FOR UPDATE OF s SKIP LOCKED`;
@@ -37,9 +38,12 @@ export async function retentionInTransaction(tx: Prisma.TransactionClient, polic
         // Revalidar após adquirir o mesmo lock usado na finalização do inbox.
         const pending = await tx.messageReceipt.count({ where: { phoneLookup: session.phoneLookup, state: { notIn: ['DONE', 'SKIPPED'] } } });
         const sending = await tx.outgoingMessage.count({ where: { phoneLookup: session.phoneLookup, state: { notIn: ['SENT', 'SKIPPED'] } } });
-        if (pending || sending) continue;
+        if (pending || sending || await tx.humanHandoff.count({ where: { phoneLookup: session.phoneLookup, status: { in: ['WAITING', 'ACTIVE'] } } })) continue;
         sessionsCount += apply ? (await tx.userSession.deleteMany({ where: { id: session.id, updatedAt: { lt: sessionsBefore }, appointments: { none: {} } } })).count : 1;
       }
     }
+    if (apply && sessionsBefore) await tx.$executeRaw`
+      DELETE FROM "HumanHandoff" h WHERE h."status" IN ('BOT','CLOSED') AND h."requestedAt" < ${sessionsBefore}
+      AND NOT EXISTS (SELECT 1 FROM "UserSession" s WHERE s."phoneLookup" = h."phoneLookup")`;
     return { applied: apply, appointments: appointmentsCount, sessions: sessionsCount, receipts: receiptsCount, outgoing: outgoingCount, note: 'Contagens agregadas, sem dados pessoais. Pendências e estados não resolvidos são preservados. Sem prazo não há limpeza. A simulação preserva vínculos ainda existentes; reaplicar a simulação após limpar dependências pode revelar novos candidatos.' };
 }

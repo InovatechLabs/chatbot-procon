@@ -2,7 +2,7 @@
 
 ## O que executa
 
-O workflow `.github/workflows/ci.yml` substitui a antiga checagem de containers ligados. Em push para `main`, `dev` e `feat/**`, PR para `main`/`dev`, ou execução manual, roda dois jobs com Node 24. Commits somente locais não disparam a CI; um push com vários commits dispara uma execução para o evento.
+O workflow `.github/workflows/ci.yml` roda dois jobs com Node 24 em pushes para `main`, `dev`, `chat-support` e `feat/**`, em PRs para `main`/`dev` e sob execução manual. Um push com vários commits dispara uma execução para o evento.
 
 - Frontend: npm ci, ESLint e build com checagem TypeScript.
 - Backend: npm ci, geração Prisma, tipos, build e suíte sem serviços externos; PostgreSQL com pgvector para integrações reais; reconstrução completa por migrate deploy e comparação com schema; preservação de fixture ao reaplicar compatibilidade; inicialização do JavaScript compilado, conferindo health 200 e API sem sessão 401.
@@ -49,6 +49,21 @@ Os comandos especializados antigos (test:ux, test:auth, test:privacy e test:webh
 O runner descobre automaticamente os arquivos `.test.ts` nas pastas configuradas: `ux`, `auth`, `privacy` e `webhook` no modo sem banco; arquivos com `postgres` no nome em `auth`, `privacy`, `appointments`, `messaging` e `analytics` nas integrações. Um arquivo colocado em outra pasta precisa ser incluído no runner. Avaliações reais, replays e testes de recuperação em `tests/llm` não são acionados pelo workflow. O número de casos pode crescer: acompanhar duração, estabilidade e utilidade das verificações, sem remover regressões importantes apenas para reduzir a contagem.
 
 ## Cobertura relevante
+
+O backend mede cobertura de linhas, branches, funções e instruções com [c8](https://github.com/bcoe/c8). A configuração inclui os arquivos TypeScript em `backend/src`, inclusive os que nenhuma suíte carregou. Scripts, testes, dependências e artefatos compilados ficam fora da medição.
+
+Em `backend`, `npm run test:coverage` mede a suíte sem banco. Para medir a integração, siga a preparação do PostgreSQL descartável acima e use `npm run test:coverage:integration` no lugar de `npm run test:integration`. Abra `coverage/unit/index.html` ou `coverage/integration/index.html` para ver os trechos descobertos. Cada pasta também contém `coverage-summary.json`.
+
+O job de backend da CI executa cada suíte uma vez, com a cobertura habilitada, e publica os relatórios no artefato `backend-test-coverage` da execução. Os percentuais são independentes e podem cobrir as mesmas linhas. Compare cada suíte com sua própria linha de base. Nesta etapa, falhas de testes continuam bloqueando a CI e os percentuais servem para diagnóstico, sem mínimo obrigatório. O frontend segue com lint e build. Benchmarks e serviços reais de IA/WhatsApp ficam fora da medição.
+
+Linha de base local de 19/11/2026, com Node 24 e 78 arquivos TypeScript em cada relatório.
+
+| Suíte | Linhas | Branches | Funções | Instruções | Resultado |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Sem banco | 71,46% | 86,99% | 67,95% | 71,46% | 184 aprovados, 2 ignorados |
+| PostgreSQL | 80,73% | 70,82% | 88,76% | 80,73% | 26 aprovados |
+
+Na integração, `durableInbox.ts` e `retention.ts` atingiram 100% de linhas e `durableMessages.ts` atingiu 93,20%. Para revisar um fluxo crítico, abra o arquivo no HTML e confira as condições e os caminhos de falha exercitados. Cobertura de linhas indica execução, enquanto a qualidade das asserções depende dos casos testados.
 
 A retenção automática substitui a simulação operacional por exclusão real periódica. Resultado: 184 aprovações sem banco, dois skips históricos e 26 aprovações PostgreSQL; tipos/build do backend e lint/build do frontend aprovados. O teste em banco exclui conversa com 31 dias e histórico sob política de 30 dias, preserva conversa com 29 dias e sessão antiga com receipt pendente, verifica cadência horária persistida, duas instâncias, edição de prazo e revogação concorrente. Testes do worker cobrem falha/retry sem conteúdo pessoal no log, ausência de sobreposição e shutdown aguardando a operação atual. As cinco bases foram reconstruídas sem divergência e o smoke compilado passou. Não houve uso de Kaggle/Meta ou exclusão de dados reais nos testes.
 

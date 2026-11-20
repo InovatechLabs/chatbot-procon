@@ -10,6 +10,7 @@ datasource db {
 
 // Contas administrativas são independentes das sessões dos consumidores.
 model PanelUser {
+  displayName String?
   id           String         @id @default(uuid())
   username     String         @unique
   passwordHash String
@@ -60,6 +61,7 @@ model MessageReceipt {
   availableAt DateTime @default(now())
   createdAt DateTime @default(now())
   processedAt DateTime?
+  sourceAt DateTime?
   leaseToken String?
   leaseUntil DateTime?
   lastError String?
@@ -68,6 +70,7 @@ model MessageReceipt {
   @@index([state, leaseUntil])
   @@index([leaseToken])
   @@index([phoneLookup, sequence])
+  @@index([phoneLookup, sourceAt])
 }
 
 model OutgoingMessage {
@@ -88,8 +91,46 @@ model OutgoingMessage {
   metaMessageId String? @unique
   deliveryStatus String?
   lastError String?
+  humanReply ChatLog?
+  humanAuthored Boolean @default(false)
+  handoffVersion Int?
   @@index([state, availableAt])
   @@index([phoneLookup, sequence])
+}
+
+model HumanHandoff {
+  phoneLookup String @id
+  id String @unique @default(uuid())
+  requestedAt DateTime @default(now())
+  status String @default("WAITING")
+  assigneeId String?
+  version Int @default(1)
+  @@index([status, requestedAt])
+}
+
+model AiSettings {
+  id              String   @id
+  model           String
+  thinkingEnabled Boolean
+  version         Int
+  updatedAt       DateTime @updatedAt
+}
+
+model InstitutionSettings {
+  id                 String   @id
+  version            Int
+  updatedAt          DateTime @updatedAt
+  name               String
+  address            String
+  phone              String
+  email              String
+  hours              String
+  referralMessage    String
+  appointmentMessage String
+  unavailableMessage String
+  rescheduleMessage  String
+  privacyMessage     String
+  queueMessage       String
 }
 
 model RetentionSettings {
@@ -211,11 +252,17 @@ model ChatLog {
   phoneNumber String
   direction   String   // "INBOUND" ou "OUTBOUND"
   messageText String
+  audioMediaId String?
+  authorId    String?
+  outgoingId  String? @unique
+  outgoing    OutgoingMessage? @relation(fields: [outgoingId], references: [id], onDelete: SetNull)
+  requestKey  String? @unique
   timestamp   DateTime @default(now())
 
   session UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   stepId  String?
   step    Step?       @relation(fields: [stepId], references: [id])
+  @@index([phoneLookup, timestamp, id])
 }
 
 // 5. Base de Conhecimento RAG

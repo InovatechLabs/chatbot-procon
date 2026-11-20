@@ -62,10 +62,11 @@ Em `backend/.env`, conferir:
 | `META_APP_SECRET` | Segredo do aplicativo que assina os POSTs do webhook |
 | `OLLAMA_GENERATE_URL` | URL completa de geração, terminando em `/api/generate` |
 | `OLLAMA_EMBED_URL` | URL completa de embeddings, terminando em `/api/embeddings` |
-| `OLLAMA_GENERATE_MODEL_NAME` | Modelo instalado no Ollama; atualmente usado `gemma3:12b` |
+| `OLLAMA_GENERATE_MODEL_NAME` | Modelo inicial de geração, por exemplo `gemma3:12b` |
 | `OLLAMA_EMBEDDING_MODEL_NAME` | Modelo instalado para embeddings; atualmente usado `bge-m3:latest` |
-| `LLM_ENABLE_THINKING` | `false` ou `true`, conforme o modelo e os testes realizados |
-| `PROCON_ENDERECO` e `PROCON_HORARIO` | Informações institucionais conferidas pela equipe |
+| `LLM_ENABLE_THINKING` | Valor inicial do thinking mode, `false` ou `true` |
+
+Em **Configurações de IA**, um ADMIN pode selecionar um modelo já instalado no Ollama e definir o thinking mode. Antes de salvar, o backend testa a geração de JSON com uma pergunta sintética. Se a configuração passar, vale para as próximas mensagens do chatbot. O modelo e o thinking mode do `.env` servem de padrão até o primeiro salvamento no painel. Os scripts de benchmark continuam usando os valores do ambiente para permitir comparações controladas. Os endpoints do Ollama e o modelo de embeddings são configurados no `.env`.
 
 No container, o Compose fornece `DATABASE_URL` usando o serviço `postgres` e as credenciais do `.env` da raiz. Essa variável tem precedência sobre a URL carregada por dotenv. Para executar scripts no host, configurar `backend/.env` com as mesmas credenciais, mas host `127.0.0.1:5432`, pois o nome `postgres` pertence à rede Docker.
 
@@ -120,6 +121,8 @@ Para instalação ou atualização com dados, usar as migrações. Não usar `pr
 docker compose run --rm --no-deps backend sh -c 'npx prisma generate && npx tsx prisma/seed/seed.ts'
 docker compose run --rm --no-deps backend sh -c 'npx prisma generate && npx tsx prisma/seed/docs.ts'
 ```
+
+No painel, entre com uma conta ADMIN e abra **Institucional** para conferir o nome da unidade, os contatos, o endereço, o horário informado e as mensagens de encaminhamento. As próximas respostas usam os dados salvos imediatamente. Instalações antigas que definiram `PROCON_ENDERECO` ou `PROCON_HORARIO` usam esses valores até o primeiro salvamento. Configure horários e vagas na página **Disponibilidade**.
 
 O seed do menu preenche uma base vazia e preserva um menu existente. O seed de documentos cria as categorias ausentes e preserva edições existentes. Nenhum desses dois comandos precisa de embeddings ou IA.
 

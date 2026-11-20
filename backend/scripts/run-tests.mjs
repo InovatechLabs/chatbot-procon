@@ -18,6 +18,8 @@ delete env.APPOINTMENTS_TEST_DB_NAME;
 delete env.MESSAGING_TEST_DB_NAME;
 delete env.ANALYTICS_TEST_DB_NAME;
 delete env.AUTH_BOOTSTRAP_USERNAME; delete env.AUTH_BOOTSTRAP_PASSWORD; delete env.AUTH_BOOTSTRAP_ROLE;
+delete env.HUMAN_HANDOFF_ENABLED;
+delete env.HUMAN_HANDOFF_TEST_PHONE;
 const run = args => {
   const result = spawnSync(process.execPath, args, { env, stdio: 'inherit' });
   if (result.error || result.status !== 0) throw new Error('Uma verificação falhou.');

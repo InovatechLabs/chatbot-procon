@@ -180,6 +180,8 @@ test('inbox: leases, fencing, CAS e trabalho externo sem transação', { skip: !
       await clear();
       const priorGenerate = process.env.OLLAMA_GENERATE_URL, priorEmbed = process.env.OLLAMA_EMBED_URL;
       const requests: string[] = [];
+      const settings = { model: 'teste:primeiro', thinkingEnabled: true };
+      const nextSettings = { model: 'teste:segundo', thinkingEnabled: false };
       let failModel = false;
       const officialText = 'Guarde os comprovantes e procure o PROCON.';
       let serverError: unknown;
@@ -189,7 +191,20 @@ test('inbox: leases, fencing, CAS e trabalho externo sem transação', { skip: !
           let raw = ''; for await (const chunk of req) raw += chunk;
           const payload = JSON.parse(raw);
           requests.push(req.url === '/embed' ? 'embedding' : payload.format?.properties?.categoria ? 'classification' : payload.format ? 'generation' : 'rewrite');
+          if (req.url === '/embed') {
+            assert.equal(payload.model, process.env.OLLAMA_EMBEDDING_MODEL_NAME);
+            assert.equal(payload.think, undefined);
+          } else {
+            const expected = payload.format && !failModel ? settings : nextSettings;
+            assert.equal(payload.model, expected.model);
+            assert.equal(payload.think, expected.thinkingEnabled);
+          }
           if (failModel) { res.statusCode = 503; res.end('{}'); return; }
+          if (payload.format?.properties?.categoria) {
+            // A próxima mensagem recebe a alteração; a geração desta conserva a
+            // configuração da classificação, mesmo passando pelo rollback.
+            await rootPrisma.aiSettings.update({ where: { id: 'main' }, data: { ...nextSettings, version: 2 } });
+          }
           if (payload.format && !payload.format.properties?.categoria) assert.ok(payload.prompt.includes('REGRAS_AUXILIARES_JSON'));
           const response = req.url === '/embed' ? { embedding: [0.1, 0.2] } : !payload.format ? { response: officialText } : { response: JSON.stringify(payload.format?.properties?.categoria
             ? { categoria: 'CONSUMO', motivo: 'Cobrança já paga', consultaBusca: 'cobrança indevida', perguntaEsclarecimento: null }
@@ -202,6 +217,7 @@ test('inbox: leases, fencing, CAS e trabalho externo sem transação', { skip: !
       process.env.OLLAMA_GENERATE_URL = `http://127.0.0.1:${address.port}/generate`;
       process.env.OLLAMA_EMBED_URL = `http://127.0.0.1:${address.port}/embed`;
       try {
+        await prisma.aiSettings.create({ data: { ...settings, id: 'main', version: 1 } });
         const answer = createRagService({ vectors: async () => [{ id: 'Art. 42', distance: 0.1 }], articles: async () => [{ id: 'Art. 42', title: 'Art. 42 - Cobrança de dívidas', content: 'O consumidor pode questionar cobrança indevida.', keywords: ['cobrança'], distincao: null }] });
         await persistIncoming([message('rag-http')]);
         assert.equal(await new DurableInbox({ canGroup: async () => false, handle: createConversationHandler({
@@ -214,8 +230,8 @@ test('inbox: leases, fencing, CAS e trabalho externo sem transação', { skip: !
         await clear(); requests.length = 0;
         const { generateOrientativeResponse } = await import('../../src/services/llm/llmService.js');
         await persistIncoming([message('menu-rewrite')]);
-        assert.equal(await new DurableInbox({ canGroup: async () => false, handle: async () => {
-          const text = await generateOrientativeResponse('Menu de dúvidas', officialText);
+        assert.equal(await new DurableInbox({ canGroup: async () => false, handle: async (_message, _hasNewer, generation) => {
+          const text = await generateOrientativeResponse('Menu de dúvidas', officialText, generation);
           assert.ok(text.startsWith(officialText));
           await queueOutgoing({ to: phone, type: 'text', text: { body: text } });
         } }).runOne(), true);
@@ -228,6 +244,7 @@ test('inbox: leases, fencing, CAS e trabalho externo sem transação', { skip: !
         assert.ok((await prisma.outgoingMessage.findMany()).some(row => JSON.parse(row.payload!).interactive?.body?.text?.includes('temporariamente indisponível')));
         if (serverError) throw serverError;
       } finally {
+        await prisma.aiSettings.deleteMany({ where: { id: 'main' } });
         process.env.OLLAMA_GENERATE_URL = priorGenerate; process.env.OLLAMA_EMBED_URL = priorEmbed;
         await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
       }

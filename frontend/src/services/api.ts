@@ -14,11 +14,11 @@ api.interceptors.response.use(response => response, error => {
 });
 
 export interface PanelUser { id: string; username: string; role: 'ADMIN' | 'ATTENDANT'; mustChangePassword: boolean }
-export interface ManagedPanelUser extends PanelUser { active: boolean; createdAt: string; updatedAt: string }
+export interface ManagedPanelUser extends PanelUser { displayName: string | null; active: boolean; createdAt: string; updatedAt: string }
 export const panelUsersService = {
   list: async (): Promise<ManagedPanelUser[]> => (await api.get('/users')).data.users,
-  create: async (input: { username: string; role: PanelUser['role']; password: string }) => (await api.post('/users', input)).data.user as ManagedPanelUser,
-  update: async (id: string, input: { username: string; role: PanelUser['role']; active: boolean }) => (await api.patch(`/users/${id}`, input)).data.user as ManagedPanelUser,
+  create: async (input: { username: string; role: PanelUser['role']; password: string; displayName: string | null }) => (await api.post('/users', input)).data.user as ManagedPanelUser,
+  update: async (id: string, input: { username: string; role: PanelUser['role']; active: boolean; displayName: string | null }) => (await api.patch(`/users/${id}`, input)).data.user as ManagedPanelUser,
   resetPassword: async (id: string, password: string) => { await api.post(`/users/${id}/password`, { password }); },
   revokeSessions: async (id: string) => { await api.post(`/users/${id}/revoke-sessions`); },
   remove: async (id: string) => { await api.delete(`/users/${id}`); },

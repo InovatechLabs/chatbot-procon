@@ -1,5 +1,5 @@
 import type { IncomingMessage } from './conversation.js';
-import { normalize, MENU_CMDS, EXIT_CMDS, YES, NO, isGreeting, isThanks, isCrisis, isHumanRequest, isLogistics, isScheduleChange } from '../../utils/intents/intents.js';
+import { normalize, MENU_CMDS, EXIT_CMDS, YES, NO, isGreeting, isThanks, isCrisis, isHumanRequest, isAmbiguousServiceRequest, isLogistics, isScheduleChange } from '../../utils/intents/intents.js';
 
 export const canDebounce = (message: IncomingMessage) => {
   if (message.type !== 'text') return false;
@@ -7,7 +7,7 @@ export const canDebounce = (message: IncomingMessage) => {
   const n = normalize(raw);
   return !MENU_CMDS.has(n) && !EXIT_CMDS.has(n) && !YES.has(n) && !NO.has(n)
     && !/^\d+$/.test(n) && !isGreeting(n) && !isThanks(raw, n) && !isCrisis(n)
-    && !isHumanRequest(n) && !isLogistics(n) && !isScheduleChange(n);
+    && !isHumanRequest(n) && !isAmbiguousServiceRequest(n) && !isLogistics(n) && !isScheduleChange(n);
 };
 
 /** @deprecated Utilitário legado para fixtures. O webhook de produção usa DurableInbox

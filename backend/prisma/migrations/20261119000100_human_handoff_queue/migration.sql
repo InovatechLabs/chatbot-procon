@@ -1,0 +1,4 @@
+CREATE TABLE "HumanHandoff" (
+  "phoneLookup" TEXT NOT NULL PRIMARY KEY,
+  "requestedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

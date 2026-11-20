@@ -24,7 +24,7 @@ export async function buildMenu() {
   const menuPrincipal = await menu.step.create({
     data: {
       title: 'Menu Principal',
-      message: `Olá! Sou o assistente virtual do PROCON de Jacareí. Como posso te ajudar?
+      message: `Olá! Assistente virtual — {{nome}}. Como posso te ajudar?
 
 📚 Entender um direito: Regras do CDC por temas.
 📋 Documentos: O que levar para abrir uma reclamação.
@@ -380,14 +380,14 @@ Escolha uma opção abaixo ou digite sua dúvida!`,
   const q8Duplicidade = await menu.step.create({
     data: {
       title: 'Questao 8 - Ja abri reclamacao no PROCON',
-      message: 'Se você já registrou uma reclamação no PROCON (online ou presencial), ela já está em andamento: não é preciso nem possível abrir outra sobre o mesmo assunto contra a mesma empresa.\n\n*O que fazer agora:*\n1. Guarde o número do protocolo.\n2. Fique atento ao e-mail e ao telefone que você informou no registro, pois é por eles que costumam chegar os avisos.\n3. Se tiver documentos ou fatos novos, informe usando o mesmo protocolo.\n\nPara saber em que fase está o seu caso, fale com o PROCON de Jacareí pelo telefone/WhatsApp (12) 3955-9130 ou pelo e-mail procon@jacarei.sp.gov.br.',
+      message: 'Se você já registrou uma reclamação no PROCON (online ou presencial), ela já está em andamento: não é preciso nem possível abrir outra sobre o mesmo assunto contra a mesma empresa.\n\n*O que fazer agora:*\n1. Guarde o número do protocolo.\n2. Fique atento ao e-mail e ao telefone que você informou no registro, pois é por eles que costumam chegar os avisos.\n3. Se tiver documentos ou fatos novos, informe usando o mesmo protocolo.\n\nPara saber em que fase está o seu caso, fale com {{nome}} pelo telefone/WhatsApp {{telefone}} ou pelo e-mail {{email}}.',
     },
   });
 
   const q26PrazoResposta = await menu.step.create({
     data: {
       title: 'Questao 26 - Prazos e andamento da reclamacao no PROCON',
-      message: 'Depois que a reclamação é registrada, o caso segue por etapas, cada uma com seu prazo:\n\n1. *Carta à empresa:* o PROCON envia uma Carta de Informações Preliminares (CIP), um aviso formal da sua reclamação. A empresa tem até *10 dias corridos* para responder.\n2. *Sua resposta:* quando a empresa responder (ou o prazo acabar), você será chamado a informar se o problema foi resolvido. Esse retorno também tem prazo curto (até 10 dias corridos), então fique atento aos seus contatos.\n3. *Se não resolver:* o PROCON pode abrir um processo administrativo e marcar uma audiência de conciliação entre você e a empresa.\n\n*Importante:* o tempo total até o fim do caso varia, pois depende da resposta da empresa e da agenda de audiências.\n\nPara saber a situação do seu caso, informe o número do protocolo ao PROCON de Jacareí: telefone/WhatsApp (12) 3955-9130.',
+      message: 'Depois que a reclamação é registrada, o caso segue por etapas, cada uma com seu prazo:\n\n1. *Carta à empresa:* o PROCON envia uma Carta de Informações Preliminares (CIP), um aviso formal da sua reclamação. A empresa tem até *10 dias corridos* para responder.\n2. *Sua resposta:* quando a empresa responder (ou o prazo acabar), você será chamado a informar se o problema foi resolvido. Esse retorno também tem prazo curto (até 10 dias corridos), então fique atento aos seus contatos.\n3. *Se não resolver:* o PROCON pode abrir um processo administrativo e marcar uma audiência de conciliação entre você e a empresa.\n\n*Importante:* o tempo total até o fim do caso varia, pois depende da resposta da empresa e da agenda de audiências.\n\nPara saber a situação do seu caso, informe o número do protocolo à equipe de {{nome}}: telefone/WhatsApp {{telefone}}.',
     },
   });
 

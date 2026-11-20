@@ -7,6 +7,9 @@ import { withMessageSender } from './outgoingContext.js';
 import { queueOutgoing, retryDelay } from './durableMessages.js';
 import { ExternalWorkRequired, withExternalWorkCache } from './externalWork.js';
 import type { ExternalWorkCache } from './externalWork.js';
+import { handoffAllowed } from '../conversation/handoff.js';
+import { isHumanRequest, normalize } from '../../utils/intents/intents.js';
+import { readGeneration, type GenerationSettings } from '../ollama/settings.js';
 
 const LEASE_MS = 60_000;
 const MAX_ATTEMPTS = 5;
@@ -23,7 +26,7 @@ async function phoneLock(phoneLookup: string) {
   return rows[0]?.locked === true;
 }
 export interface DurableInboxOptions {
-  handle: (message: IncomingMessage, hasNewerText: () => Promise<boolean>) => Promise<void>;
+  handle: (message: IncomingMessage, hasNewerText: () => Promise<boolean>, generation: GenerationSettings) => Promise<void>;
   canGroup: (message: IncomingMessage) => Promise<boolean>;
   debounceMs?: number;
 }
@@ -90,6 +93,7 @@ export class DurableInbox {
       if (!claim.first.payload || claim.batch.some(row => !row.payload)) throw new InboxWorkError('MissingPayload');
       const message = JSON.parse(claim.first.payload) as IncomingMessage;
       const combined = claim.batch.length === 1 ? message : { ...message, text: { body: claim.batch.map(row => (JSON.parse(row.payload!) as IncomingMessage).text!.body).join('\n') } };
+      const generation = await readGeneration(rootPrisma);
       // Cada passagem contém somente SQL/cálculo local. Ao encontrar I/O externo,
       // desfaz a preparação, executa fora da transação e reutiliza o resultado.
       // Somente a passagem final persiste estado, eventos, histórico e outbox.
@@ -109,8 +113,9 @@ export class DurableInbox {
               const next = await rootPrisma.messageReceipt.findFirst({ where: { phoneNumber: claim.first.phoneNumber, sequence: { gt: claim.batch.at(-1)!.sequence }, state: 'PENDING' }, orderBy: { sequence: 'asc' } });
               if (!next?.payload) return false;
               const incoming = JSON.parse(next.payload) as IncomingMessage;
+              if (handoffAllowed(incoming.from) && incoming.type === 'text' && isHumanRequest(normalize(incoming.text?.body ?? ''))) return true;
               return canDebounce(incoming) && await this.options.canGroup(incoming);
-            })));
+            }, generation)));
             const finished = await prisma.messageReceipt.updateMany({ where: { id: { in: claim.ids }, state: 'PROCESSING', leaseToken: claim.token, leaseUntil: { gt: new Date() } }, data: { state: 'DONE', payload: null, processedAt: new Date(), lastError: null, leaseToken: null, leaseUntil: null } });
             if (finished.count !== claim.ids.length) throw new LeaseLost();
             return true;

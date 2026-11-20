@@ -4,7 +4,7 @@ import { AuthError, normalizeUsername } from './authService.js';
 import type { PanelRole } from './authService.js';
 import { hashPassword } from './password.js';
 
-const publicFields = { id: true, username: true, role: true, active: true, mustChangePassword: true, createdAt: true, updatedAt: true } as const;
+const publicFields = { id: true, username: true, displayName: true, role: true, active: true, mustChangePassword: true, createdAt: true, updatedAt: true } as const;
 // Mesmo lock no bootstrap e na gestão: protege o último ADMIN entre processos.
 export async function lockPanelUsers(tx: Prisma.TransactionClient) {
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(19781116, 1)::text`;
@@ -33,17 +33,17 @@ export function createPanelUserService(db = prisma) {
         return tx.panelUser.findMany({ select: publicFields, orderBy: [{ username: 'asc' }, { id: 'asc' }] });
       });
     },
-    async create(actorId: string, input: { username: string; password: string; role: PanelRole }) {
+    async create(actorId: string, input: { username: string; password: string; role: PanelRole; displayName?: string | null | undefined }) {
       const passwordHash = await hashPassword(input.password);
       try {
         return await db.$transaction(async tx => {
           await lockPanelUsers(tx);
           await authorized(tx, actorId);
-          return tx.panelUser.create({ data: { username: normalizeUsername(input.username), passwordHash, role: input.role, mustChangePassword: true }, select: publicFields });
+          return tx.panelUser.create({ data: { username: normalizeUsername(input.username), displayName: input.displayName ?? null, passwordHash, role: input.role, mustChangePassword: true }, select: publicFields });
         });
       } catch (error) { return uniqueError(error); }
     },
-    async update(actorId: string, id: string, input: { username?: string | undefined; role?: PanelRole | undefined; active?: boolean | undefined }) {
+    async update(actorId: string, id: string, input: { username?: string | undefined; role?: PanelRole | undefined; active?: boolean | undefined; displayName?: string | null | undefined }) {
       try {
         return await db.$transaction(async tx => {
           await lockPanelUsers(tx);
@@ -54,7 +54,7 @@ export function createPanelUserService(db = prisma) {
           if (target.active && target.role === 'ADMIN' && (!next.active || next.role !== 'ADMIN') && await tx.panelUser.count({ where: { active: true, role: 'ADMIN' } }) <= 1) {
             throw new AuthError(409, 'É necessário manter pelo menos um administrador ativo.');
           }
-          const updated = await tx.panelUser.update({ where: { id }, data: next, select: publicFields });
+          const updated = await tx.panelUser.update({ where: { id }, data: { ...next, displayName: input.displayName === undefined ? target.displayName : input.displayName }, select: publicFields });
           if (next.username !== target.username || next.role !== target.role || next.active !== target.active) await tx.panelSession.deleteMany({ where: { userId: id } });
           return updated;
         });
